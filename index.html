@@ -2455,6 +2455,9 @@ function loadState() {
   const baseIds = new Set(state.menuItems.filter(i=>!i.userAdded).map(i=>i.name+'|'+i.month+'|'+i.cat));
   for (const item of MENU_ITEMS_BASE) {
     if (!item || !item.name) continue;
+    // Check if user has a saved version of this item (by name)
+    const userHasEdited = state.menuItems.some(i => i.name === item.name && (i.userAdded || i.userEdited));
+    if (userHasEdited) continue; // keep user's version
     const id = item.name+'|'+item.month+'|'+item.cat;
     if (!baseIds.has(id)) state.menuItems.push({...item, userAdded:false});
   }
@@ -2464,7 +2467,7 @@ function saveState() {
   const toSave = {
     sheets: state.sheets,
     activeSheetId: state.activeSheetId,
-    menuItems: state.menuItems.filter(i=>i.userAdded),
+    menuItems: state.menuItems.filter(i=>i.userAdded || i.userEdited),
     importantDates: state.importantDates,
   };
   // Always save to localStorage as instant offline backup
@@ -2776,7 +2779,7 @@ function renderCellActivities(activities) {
     return `<div class="cell-activities"><span class="cell-empty-hint">—</span></div><span class="edit-hint">✎</span>`;
   }
   const items = activities.map((a, i) => {
-    const hasLink = a.link && a.link.trim();
+    const hasLink = a.link && a.link.trim() && a.link.trim().startsWith('http');
     const nameEsc = escHtml(a.text).replace(/'/g, '&#39;');
     return `<div class="cell-activity ${hasLink?'has-link':''}">
       ${hasLink?'<span class="activity-link-dot" title="Has link"></span>':''}
@@ -3227,6 +3230,7 @@ function saveDetailPanel() {
     link: document.getElementById('dpLinkInput').value.trim(),
     notes: document.getElementById('dpNotesInput').value.trim(),
     resources: document.getElementById('dpResourcesInput').value.trim(),
+    userEdited: true,  // mark as user-modified so it gets saved
   };
 
   // Update header display
