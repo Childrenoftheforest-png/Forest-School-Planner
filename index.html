@@ -2820,11 +2820,12 @@ function openCellModal(date, rowKey, rowLabel, rowIcon) {
   document.getElementById('cellModalDate').textContent = date;
   renderCurrentActivities();
   document.getElementById('freeTextInput').value = '';
-  pickerActiveCat = '__reset__'; // reset to row default on open
+  document.getElementById('pickerSearch').value = '';
   document.getElementById('obsTextarea').value = (getActiveSheet().sessions[date]||{})['_notes']||'';
+  pickerActiveCat = '__reset__'; // triggers initPickerTabs to set row default
+  initPickerTabs(rowKey);
   filterPicker();
   document.getElementById('cellModal').classList.add('open');
-  document.getElementById('pickerSearch').value = '';
   document.getElementById('pickerSearch').focus();
 }
 
@@ -2951,8 +2952,9 @@ function filterPicker() {
   let relevant = state.menuItems.filter(item => {
     if (!item || !item.name) return false;
     if (q && !item.name.toLowerCase().includes(q) && !(item.notes||'').toLowerCase().includes(q)) return false;
-    if (pickerActiveCat && pickerActiveCat !== 'all') {
-      if (item.cat !== pickerActiveCat) return false;
+    const activeCat = (pickerActiveCat === '__reset__') ? null : pickerActiveCat;
+    if (activeCat && activeCat !== 'all') {
+      if (item.cat !== activeCat) return false;
     }
     return true;
   });
