@@ -1633,7 +1633,7 @@ body {
   </div>
 
   <div class="detail-panel-footer">
-    <button class="btn-danger" id="dpDeleteBtn" style="display:none;" onclick="deleteActivityFromPanel()">🗑 Delete</button>
+    <button class="btn-danger" id="dpDeleteBtn" onclick="deleteActivityFromPanel()">🗑 Delete</button>
     <span class="detail-unsaved-dot" id="dpUnsavedDot" title="Unsaved changes"></span>
     <button class="btn-secondary" onclick="closeDetailPanel()">Cancel</button>
     <button class="btn-primary" onclick="saveDetailPanel()">Save Changes</button>
@@ -1849,6 +1849,7 @@ const ROW_DEFS = [
 
 const CATEGORIES = [
   {id:"games",     label:"Wide Games",           emoji:"🦊", color:"#5c3d2e", bg:"#fdf3e7", accent:"#c0703a"},
+  {id:"general",   label:"Games",                emoji:"🎮", color:"#1a2a4a", bg:"#eef0fa", accent:"#3a5aaa"},
   {id:"bushcraft", label:"Bushcraft & Skills",   emoji:"🔥", color:"#3b2a1a", bg:"#fef8ef", accent:"#8b4513"},
   {id:"crafts",    label:"Craft Projects",        emoji:"🌿", color:"#2d4a22", bg:"#f1f8ee", accent:"#4a7c3f"},
   {id:"recipes",   label:"Recipes & Cooking",     emoji:"🍞", color:"#3d2b00", bg:"#fdf7ed", accent:"#b8860b"},
@@ -2952,7 +2953,7 @@ function filterPicker() {
   const monthIdx = monthOrder.indexOf(sessionMonth);
 
   // Filter by search and active category tab
-  let relevant = state.menuItems.filter(item => {
+  let relevant = state.menuItems.filter(item => { if (item.hidden) return false;
     if (!item || !item.name) return false;
     if (q && !item.name.toLowerCase().includes(q) && !(item.notes||'').toLowerCase().includes(q)) return false;
     const activeCat = (pickerActiveCat === '__reset__') ? null : pickerActiveCat;
@@ -3013,7 +3014,7 @@ function renderMenu() {
 
   for (const cat of CATEGORIES) {
     if (catF !== 'all' && catF !== cat.id) continue;
-    let items = state.menuItems.filter(item => item.cat === cat.id);
+    let items = state.menuItems.filter(item => item.cat === cat.id && !item.hidden);
     if (q) items = items.filter(item => item && item.name && (item.name.toLowerCase().includes(q) || (item.notes||'').toLowerCase().includes(q)));
     if (items.length === 0) continue;
 
@@ -3162,7 +3163,7 @@ function openDetailPanel(name, catId) {
   document.getElementById('dpName').textContent = item.name;
   document.getElementById('dpCatLabel').textContent = cat.label;
   document.getElementById('dpUserTag').style.display = item.userAdded ? '' : 'none';
-  document.getElementById('dpDeleteBtn').style.display = item.userAdded ? '' : 'none';
+  document.getElementById('dpDeleteBtn').style.display = ''; // always show delete
 
   // Month tag
   const mt = document.getElementById('dpMonthTag');
@@ -3254,8 +3255,16 @@ function saveDetailPanel() {
 function deleteActivityFromPanel() {
   const idx = detailPanelState.itemIndex;
   if (idx < 0) return;
-  if (!confirm(`Delete "${state.menuItems[idx].name}" from the menu? This cannot be undone.`)) return;
-  state.menuItems.splice(idx, 1);
+  const item = state.menuItems[idx];
+  if (!item) return;
+  if (!confirm(`Remove "${item.name}" from the Activity Menu?`)) return;
+  if (item.userAdded || item.userEdited) {
+    // User-created or edited item — remove entirely
+    state.menuItems.splice(idx, 1);
+  } else {
+    // Base item — mark as hidden so it won't appear in menu or picker
+    state.menuItems[idx] = { ...item, hidden: true, userEdited: true };
+  }
   saveState();
   renderCatFilters();
   if (document.getElementById('menuView').classList.contains('visible')) renderMenu();
