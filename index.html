@@ -1504,6 +1504,7 @@ body {
 
     <div class="activity-picker">
       <input type="text" class="activity-picker-search" id="pickerSearch" placeholder="Search menu…" oninput="filterPicker()">
+      <div id="pickerCatTabs" style="display:flex;flex-wrap:wrap;gap:0.3rem;margin-bottom:0.4rem;"></div>
       <div class="activity-picker-list" id="pickerList"></div>
     </div>
 
@@ -2819,6 +2820,7 @@ function openCellModal(date, rowKey, rowLabel, rowIcon) {
   document.getElementById('cellModalDate').textContent = date;
   renderCurrentActivities();
   document.getElementById('freeTextInput').value = '';
+  pickerActiveCat = '__reset__'; // reset to row default on open
   document.getElementById('obsTextarea').value = (getActiveSheet().sessions[date]||{})['_notes']||'';
   filterPicker();
   document.getElementById('cellModal').classList.add('open');
@@ -2886,14 +2888,86 @@ function saveCellModal() {
   closeCellModal();
 }
 
+// Map row keys to their default menu category
+const ROW_TO_CAT = {
+  'Wide Game': 'games',
+  'Active Bushcraft Activity / Role Playing Activity': 'bushcraft',
+  'Low Energy Craft': 'crafts',
+  'Nature-Based Activity / Woodland Management Task': 'woodland',
+  'Cooking Activity': 'recipes',
+  'Afternoon Tea Club': 'tea',
+  'Planning & Singing': 'songs',
+  'Long Term Project': 'crafts',
+  'Camp Improvement / Decoration Activity': 'woodland',
+  'Afternoon Activity': 'games',
+};
+
+let pickerActiveCat = null; // null = use row default
+
+function initPickerTabs(rowKey) {
+  const tabsEl = document.getElementById('pickerCatTabs');
+  tabsEl.innerHTML = '';
+  // Determine default cat from row key
+  const defaultCat = ROW_TO_CAT[rowKey] || null;
+  // Set active cat on first open
+  if (pickerActiveCat === '__reset__') {
+    pickerActiveCat = defaultCat;
+  }
+  // Build tabs: "Suggested" (row default) + all other categories
+  const tabs = [];
+  if (defaultCat) {
+    const defCatObj = CATEGORIES.find(c => c.id === defaultCat);
+    if (defCatObj) tabs.push({ id: defaultCat, label: defCatObj.emoji + ' ' + defCatObj.label + ' ✓', suggested: true });
+  }
+  for (const cat of CATEGORIES) {
+    if (cat.id !== defaultCat) tabs.push({ id: cat.id, label: cat.emoji + ' ' + cat.label });
+  }
+  // "All" tab
+  tabs.unshift({ id: 'all', label: '🗓 All' });
+
+  for (const tab of tabs) {
+    const btn = document.createElement('button');
+    btn.className = 'picker-cat-tab' + (pickerActiveCat === tab.id ? ' active' : '');
+    btn.textContent = tab.label;
+    btn.onclick = () => {
+      pickerActiveCat = tab.id;
+      document.querySelectorAll('.picker-cat-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filterPicker();
+    };
+    tabsEl.appendChild(btn);
+  }
+}
+
 function filterPicker() {
   const q = (document.getElementById('pickerSearch').value||'').toLowerCase();
   const {rowKey} = cellModalState;
   const list = document.getElementById('pickerList');
-  const relevant = state.menuItems.filter(item => {
-    if (q && !item.name.toLowerCase().includes(q)) return false;
+  const sessionMonth = cellModalState.date ? cellModalState.date.split('-')[1] : 'Sep';
+  const monthOrder = ['Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
+  const monthIdx = monthOrder.indexOf(sessionMonth);
+
+  // Filter by search and active category tab
+  let relevant = state.menuItems.filter(item => {
+    if (!item || !item.name) return false;
+    if (q && !item.name.toLowerCase().includes(q) && !(item.notes||'').toLowerCase().includes(q)) return false;
+    if (pickerActiveCat && pickerActiveCat !== 'all') {
+      if (item.cat !== pickerActiveCat) return false;
+    }
     return true;
-  }).slice(0, 60);
+  });
+
+  // Sort by month proximity
+  relevant.sort((a, b) => {
+    const ai = monthOrder.indexOf(a.month);
+    const bi = monthOrder.indexOf(b.month);
+    const aDist = (ai - monthIdx + 12) % 12;
+    const bDist = (bi - monthIdx + 12) % 12;
+    return aDist - bDist;
+  });
+
+  relevant = relevant.slice(0, 80);
+
   list.innerHTML = '';
   if (relevant.length === 0) {
     list.innerHTML = '<div style="padding:0.5rem 0.65rem;font-size:0.78rem;font-style:italic;color:#aaa;">No matches</div>';
@@ -2917,6 +2991,7 @@ function addFromPicker(item) {
   sheet.sessions[date][rowKey].push({text: item.name, link: item.link||''});
   renderCurrentActivities();
   document.getElementById('pickerSearch').value = '';
+  initPickerTabs(rowKey);
   filterPicker();
 }
 
