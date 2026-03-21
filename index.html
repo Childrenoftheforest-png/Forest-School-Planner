@@ -1355,6 +1355,33 @@ body {
   cursor: pointer; transition: all 0.14s;
 }
 .res-copy-btn:hover { background: rgba(107,66,38,0.08); }
+
+/* --- UPCOMING VIEW --- */
+.upcoming-view { display: none; }
+.upcoming-view.visible { display: block; padding-bottom: 2rem; }
+.upcoming-header { margin-bottom: 1.6rem; }
+.upcoming-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--moss); margin-bottom: 0.25rem; }
+.upcoming-subtitle { font-family: 'Lora', serif; font-style: italic; font-size: 0.85rem; color: var(--bark-light); }
+.upcoming-empty { font-family: 'Lora', serif; font-style: italic; color: var(--bark-light); font-size: 0.92rem; padding: 3rem 0; text-align: center; }
+.upcoming-sheet-name { font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--moss); margin: 1.4rem 0 0.8rem; padding-bottom: 0.4rem; border-bottom: 2px solid rgba(61,90,46,0.15); }
+.upcoming-session { background: #fff; border-radius: 12px; border: 1.5px solid rgba(107,66,38,0.12); margin-bottom: 1.1rem; overflow: hidden; box-shadow: 0 2px 8px rgba(30,26,20,0.06); }
+.upcoming-session-header { display: flex; align-items: center; gap: 0.8rem; padding: 0.8rem 1.1rem; background: var(--parchment-mid); border-bottom: 1px solid rgba(107,66,38,0.1); }
+.upcoming-day-badge { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 700; color: var(--moss); line-height: 1; min-width: 2.2rem; text-align: center; }
+.upcoming-day-info { flex: 1; }
+.upcoming-day-name { font-family: 'Lora', serif; font-size: 0.92rem; font-weight: 600; color: var(--ink); }
+.upcoming-day-date { font-family: 'EB Garamond', serif; font-size: 0.78rem; font-style: italic; color: var(--bark-light); }
+.upcoming-today-badge { font-family: 'Lora', serif; font-size: 0.65rem; font-weight: 700; background: var(--moss); color: #fff; padding: 0.18rem 0.6rem; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+.upcoming-tomorrow-badge { font-family: 'Lora', serif; font-size: 0.65rem; font-weight: 700; background: var(--gold); color: #fff; padding: 0.18rem 0.6rem; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+.upcoming-day-list-btn { font-family: 'Lora', serif; font-size: 0.72rem; padding: 0.3rem 0.75rem; border-radius: 7px; border: 1.5px solid rgba(107,66,38,0.22); background: var(--parchment); color: var(--bark); cursor: pointer; transition: all 0.13s; white-space: nowrap; flex-shrink: 0; }
+.upcoming-day-list-btn:hover { background: var(--moss); color: #fff; border-color: var(--moss); }
+.upcoming-ribbon { display: flex; flex-wrap: wrap; gap: 0.3rem; padding: 0.4rem 1.1rem; background: var(--parchment-mid); border-bottom: 1px solid rgba(107,66,38,0.08); }
+.upcoming-session-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.upcoming-row { padding: 0.6rem 1.1rem; border-bottom: 1px solid rgba(107,66,38,0.07); border-right: 1px solid rgba(107,66,38,0.07); }
+.upcoming-row:nth-child(even) { border-right: none; }
+.upcoming-row-label { font-family: 'Lora', serif; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--bark-light); margin-bottom: 0.25rem; }
+.upcoming-activity { font-family: 'EB Garamond', serif; font-size: 0.9rem; color: var(--ink); cursor: pointer; display: block; line-height: 1.4; }
+.upcoming-activity:hover { text-decoration: underline; text-decoration-color: var(--moss-light); text-underline-offset: 2px; }
+.upcoming-empty-row { font-family: 'Lora', serif; font-style: italic; font-size: 0.75rem; color: rgba(107,66,38,0.3); }
 </style>
 
   <!-- Firebase SDK -->
@@ -6706,26 +6733,32 @@ function dateToSessionKey(date) {
 
 function renderUpcomingView() {
   const content = document.getElementById('upcomingContent');
+  content.innerHTML = '';
   const { monday, friday, today } = getUpcomingWeekRange();
   const MONTH_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-
   const dow = today.getDay();
   const isNextWeek = dow === 6 || dow === 0;
   const weekLabel = monday.getDate() + ' ' + MONTH_FULL[monday.getMonth()] +
-    ' – ' + friday.getDate() + ' ' + MONTH_FULL[friday.getMonth()] + ' ' + friday.getFullYear();
+    ' - ' + friday.getDate() + ' ' + MONTH_FULL[friday.getMonth()] + ' ' + friday.getFullYear();
 
-  // Build Mon–Fri date list
+  const hdr = document.createElement('div');
+  hdr.className = 'upcoming-header';
+  const titleEl = document.createElement('div');
+  titleEl.className = 'upcoming-title';
+  titleEl.textContent = (isNextWeek ? 'Next Week' : 'This Week');
+  const subtitleEl = document.createElement('div');
+  subtitleEl.className = 'upcoming-subtitle';
+  subtitleEl.textContent = weekLabel;
+  hdr.appendChild(titleEl);
+  hdr.appendChild(subtitleEl);
+  content.appendChild(hdr);
+
   const weekDays = [];
   for (let i = 0; i < 5; i++) {
     const d = new Date(monday); d.setDate(monday.getDate() + i);
     weekDays.push(d);
   }
-
-  let html = '<div class="upcoming-header">' +
-    '<div class="upcoming-title">📆 ' + (isNextWeek ? 'Next Week' : 'This Week') + '</div>' +
-    '<div class="upcoming-subtitle">' + weekLabel + '</div>' +
-    '</div>';
 
   let anyFound = false;
 
@@ -6740,71 +6773,124 @@ function renderUpcomingView() {
     if (weekSessions.length === 0) continue;
     anyFound = true;
 
-    html += '<div class="upcoming-sheet"><div class="upcoming-sheet-name">🌿 ' + escHtml(sheet.name) + '</div>';
+    const sheetDiv = document.createElement('div');
+    const sheetTitle = document.createElement('div');
+    sheetTitle.className = 'upcoming-sheet-name';
+    sheetTitle.textContent = sheet.name;
+    sheetDiv.appendChild(sheetTitle);
 
     for (const { date, key, data } of weekSessions) {
       const isToday = date.toDateString() === today.toDateString();
       const tom = new Date(today); tom.setDate(today.getDate() + 1);
       const isTomorrow = date.toDateString() === tom.toDateString();
 
-      // Important date ribbons
+      const card = document.createElement('div');
+      card.className = 'upcoming-session';
+
+      const cardHdr = document.createElement('div');
+      cardHdr.className = 'upcoming-session-header';
+
+      const badge = document.createElement('div');
+      badge.className = 'upcoming-day-badge';
+      badge.textContent = date.getDate();
+
+      const info = document.createElement('div');
+      info.className = 'upcoming-day-info';
+      const dayName = document.createElement('div');
+      dayName.className = 'upcoming-day-name';
+      dayName.textContent = DAY_NAMES[date.getDay()];
+      const dayDate = document.createElement('div');
+      dayDate.className = 'upcoming-day-date';
+      dayDate.textContent = date.getDate() + ' ' + MONTH_FULL[date.getMonth()];
+      info.appendChild(dayName);
+      info.appendChild(dayDate);
+
+      cardHdr.appendChild(badge);
+      cardHdr.appendChild(info);
+
+      if (isToday) {
+        const t = document.createElement('span');
+        t.className = 'upcoming-today-badge';
+        t.textContent = 'Today';
+        cardHdr.appendChild(t);
+      } else if (isTomorrow) {
+        const t = document.createElement('span');
+        t.className = 'upcoming-tomorrow-badge';
+        t.textContent = 'Tomorrow';
+        cardHdr.appendChild(t);
+      }
+
+      const dlBtn = document.createElement('button');
+      dlBtn.className = 'upcoming-day-list-btn';
+      dlBtn.textContent = 'Day list';
+      dlBtn.onclick = () => openUpcomingDayList(sheet.id, key);
+      cardHdr.appendChild(dlBtn);
+      card.appendChild(cardHdr);
+
       const allKeys = weekDays.map(d => dateToSessionKey(d));
       const ribbons = state.importantDates.filter(id => {
         const best = findNearestSession(id, allKeys, key.split('-')[1]);
         return best === key;
       });
-
-      html += '<div class="upcoming-session">';
-      html += '<div class="upcoming-session-header">';
-      html += '<div class="upcoming-day-badge">' + date.getDate() + '</div>';
-      html += '<div class="upcoming-day-info"><div class="upcoming-day-name">' + DAY_NAMES[date.getDay()] + '</div>';
-      html += '<div class="upcoming-day-date">' + date.getDate() + ' ' + MONTH_FULL[date.getMonth()] + '</div></div>';
-      if (isToday) html += '<span class="upcoming-today-badge">Today</span>';
-      else if (isTomorrow) html += '<span class="upcoming-tomorrow-badge">Tomorrow</span>';
-
-      // Day list button — store sheet id and date key, look up sheet at click time
-      const sheetId = sheet.id;
-      html += '<button class="upcoming-day-list-btn" onclick="openUpcomingDayList(' +
-        JSON.stringify(sheetId) + ',' + JSON.stringify(key) + ')">📋 Day list</button>';
-      html += '</div>';
-
       if (ribbons.length > 0) {
-        html += '<div class="upcoming-ribbon">';
+        const ribbonRow = document.createElement('div');
+        ribbonRow.className = 'upcoming-ribbon';
         for (const d of ribbons) {
-          html += '<span class="ribbon-tag ' + d.type + '">' + typeIcon(d.type) + ' ' + escHtml(d.name) + '</span>';
+          const tag = document.createElement('span');
+          tag.className = 'ribbon-tag ' + d.type;
+          tag.textContent = typeIcon(d.type) + ' ' + d.name;
+          ribbonRow.appendChild(tag);
         }
-        html += '</div>';
+        card.appendChild(ribbonRow);
       }
 
-      // Session body — rows grid
-      const rows = (sheet.rowDefs || []).filter(r =>
-        r.key !== '_notes' && !r.key.toLowerCase().includes('morning') && !r.key.toLowerCase().includes('circle question'));
+      const body = document.createElement('div');
+      body.className = 'upcoming-session-body';
 
-      html += '<div class="upcoming-session-body">';
+      const rows = (sheet.rowDefs || []).filter(r =>
+        r.key !== '_notes' &&
+        !r.key.toLowerCase().includes('morning') &&
+        !r.key.toLowerCase().includes('circle question'));
+
       for (const row of rows) {
         const activities = data[row.key] || [];
-        html += '<div class="upcoming-row">';
-        html += '<div class="upcoming-row-label">' + (row.icon || '') + ' ' + escHtml(row.label) + '</div>';
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'upcoming-row';
+
+        const lbl = document.createElement('div');
+        lbl.className = 'upcoming-row-label';
+        lbl.textContent = (row.icon || '') + ' ' + row.label;
+        rowDiv.appendChild(lbl);
+
         if (activities.length === 0) {
-          html += '<span class="upcoming-empty-row">—</span>';
+          const em = document.createElement('span');
+          em.className = 'upcoming-empty-row';
+          em.textContent = '--';
+          rowDiv.appendChild(em);
         } else {
           for (const act of activities) {
-            const ne = escHtml(act.text).replace(/'/g, "&#39;");
-            html += '<span class="upcoming-activity" onclick="openDetailPanel(' + JSON.stringify(act.text) + ')" title="View details">' + escHtml(act.text) + '</span>';
+            const a = document.createElement('span');
+            a.className = 'upcoming-activity';
+            a.textContent = act.text;
+            a.title = 'View details';
+            a.onclick = () => openDetailPanel(act.text);
+            rowDiv.appendChild(a);
           }
         }
-        html += '</div>';
+        body.appendChild(rowDiv);
       }
-      html += '</div></div>';
+      card.appendChild(body);
+      sheetDiv.appendChild(card);
     }
-    html += '</div>';
+    content.appendChild(sheetDiv);
   }
 
   if (!anyFound) {
-    html += '<div class="upcoming-empty">🌿 No sessions planned for ' + (isNextWeek ? 'next' : 'this') + ' week.</div>';
+    const em = document.createElement('div');
+    em.className = 'upcoming-empty';
+    em.textContent = 'No sessions planned for ' + (isNextWeek ? 'next' : 'this') + ' week.';
+    content.appendChild(em);
   }
-
-  content.innerHTML = html;
 }
 
 function openUpcomingDayList(sheetId, dateKey) {
