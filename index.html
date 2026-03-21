@@ -1380,6 +1380,7 @@ body {
       <button class="header-tab" onclick="showView('planner')" data-view="planner">📅 Sessions</button>
       <button class="header-tab" onclick="showView('menu')" data-view="menu">🌱 Activity Menu</button>
       <button class="header-tab" onclick="showView('calendar')" data-view="calendar">🗓 Calendar</button>
+      <button class="header-tab" onclick="showView('upcoming')" data-view="upcoming">📆 This Week</button>
     </div>
   </header>
 
@@ -1430,6 +1431,11 @@ body {
         <button class="cal-type-btn" data-type="custom" onclick="setCalFilter('custom',this)">⭐ Custom</button>
       </div>
       <div class="cal-dates-grid" id="calDatesGrid"></div>
+    </div>
+
+    <!-- UPCOMING VIEW -->
+    <div class="upcoming-view" id="upcomingView">
+      <div id="upcomingContent"></div>
     </div>
 
   </main>
@@ -2488,6 +2494,7 @@ function showView(v) {
   document.getElementById('plannerView').classList.toggle('visible', v==='planner');
   document.getElementById('menuView').classList.toggle('visible', v==='menu');
   document.getElementById('calendarView').classList.toggle('visible', v==='calendar');
+  document.getElementById('upcomingView').classList.toggle('visible', v==='upcoming');
   document.querySelectorAll('[data-view]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.view === v);
   });
@@ -2495,6 +2502,7 @@ function showView(v) {
   document.getElementById('catFilterSection').style.display = v==='menu'?'':'none';
   if (v==='menu') renderMenu();
   if (v==='calendar') renderCalendarView();
+  if (v==='upcoming') renderUpcomingView();
 }
 
 // ─── SHEET TABS ───
