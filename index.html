@@ -1382,6 +1382,507 @@ body {
 .upcoming-activity { font-family: 'EB Garamond', serif; font-size: 0.9rem; color: var(--ink); cursor: pointer; display: block; line-height: 1.4; }
 .upcoming-activity:hover { text-decoration: underline; text-decoration-color: var(--moss-light); text-underline-offset: 2px; }
 .upcoming-empty-row { font-family: 'Lora', serif; font-style: italic; font-size: 0.75rem; color: rgba(107,66,38,0.3); }
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE VIEW (screens under 768px)
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Hide desktop shell entirely */
+  .app-shell { display: none !important; }
+  .res-panel, .detail-panel, .cal-edit-panel,
+  .detail-backdrop, .res-panel-overlay, .cal-edit-overlay { display: none !important; }
+}
+
+/* Mobile shell — hidden on desktop */
+#mobileShell { display: none; }
+
+@media (max-width: 768px) {
+  #mobileShell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    background: var(--parchment);
+    overflow: hidden;
+    position: fixed;
+    inset: 0;
+  }
+
+  /* ── Mobile Header ── */
+  .m-header {
+    background: var(--moss);
+    color: #fff;
+    padding: 0.7rem 1rem 0.6rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .m-header-logo { font-size: 1.1rem; }
+  .m-header-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    flex: 1;
+  }
+  .m-header-sheet {
+    font-family: 'Lora', serif;
+    font-size: 0.68rem;
+    font-style: italic;
+    opacity: 0.75;
+    display: block;
+  }
+  .m-save-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .m-save-dot.saving { background: var(--gold-light); }
+  .m-save-dot.saved { background: #7ddd7d; }
+
+  /* ── Main Content Area ── */
+  .m-content {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── Views (full-screen pages) ── */
+  .m-view {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0, 0.15, 1);
+    background: var(--parchment);
+  }
+  .m-view.active { transform: translateX(0); }
+  .m-view.prev { transform: translateX(-100%); }
+
+  /* ── Session View ── */
+  .m-session-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8rem 1rem 0.4rem;
+    background: var(--parchment-mid);
+    border-bottom: 1px solid rgba(107,66,38,0.1);
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .m-nav-btn {
+    font-family: 'Lora', serif;
+    font-size: 0.78rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 20px;
+    border: 1.5px solid rgba(107,66,38,0.25);
+    background: #fff;
+    color: var(--bark);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .m-nav-btn:hover { background: var(--moss); color: #fff; border-color: var(--moss); }
+  .m-nav-btn:disabled { opacity: 0.3; cursor: default; }
+  .m-session-label {
+    text-align: center;
+    flex: 1;
+    padding: 0 0.5rem;
+  }
+  .m-session-day {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--moss);
+    display: block;
+  }
+  .m-session-date {
+    font-family: 'Lora', serif;
+    font-size: 0.72rem;
+    font-style: italic;
+    color: var(--bark-light);
+    display: block;
+  }
+  .m-today-badge {
+    display: inline-block;
+    font-family: 'Lora', serif;
+    font-size: 0.6rem;
+    font-weight: 700;
+    background: var(--moss);
+    color: #fff;
+    padding: 0.1rem 0.45rem;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.15rem;
+  }
+
+  /* Session ribbon (events) */
+  .m-session-ribbon {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    padding: 0.5rem 1rem;
+    background: var(--parchment-mid);
+    border-bottom: 1px solid rgba(107,66,38,0.08);
+  }
+
+  /* Activity rows */
+  .m-activity-row {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(107,66,38,0.08);
+    cursor: pointer;
+    transition: background 0.12s;
+    active-state: scale(0.98);
+  }
+  .m-activity-row:active { background: rgba(61,90,46,0.06); }
+  .m-row-label {
+    font-family: 'Lora', serif;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--bark-light);
+    margin-bottom: 0.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .m-activity-name {
+    font-family: 'EB Garamond', serif;
+    font-size: 1.05rem;
+    color: var(--ink);
+    line-height: 1.3;
+    display: block;
+  }
+  .m-activity-name + .m-activity-name { margin-top: 0.2rem; }
+  .m-empty-slot {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: 0.82rem;
+    color: rgba(107,66,38,0.3);
+  }
+  .m-has-resources {
+    font-size: 0.6rem;
+    color: var(--water);
+    margin-left: 0.3rem;
+  }
+  .m-day-list-btn {
+    display: block;
+    width: calc(100% - 2rem);
+    margin: 0.8rem 1rem;
+    font-family: 'Lora', serif;
+    font-size: 0.82rem;
+    padding: 0.65rem;
+    border-radius: 10px;
+    border: 1.5px solid rgba(107,66,38,0.2);
+    background: var(--parchment-mid);
+    color: var(--bark);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .m-day-list-btn:hover { background: var(--moss); color: #fff; border-color: var(--moss); }
+
+  /* ── Week View ── */
+  .m-week-header {
+    padding: 0.9rem 1rem 0.5rem;
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    color: var(--moss);
+    border-bottom: 1px solid rgba(107,66,38,0.1);
+    position: sticky;
+    top: 0;
+    background: var(--parchment);
+    z-index: 10;
+  }
+  .m-week-subtitle {
+    font-family: 'Lora', serif;
+    font-size: 0.72rem;
+    font-style: italic;
+    color: var(--bark-light);
+    font-weight: 400;
+    display: block;
+    margin-top: 0.1rem;
+  }
+  .m-week-day-card {
+    margin: 0.7rem 1rem;
+    background: #fff;
+    border-radius: 10px;
+    border: 1.5px solid rgba(107,66,38,0.12);
+    overflow: hidden;
+    cursor: pointer;
+    transition: box-shadow 0.15s;
+  }
+  .m-week-day-card:active { box-shadow: 0 2px 12px rgba(61,90,46,0.15); }
+  .m-week-day-header {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.7rem 0.9rem;
+    background: var(--parchment-mid);
+    border-bottom: 1px solid rgba(107,66,38,0.08);
+  }
+  .m-week-day-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--moss);
+    line-height: 1;
+    min-width: 1.8rem;
+  }
+  .m-week-day-info { flex: 1; }
+  .m-week-day-name {
+    font-family: 'Lora', serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .m-week-day-date {
+    font-family: 'EB Garamond', serif;
+    font-size: 0.75rem;
+    font-style: italic;
+    color: var(--bark-light);
+  }
+  .m-week-day-preview {
+    padding: 0.5rem 0.9rem 0.6rem;
+    font-family: 'EB Garamond', serif;
+    font-size: 0.88rem;
+    color: var(--bark-light);
+    font-style: italic;
+  }
+  .m-week-no-session {
+    margin: 0.7rem 1rem;
+    padding: 0.7rem 0.9rem;
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: 0.82rem;
+    color: rgba(107,66,38,0.4);
+    text-align: center;
+  }
+
+  /* ── Menu View (mobile) ── */
+  .m-menu-search-bar {
+    padding: 0.7rem 1rem;
+    position: sticky;
+    top: 0;
+    background: var(--parchment);
+    z-index: 10;
+    border-bottom: 1px solid rgba(107,66,38,0.1);
+  }
+  .m-menu-search {
+    width: 100%;
+    font-family: 'Lora', serif;
+    font-size: 0.9rem;
+    padding: 0.55rem 0.9rem;
+    border: 1.5px solid rgba(107,66,38,0.25);
+    border-radius: 10px;
+    background: #fff;
+    outline: none;
+  }
+  .m-menu-cat-tabs {
+    display: flex;
+    overflow-x: auto;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid rgba(107,66,38,0.08);
+    scrollbar-width: none;
+  }
+  .m-menu-cat-tabs::-webkit-scrollbar { display: none; }
+  .m-cat-tab {
+    font-family: 'Lora', serif;
+    font-size: 0.72rem;
+    padding: 0.28rem 0.65rem;
+    border-radius: 16px;
+    border: 1.5px solid rgba(107,66,38,0.2);
+    background: transparent;
+    color: var(--bark);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.13s;
+    flex-shrink: 0;
+  }
+  .m-cat-tab.active { background: var(--moss); color: #fff; border-color: var(--moss); }
+  .m-menu-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid rgba(107,66,38,0.07);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .m-menu-item:active { background: rgba(61,90,46,0.06); }
+  .m-menu-item-month {
+    font-family: 'Lora', serif;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 0.25rem;
+  }
+  .m-menu-item-name {
+    font-family: 'EB Garamond', serif;
+    font-size: 1rem;
+    color: var(--ink);
+    flex: 1;
+  }
+  .m-menu-item-cat {
+    font-family: 'Lora', serif;
+    font-size: 0.65rem;
+    color: var(--bark-light);
+    font-style: italic;
+  }
+  .m-menu-has-res {
+    font-size: 0.65rem;
+    color: var(--water);
+  }
+
+  /* ── Slide-up detail panel (mobile) ── */
+  .m-panel-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(30,26,20,0.45);
+    z-index: 400;
+  }
+  .m-panel-backdrop.open { display: block; }
+  .m-panel {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--parchment);
+    border-radius: 18px 18px 0 0;
+    z-index: 401;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 0.32s cubic-bezier(0.32,0,0.15,1);
+    box-shadow: 0 -8px 40px rgba(30,26,20,0.2);
+  }
+  .m-panel.open { transform: translateY(0); }
+  .m-panel-handle {
+    width: 40px; height: 4px;
+    background: rgba(107,66,38,0.2);
+    border-radius: 2px;
+    margin: 0.7rem auto 0.3rem;
+    flex-shrink: 0;
+  }
+  .m-panel-header {
+    padding: 0.3rem 1.1rem 0.8rem;
+    border-bottom: 1px solid rgba(107,66,38,0.1);
+    flex-shrink: 0;
+  }
+  .m-panel-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--ink);
+    margin-bottom: 0.2rem;
+  }
+  .m-panel-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+  .m-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.9rem 1.1rem;
+    -webkit-overflow-scrolling: touch;
+  }
+  .m-panel-section { margin-bottom: 1rem; }
+  .m-panel-section-label {
+    font-family: 'Lora', serif;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--bark);
+    margin-bottom: 0.35rem;
+  }
+  .m-panel-text {
+    font-family: 'EB Garamond', serif;
+    font-size: 0.95rem;
+    color: var(--ink);
+    line-height: 1.55;
+    white-space: pre-wrap;
+  }
+  .m-panel-resources {
+    font-family: 'EB Garamond', serif;
+    font-size: 0.9rem;
+    color: var(--ink);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    background: rgba(74,120,144,0.06);
+    border-left: 3px solid rgba(74,120,144,0.3);
+    padding: 0.5rem 0.7rem;
+    border-radius: 0 6px 6px 0;
+  }
+  .m-panel-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-family: 'Lora', serif;
+    font-size: 0.82rem;
+    color: var(--water);
+    text-decoration: none;
+    border: 1px solid rgba(74,120,144,0.3);
+    padding: 0.35rem 0.7rem;
+    border-radius: 7px;
+    background: rgba(74,120,144,0.06);
+  }
+  .m-panel-close {
+    display: block;
+    width: calc(100% - 2.2rem);
+    margin: 0.5rem 1.1rem 1rem;
+    font-family: 'Lora', serif;
+    font-size: 0.88rem;
+    padding: 0.7rem;
+    border-radius: 10px;
+    border: none;
+    background: var(--moss);
+    color: #fff;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* ── Bottom Nav ── */
+  .m-bottom-nav {
+    display: flex;
+    border-top: 1px solid rgba(107,66,38,0.12);
+    background: var(--parchment-mid);
+    flex-shrink: 0;
+  }
+  .m-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.6rem 0 0.5rem;
+    cursor: pointer;
+    transition: background 0.13s;
+    border: none;
+    background: transparent;
+  }
+  .m-nav-item:active { background: rgba(61,90,46,0.08); }
+  .m-nav-icon { font-size: 1.2rem; line-height: 1; }
+  .m-nav-label {
+    font-family: 'Lora', serif;
+    font-size: 0.6rem;
+    color: var(--bark-light);
+    letter-spacing: 0.02em;
+  }
+  .m-nav-item.active .m-nav-label { color: var(--moss); font-weight: 700; }
+  .m-nav-item.active .m-nav-icon { filter: none; }
+}
 </style>
 
   <!-- Firebase SDK -->
@@ -1516,6 +2017,102 @@ body {
     <button class="btn-primary" onclick="saveCalDate()">Save</button>
   </div>
 </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MOBILE SHELL
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="mobileShell">
+
+  <!-- Mobile Header -->
+  <div class="m-header">
+    <span class="m-header-logo">🌿</span>
+    <div class="m-header-title">
+      Forest School Planner
+      <span class="m-header-sheet" id="mHeaderSheet"></span>
+    </div>
+    <div class="m-save-dot" id="mSaveDot"></div>
+  </div>
+
+  <!-- Main content area with swipeable views -->
+  <div class="m-content" id="mContent">
+
+    <!-- SESSION VIEW -->
+    <div class="m-view active" id="mSessionView">
+      <div class="m-session-nav" id="mSessionNav">
+        <button class="m-nav-btn" id="mPrevBtn" onclick="mNavigateSession(-1)">← Prev</button>
+        <div class="m-session-label" id="mSessionLabel">
+          <span class="m-session-day" id="mSessionDay">—</span>
+          <span class="m-session-date" id="mSessionDate">—</span>
+          <span class="m-today-badge" id="mTodayBadge" style="display:none;">Today</span>
+        </div>
+        <button class="m-nav-btn" id="mNextBtn" onclick="mNavigateSession(1)">Next →</button>
+      </div>
+      <div id="mSessionRibbon" class="m-session-ribbon" style="display:none;"></div>
+      <div id="mSessionRows"></div>
+      <button class="m-day-list-btn" id="mDayListBtn" onclick="mOpenDayList()">📋 Day Resources List</button>
+    </div>
+
+    <!-- WEEK VIEW -->
+    <div class="m-view" id="mWeekView">
+      <div class="m-week-header">
+        <span id="mWeekTitle">This Week</span>
+        <span class="m-week-subtitle" id="mWeekSubtitle"></span>
+      </div>
+      <div id="mWeekContent"></div>
+    </div>
+
+    <!-- MENU VIEW (mobile) -->
+    <div class="m-view" id="mMenuView">
+      <div class="m-menu-search-bar">
+        <input type="text" class="m-menu-search" id="mMenuSearch"
+          placeholder="Search activities…" oninput="mFilterMenu()">
+      </div>
+      <div class="m-menu-cat-tabs" id="mCatTabs"></div>
+      <div id="mMenuList"></div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="m-bottom-nav">
+    <button class="m-nav-item active" id="mNavToday" onclick="mShowView('session')">
+      <span class="m-nav-icon">📅</span>
+      <span class="m-nav-label">Today</span>
+    </button>
+    <button class="m-nav-item" id="mNavWeek" onclick="mShowView('week')">
+      <span class="m-nav-icon">📆</span>
+      <span class="m-nav-label">Week</span>
+    </button>
+    <button class="m-nav-item" id="mNavMenu" onclick="mShowView('menu')">
+      <span class="m-nav-icon">🌱</span>
+      <span class="m-nav-label">Menu</span>
+    </button>
+  </div>
+</div>
+
+<!-- ─── MOBILE DETAIL PANEL ─── -->
+<div class="m-panel-backdrop" id="mPanelBackdrop" onclick="mClosePanel()"></div>
+<div class="m-panel" id="mPanel">
+  <div class="m-panel-handle"></div>
+  <div class="m-panel-header">
+    <div class="m-panel-title" id="mPanelTitle">Activity</div>
+    <div class="m-panel-meta" id="mPanelMeta"></div>
+  </div>
+  <div class="m-panel-body" id="mPanelBody"></div>
+  <button class="m-panel-close" onclick="mClosePanel()">Done</button>
+</div>
+
+<!-- ─── MOBILE RESOURCES PANEL ─── -->
+<div class="m-panel-backdrop" id="mResPanelBackdrop" onclick="mCloseResPanel()"></div>
+<div class="m-panel" id="mResPanel">
+  <div class="m-panel-handle"></div>
+  <div class="m-panel-header">
+    <div class="m-panel-title">📋 Day Resources</div>
+    <div class="m-panel-meta" id="mResPanelDate" style="font-family:Lora,serif;font-style:italic;font-size:0.8rem;color:var(--bark-light);"></div>
+  </div>
+  <div class="m-panel-body" id="mResPanelBody"></div>
+  <button class="m-panel-close" onclick="mCloseResPanel()">Done</button>
 </div>
 
 <!-- ─── CELL EDIT MODAL ─── -->
@@ -6899,6 +7496,552 @@ function openUpcomingDayList(sheetId, dateKey) {
 }
 
 
+
+// ═══════════════════════════════════════════════════════════════
+// MOBILE VIEW
+// ═══════════════════════════════════════════════════════════════
+
+const IS_MOBILE = () => window.innerWidth <= 768;
+
+// Mobile state
+let mState = {
+  view: 'session',       // 'session' | 'week' | 'menu'
+  sessionIndex: 0,       // index into mSessions array
+  sessions: [],          // [{key, date, sheet}] sorted chronologically
+  menuCat: 'all',
+};
+
+const MONTH_FULL_M = ['January','February','March','April','May','June',
+  'July','August','September','October','November','December'];
+const MONTH_SHORT_M = ['Jan','Feb','Mar','Apr','May','Jun',
+  'Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAY_NAMES_M = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+function mInit() {
+  if (!IS_MOBILE()) return;
+
+  // Build sorted sessions list from all sheets
+  mBuildSessionList();
+
+  // Find today or next upcoming session
+  const today = new Date();
+  const todayKey = today.getDate() + '-' + MONTH_SHORT_M[today.getMonth()];
+
+  // Find closest session to today
+  let bestIdx = 0;
+  let bestDist = Infinity;
+  mState.sessions.forEach((s, i) => {
+    const dist = Math.abs(s.jsDate - today);
+    if (dist < bestDist) { bestDist = dist; bestIdx = i; }
+  });
+  mState.sessionIndex = bestIdx;
+
+  // Update header sheet name
+  const sheet = getActiveSheet();
+  if (sheet) document.getElementById('mHeaderSheet').textContent = sheet.name;
+
+  // Initial render
+  mRenderSession();
+  mRenderWeek();
+  mBuildMenuTabs();
+  mFilterMenu();
+}
+
+function mBuildSessionList() {
+  const today = new Date();
+  mState.sessions = [];
+
+  for (const sheet of state.sheets) {
+    const MONTH_ORDER = ['Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
+    const sessionKeys = Object.keys(sheet.sessions || {});
+
+    for (const key of sessionKeys) {
+      const parts = key.split('-');
+      if (parts.length !== 2) continue;
+      const day = parseInt(parts[0]);
+      const mon = parts[1];
+      const monIdx = MONTH_SHORT_M.indexOf(mon);
+      if (monIdx < 0) continue;
+
+      // Determine year from sheet context
+      const startYear = sheet.startYear || 2025;
+      const endYear = sheet.endYear || 2026;
+      const academicStartMon = MONTH_SHORT_M.indexOf(sheet.startMonth || 'Sep');
+      const year = monIdx >= academicStartMon ? startYear : endYear;
+
+      const jsDate = new Date(year, monIdx, day);
+      mState.sessions.push({ key, jsDate, sheet });
+    }
+  }
+
+  // Sort chronologically
+  mState.sessions.sort((a, b) => a.jsDate - b.jsDate);
+}
+
+function mNavigateSession(dir) {
+  const newIdx = mState.sessionIndex + dir;
+  if (newIdx < 0 || newIdx >= mState.sessions.length) return;
+  mState.sessionIndex = newIdx;
+  mRenderSession();
+}
+
+function mRenderSession() {
+  if (mState.sessions.length === 0) {
+    document.getElementById('mSessionDay').textContent = 'No sessions';
+    document.getElementById('mSessionDate').textContent = '';
+    document.getElementById('mSessionRows').innerHTML =
+      '<div style="padding:2rem;text-align:center;font-family:Lora,serif;font-style:italic;color:var(--bark-light);">No sessions found.</div>';
+    return;
+  }
+
+  const { key, jsDate, sheet } = mState.sessions[mState.sessionIndex];
+  const today = new Date();
+  const isToday = jsDate.toDateString() === today.toDateString();
+
+  // Nav buttons
+  document.getElementById('mPrevBtn').disabled = mState.sessionIndex === 0;
+  document.getElementById('mNextBtn').disabled = mState.sessionIndex === mState.sessions.length - 1;
+
+  // Header
+  document.getElementById('mSessionDay').textContent = DAY_NAMES_M[jsDate.getDay()];
+  document.getElementById('mSessionDate').textContent =
+    jsDate.getDate() + ' ' + MONTH_FULL_M[jsDate.getMonth()] + ' ' + jsDate.getFullYear() +
+    (sheet.name !== (getActiveSheet() || {}).name ? '  (' + sheet.name + ')' : '');
+  document.getElementById('mTodayBadge').style.display = isToday ? 'inline-block' : 'none';
+
+  // Update header sheet name
+  document.getElementById('mHeaderSheet').textContent = sheet.name;
+
+  // Ribbons (important dates)
+  const ribbonEl = document.getElementById('mSessionRibbon');
+  const sessionRibbons = state.importantDates.filter(d => {
+    const best = findNearestSession(d, [key], key.split('-')[1]);
+    return best === key;
+  });
+  if (sessionRibbons.length > 0) {
+    ribbonEl.style.display = 'flex';
+    ribbonEl.innerHTML = sessionRibbons.map(d =>
+      '<span class="ribbon-tag ' + d.type + '">' + typeIcon(d.type) + ' ' + escHtml(d.name) + '</span>'
+    ).join('');
+  } else {
+    ribbonEl.style.display = 'none';
+  }
+
+  // Session rows
+  const rowsEl = document.getElementById('mSessionRows');
+  rowsEl.innerHTML = '';
+  const sessionData = sheet.sessions[key] || {};
+  const rows = (sheet.rowDefs || []).filter(r => r.key !== '_notes');
+
+  for (const row of rows) {
+    const activities = sessionData[row.key] || [];
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'm-activity-row';
+    rowDiv.onclick = () => {
+      if (activities.length === 1) {
+        mOpenActivityPanel(activities[0].text);
+      } else if (activities.length > 1) {
+        mOpenActivityPanel(activities[0].text);
+      }
+    };
+
+    const lbl = document.createElement('div');
+    lbl.className = 'm-row-label';
+    lbl.textContent = (row.icon || '') + ' ' + row.label;
+    rowDiv.appendChild(lbl);
+
+    if (activities.length === 0) {
+      const em = document.createElement('span');
+      em.className = 'm-empty-slot';
+      em.textContent = '—';
+      rowDiv.appendChild(em);
+    } else {
+      activities.forEach((act, i) => {
+        const menuItem = state.menuItems.find(m => m.name === act.text);
+        const hasRes = menuItem && (menuItem.resources || menuItem.notes);
+        const span = document.createElement('span');
+        span.className = 'm-activity-name';
+        span.textContent = act.text;
+        if (hasRes) {
+          const dot = document.createElement('span');
+          dot.className = 'm-has-resources';
+          dot.textContent = ' 📝';
+          span.appendChild(dot);
+        }
+        span.onclick = (e) => { e.stopPropagation(); mOpenActivityPanel(act.text); };
+        rowDiv.appendChild(span);
+      });
+    }
+    rowsEl.appendChild(rowDiv);
+  }
+
+  // Session notes row
+  const notes = sessionData['_notes'];
+  if (notes) {
+    const notesDiv = document.createElement('div');
+    notesDiv.className = 'm-activity-row';
+    notesDiv.style.cssText = 'background:rgba(200,220,192,0.15);';
+    notesDiv.innerHTML = '<div class="m-row-label">📝 Session Notes</div>' +
+      '<span class="m-activity-name" style="font-style:italic;font-size:0.88rem;">' + escHtml(notes) + '</span>';
+    rowsEl.appendChild(notesDiv);
+  }
+}
+
+// ── Week View ──
+function mRenderWeek() {
+  const { monday, friday, today } = getUpcomingWeekRange();
+  const dow = today.getDay();
+  const isNextWeek = dow === 6 || dow === 0;
+
+  document.getElementById('mWeekTitle').textContent = isNextWeek ? 'Next Week' : 'This Week';
+  document.getElementById('mWeekSubtitle').textContent =
+    monday.getDate() + ' ' + MONTH_FULL_M[monday.getMonth()] +
+    ' - ' + friday.getDate() + ' ' + MONTH_FULL_M[friday.getMonth()];
+
+  const weekDays = [];
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(monday); d.setDate(monday.getDate() + i);
+    weekDays.push(d);
+  }
+
+  const content = document.getElementById('mWeekContent');
+  content.innerHTML = '';
+
+  for (const d of weekDays) {
+    const key = dateToSessionKey(d);
+    const isToday = d.toDateString() === today.toDateString();
+
+    // Find session in any sheet
+    let foundSession = null;
+    let foundSheet = null;
+    for (const sheet of state.sheets) {
+      if (sheet.sessions && sheet.sessions[key]) {
+        foundSession = sheet.sessions[key];
+        foundSheet = sheet;
+        break;
+      }
+    }
+
+    if (!foundSession) {
+      const empty = document.createElement('div');
+      empty.className = 'm-week-no-session';
+      empty.textContent = DAY_NAMES_M[d.getDay()] + ' ' + d.getDate() + ' — no session';
+      content.appendChild(empty);
+      continue;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'm-week-day-card';
+
+    const cardHdr = document.createElement('div');
+    cardHdr.className = 'm-week-day-header';
+    const num = document.createElement('div');
+    num.className = 'm-week-day-num';
+    num.textContent = d.getDate();
+    const info = document.createElement('div');
+    info.className = 'm-week-day-info';
+    const dName = document.createElement('div');
+    dName.className = 'm-week-day-name';
+    dName.textContent = DAY_NAMES_M[d.getDay()] + (isToday ? ' — Today' : '');
+    const dDate = document.createElement('div');
+    dDate.className = 'm-week-day-date';
+    dDate.textContent = d.getDate() + ' ' + MONTH_FULL_M[d.getMonth()];
+    info.appendChild(dName);
+    info.appendChild(dDate);
+    cardHdr.appendChild(num);
+    cardHdr.appendChild(info);
+    card.appendChild(cardHdr);
+
+    // Preview: first cooking + first wide game activity
+    const rows = (foundSheet.rowDefs || []).filter(r => r.key !== '_notes');
+    const preview = [];
+    for (const row of rows) {
+      const acts = foundSession[row.key] || [];
+      if (acts.length > 0) preview.push(acts[0].text);
+      if (preview.length >= 3) break;
+    }
+    if (preview.length > 0) {
+      const prev = document.createElement('div');
+      prev.className = 'm-week-day-preview';
+      prev.textContent = preview.join(' · ');
+      card.appendChild(prev);
+    }
+
+    // Tap to go to that session
+    card.onclick = () => {
+      const idx = mState.sessions.findIndex(s => s.key === key && s.sheet.id === foundSheet.id);
+      if (idx >= 0) {
+        mState.sessionIndex = idx;
+        mRenderSession();
+        mShowView('session');
+      }
+    };
+    content.appendChild(card);
+  }
+}
+
+// ── Menu View ──
+let mMenuActiveCat = 'all';
+
+function mBuildMenuTabs() {
+  const tabs = document.getElementById('mCatTabs');
+  tabs.innerHTML = '';
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'm-cat-tab active';
+  allBtn.textContent = 'All';
+  allBtn.onclick = () => { mMenuActiveCat = 'all'; mUpdateCatTabs(allBtn); mFilterMenu(); };
+  tabs.appendChild(allBtn);
+
+  for (const cat of CATEGORIES) {
+    const btn = document.createElement('button');
+    btn.className = 'm-cat-tab';
+    btn.textContent = cat.emoji + ' ' + cat.label;
+    btn.onclick = () => { mMenuActiveCat = cat.id; mUpdateCatTabs(btn); mFilterMenu(); };
+    tabs.appendChild(btn);
+  }
+}
+
+function mUpdateCatTabs(activeBtn) {
+  document.querySelectorAll('.m-cat-tab').forEach(b => b.classList.remove('active'));
+  activeBtn.classList.add('active');
+}
+
+function mFilterMenu() {
+  const q = (document.getElementById('mMenuSearch').value || '').toLowerCase();
+  const list = document.getElementById('mMenuList');
+  list.innerHTML = '';
+
+  let items = state.menuItems.filter(item => {
+    if (!item || !item.name || item.hidden) return false;
+    if (mMenuActiveCat !== 'all' && item.cat !== mMenuActiveCat) return false;
+    if (q && !item.name.toLowerCase().includes(q)) return false;
+    return true;
+  }).slice(0, 100);
+
+  if (items.length === 0) {
+    list.innerHTML = '<div style="padding:2rem;text-align:center;font-family:Lora,serif;font-style:italic;color:var(--bark-light);">No matches</div>';
+    return;
+  }
+
+  for (const item of items) {
+    const cat = CATEGORIES.find(c => c.id === item.cat);
+    const div = document.createElement('div');
+    div.className = 'm-menu-item';
+    div.onclick = () => mOpenActivityPanel(item.name);
+
+    const monthTag = document.createElement('span');
+    monthTag.className = 'm-menu-item-month month-' + item.month;
+    monthTag.textContent = item.month;
+
+    const body = document.createElement('div');
+    body.style.flex = '1';
+    const name = document.createElement('div');
+    name.className = 'm-menu-item-name';
+    name.textContent = item.name;
+    const catLabel = document.createElement('div');
+    catLabel.className = 'm-menu-item-cat';
+    catLabel.textContent = cat ? cat.emoji + ' ' + cat.label : '';
+    body.appendChild(name);
+    body.appendChild(catLabel);
+
+    div.appendChild(monthTag);
+    div.appendChild(body);
+
+    if (item.resources || item.notes) {
+      const res = document.createElement('span');
+      res.className = 'm-menu-has-res';
+      res.textContent = '📝';
+      div.appendChild(res);
+    }
+
+    list.appendChild(div);
+  }
+}
+
+// ── Activity Detail Panel ──
+function mOpenActivityPanel(name) {
+  const item = state.menuItems.find(i => i && i.name === name);
+
+  document.getElementById('mPanelTitle').textContent = name;
+
+  const meta = document.getElementById('mPanelMeta');
+  meta.innerHTML = '';
+  if (item) {
+    const cat = CATEGORIES.find(c => c.id === item.cat);
+    const monthTag = document.createElement('span');
+    monthTag.className = 'month-tag month-' + item.month;
+    monthTag.textContent = item.month;
+    meta.appendChild(monthTag);
+    if (cat) {
+      const catSpan = document.createElement('span');
+      catSpan.style.cssText = 'font-family:Lora,serif;font-size:0.72rem;font-style:italic;color:var(--bark-light);';
+      catSpan.textContent = cat.emoji + ' ' + cat.label;
+      meta.appendChild(catSpan);
+    }
+  }
+
+  const body = document.getElementById('mPanelBody');
+  body.innerHTML = '';
+
+  if (item) {
+    // Resources
+    const res = (item.resources || '').replace(/\\n/g, '\n');
+    const notes = (item.notes || '').replace(/\\n/g, '\n');
+
+    if (res) {
+      const sec = document.createElement('div');
+      sec.className = 'm-panel-section';
+      const lbl = document.createElement('div');
+      lbl.className = 'm-panel-section-label';
+      lbl.textContent = 'Resources';
+      const txt = document.createElement('div');
+      txt.className = 'm-panel-resources';
+      txt.textContent = res;
+      sec.appendChild(lbl);
+      sec.appendChild(txt);
+      body.appendChild(sec);
+    }
+
+    if (notes && notes !== res) {
+      const sec = document.createElement('div');
+      sec.className = 'm-panel-section';
+      const lbl = document.createElement('div');
+      lbl.className = 'm-panel-section-label';
+      lbl.textContent = 'Notes';
+      const txt = document.createElement('div');
+      txt.className = 'm-panel-text';
+      txt.textContent = notes;
+      sec.appendChild(lbl);
+      sec.appendChild(txt);
+      body.appendChild(sec);
+    }
+
+    if (item.link && item.link.startsWith('http')) {
+      const sec = document.createElement('div');
+      sec.className = 'm-panel-section';
+      const lbl = document.createElement('div');
+      lbl.className = 'm-panel-section-label';
+      lbl.textContent = 'Link';
+      const a = document.createElement('a');
+      a.className = 'm-panel-link';
+      a.href = item.link;
+      a.target = '_blank';
+      a.textContent = 'Open link';
+      sec.appendChild(lbl);
+      sec.appendChild(a);
+      body.appendChild(sec);
+    }
+
+    if (!res && !notes && !item.link) {
+      body.innerHTML = '<div style="font-family:Lora,serif;font-style:italic;color:var(--bark-light);padding:1rem 0;">No additional information for this activity.</div>';
+    }
+  } else {
+    body.innerHTML = '<div style="font-family:Lora,serif;font-style:italic;color:var(--bark-light);padding:1rem 0;">Activity not found in menu.</div>';
+  }
+
+  document.getElementById('mPanelBackdrop').classList.add('open');
+  document.getElementById('mPanel').classList.add('open');
+}
+
+function mClosePanel() {
+  document.getElementById('mPanelBackdrop').classList.remove('open');
+  document.getElementById('mPanel').classList.remove('open');
+}
+
+// ── Day Resources Panel ──
+function mOpenDayList() {
+  const { key, sheet } = mState.sessions[mState.sessionIndex] || {};
+  if (!key || !sheet) return;
+
+  const [day, mon] = key.split('-');
+  document.getElementById('mResPanelDate').textContent = day + ' ' + (MONTH_FULL_M[MONTH_SHORT_M.indexOf(mon)] || mon);
+
+  const body = document.getElementById('mResPanelBody');
+  body.innerHTML = '';
+  const sessionData = sheet.sessions[key] || {};
+  const rows = (sheet.rowDefs || []).filter(r => r.key !== '_notes');
+  let anyFound = false;
+
+  for (const row of rows) {
+    const activities = sessionData[row.key] || [];
+    for (const act of activities) {
+      const menuItem = state.menuItems.find(m => m && m.name === act.text);
+      const res = menuItem && menuItem.resources ? menuItem.resources.replace(/\\n/g, '\n') : '';
+      const notes = menuItem && menuItem.notes ? menuItem.notes.replace(/\\n/g, '\n') : '';
+      if (!res && !notes) continue;
+      anyFound = true;
+
+      const block = document.createElement('div');
+      block.className = 'm-panel-section';
+      block.style.borderBottom = '1px dashed rgba(107,66,38,0.15)';
+      block.style.paddingBottom = '0.8rem';
+      block.style.marginBottom = '0.8rem';
+
+      const lbl = document.createElement('div');
+      lbl.className = 'm-panel-section-label';
+      lbl.textContent = (row.icon || '') + ' ' + act.text;
+      block.appendChild(lbl);
+
+      if (res) {
+        const txt = document.createElement('div');
+        txt.className = 'm-panel-resources';
+        txt.style.marginTop = '0.3rem';
+        txt.textContent = res;
+        block.appendChild(txt);
+      } else if (notes) {
+        const txt = document.createElement('div');
+        txt.className = 'm-panel-text';
+        txt.textContent = notes;
+        block.appendChild(txt);
+      }
+      body.appendChild(block);
+    }
+  }
+
+  if (!anyFound) {
+    body.innerHTML = '<div style="font-family:Lora,serif;font-style:italic;color:var(--bark-light);padding:1rem 0;">No resources listed for activities in this session.</div>';
+  }
+
+  document.getElementById('mResPanelBackdrop').classList.add('open');
+  document.getElementById('mResPanel').classList.add('open');
+}
+
+function mCloseResPanel() {
+  document.getElementById('mResPanelBackdrop').classList.remove('open');
+  document.getElementById('mResPanel').classList.remove('open');
+}
+
+// ── View switching ──
+function mShowView(view) {
+  mState.view = view;
+  document.querySelectorAll('.m-view').forEach(v => {
+    v.classList.remove('active', 'prev');
+  });
+  document.querySelectorAll('.m-nav-item').forEach(b => b.classList.remove('active'));
+
+  if (view === 'session') {
+    document.getElementById('mSessionView').classList.add('active');
+    document.getElementById('mNavToday').classList.add('active');
+  } else if (view === 'week') {
+    document.getElementById('mWeekView').classList.add('active');
+    document.getElementById('mNavWeek').classList.add('active');
+    mRenderWeek();
+  } else if (view === 'menu') {
+    document.getElementById('mMenuView').classList.add('active');
+    document.getElementById('mNavMenu').classList.add('active');
+    mFilterMenu();
+  }
+}
+
+// Respond to window resize
+window.addEventListener('resize', () => {
+  if (IS_MOBILE() && mState.sessions.length === 0) {
+    mInit();
+  }
+});
+
+
 // ─── INIT: load from cloud first, localStorage as fallback ───
 (async () => {
   // Show loading state
@@ -6929,6 +8072,9 @@ function openUpcomingDayList(sheetId, dateKey) {
   renderCatFilters();
   document.getElementById('monthList').style.display = '';
   showView('planner');
+
+  // Initialise mobile view if on a small screen
+  if (IS_MOBILE()) mInit();
 
   // Wire overlay-click listeners (moved here from end of file)
   ['populateModal','newSheetModal'].forEach(id => {
