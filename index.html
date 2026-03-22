@@ -939,6 +939,15 @@ body {
 }
 .sheet-tab:hover { background: rgba(255,255,255,0.1); color: #fff; }
 .sheet-tab.active { background: rgba(255,255,255,0.18); color: #fff; font-weight: 600; border-color: rgba(255,255,255,0.5); }
+.sheet-tab-delete {
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-left: 0.35rem; width: 14px; height: 14px;
+  border-radius: 50%; border: none;
+  background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.7);
+  font-size: 0.55rem; cursor: pointer; transition: all 0.15s;
+  flex-shrink: 0; padding: 0; vertical-align: middle;
+}
+.sheet-tab-delete:hover { background: rgba(220,80,60,0.85); color: #fff; }
 .header-tab-new {
   font-size: 1rem;
   padding: 0.22rem 0.55rem;
@@ -3139,6 +3148,17 @@ function renderSheetTabs() {
     btn.textContent = sheet.emoji ? sheet.emoji + ' ' + sheet.name : sheet.name;
     btn.title = sheet.name;
     btn.onclick = () => switchSheet(sheet.id);
+
+    // Add delete button for non-default sheets
+    if (sheet.id !== DEFAULT_SHEET_ID) {
+      const del = document.createElement('button');
+      del.className = 'sheet-tab-delete';
+      del.title = 'Delete this sheet';
+      del.textContent = '✕';
+      del.onclick = (e) => { e.stopPropagation(); deleteSheet(sheet.id); };
+      btn.appendChild(del);
+    }
+
     container.appendChild(btn);
   }
   // Update subtitle
@@ -3147,6 +3167,24 @@ function renderSheetTabs() {
     document.getElementById('headerSubtitle').textContent =
       active.name + ' · ' + active.startMonth + ' ' + active.startYear + ' – ' + active.endMonth + ' ' + active.endYear;
   }
+}
+
+function deleteSheet(id) {
+  const sheet = state.sheets.find(s => s.id === id);
+  if (!sheet) return;
+  if (sheet.id === DEFAULT_SHEET_ID) {
+    alert('The Home Ed sheet cannot be deleted.');
+    return;
+  }
+  if (!confirm(`Delete "${sheet.name}"? This will permanently remove all sessions and planning for this group. This cannot be undone.`)) return;
+  state.sheets = state.sheets.filter(s => s.id !== id);
+  // Switch to default sheet if this was active
+  if (state.activeSheetId === id) {
+    state.activeSheetId = state.sheets[0]?.id || DEFAULT_SHEET_ID;
+  }
+  saveState();
+  renderSheetTabs();
+  renderPlanner();
 }
 
 function switchSheet(id) {
