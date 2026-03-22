@@ -925,7 +925,7 @@ body {
 .sheet-tab {
   font-family: 'Lora', serif;
   font-size: 0.74rem;
-  padding: 0.3rem 0.75rem;
+  padding: 0.3rem 0.6rem 0.3rem 0.75rem;
   border-radius: 18px;
   border: 1.5px solid rgba(255,255,255,0.25);
   background: transparent;
@@ -933,9 +933,16 @@ body {
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
-  max-width: 140px;
+  max-width: 160px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  overflow: visible;
+}
+.sheet-tab-label {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .sheet-tab:hover { background: rgba(255,255,255,0.1); color: #fff; }
 .sheet-tab.active { background: rgba(255,255,255,0.18); color: #fff; font-weight: 600; border-color: rgba(255,255,255,0.5); }
@@ -3145,7 +3152,10 @@ function renderSheetTabs() {
   for (const sheet of state.sheets) {
     const btn = document.createElement('button');
     btn.className = 'sheet-tab' + (sheet.id === state.activeSheetId ? ' active' : '');
-    btn.textContent = sheet.emoji ? sheet.emoji + ' ' + sheet.name : sheet.name;
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'sheet-tab-label';
+    labelSpan.textContent = sheet.emoji ? sheet.emoji + ' ' + sheet.name : sheet.name;
+    btn.appendChild(labelSpan);
     btn.title = sheet.name;
     btn.onclick = () => switchSheet(sheet.id);
 
