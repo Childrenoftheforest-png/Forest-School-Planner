@@ -1899,6 +1899,47 @@ body {
   .m-nav-item.active .m-nav-label { color: var(--moss); font-weight: 700; }
   .m-nav-item.active .m-nav-icon { filter: none; }
 }
+
+/* ─── DIVIDER ROWS (break, lunch etc) ─── */
+.planner-divider-row td {
+  background: linear-gradient(135deg, rgba(139,100,60,0.1) 0%, rgba(107,66,38,0.07) 100%);
+  border-top: 2px solid rgba(107,66,38,0.18);
+  border-bottom: 2px solid rgba(107,66,38,0.18);
+}
+.planner-divider-row .row-label {
+  background: linear-gradient(135deg, rgba(139,100,60,0.15) 0%, rgba(107,66,38,0.1) 100%) !important;
+  font-style: italic;
+  letter-spacing: 0.04em;
+}
+.planner-divider-row .divider-cell {
+  text-align: center;
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 0.75rem;
+  color: rgba(107,66,38,0.4);
+  padding: 0.4rem;
+}
+.add-row-type-toggle {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+.add-row-type-btn {
+  font-family: 'Lora', serif;
+  font-size: 0.72rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 12px;
+  border: 1.5px solid rgba(107,66,38,0.2);
+  background: transparent;
+  color: var(--bark);
+  cursor: pointer;
+  transition: all 0.13s;
+}
+.add-row-type-btn.active {
+  background: var(--moss);
+  color: #fff;
+  border-color: var(--moss);
+}
 </style>
 
   <!-- Firebase SDK -->
@@ -3341,8 +3382,10 @@ function renderPlanner() {
     let dragSrcRowKey = null;
 
     for (const rowDef of sheetRows) {
+      const isDivider = rowDef.type === 'divider';
       const tr = document.createElement('tr');
       tr.dataset.rowKey = rowDef.key;
+      if (isDivider) tr.className = 'planner-divider-row';
 
       const labelTd = document.createElement('td');
       labelTd.className = 'row-label date-col draggable';
@@ -3374,6 +3417,16 @@ function renderPlanner() {
       });
 
       tr.appendChild(labelTd);
+
+      // Divider rows: single spanning cell, no activity cells
+      if (isDivider) {
+        const spanTd = document.createElement('td');
+        spanTd.colSpan = dates.length;
+        spanTd.className = 'divider-cell';
+        tr.appendChild(spanTd);
+        tbody.appendChild(tr);
+        continue;
+      }
 
       for (const date of dates) {
         const session = sheet.sessions[date] || {};
@@ -3423,9 +3476,13 @@ function renderPlanner() {
     const addRowTr = document.createElement('tr');
     addRowTr.innerHTML = `<td colspan="${dates.length+1}" style="padding:0.4rem 0.6rem;">
       <div class="add-row-bar" id="addRowBar_${mon}">
+        <div class="add-row-type-toggle">
+          <button class="add-row-type-btn active" id="addRowTypeActivity_${mon}" onclick="setAddRowType(\'${mon}\',\'activity\')" title="Normal activity row">📌 Activity</button>
+          <button class="add-row-type-btn" id="addRowTypeDivider_${mon}" onclick="setAddRowType(\'${mon}\',\'divider\')" title="Break / lunch divider">— Divider</button>
+        </div>
         <input class="add-row-icon-input" id="addRowIcon_${mon}" placeholder="🎯" maxlength="4">
         <input class="add-row-input" id="addRowLabel_${mon}" placeholder="New row name…">
-        <button class="toolbar-btn" onclick="addRow('${mon}')" style="padding:0.3rem 0.65rem;font-size:0.76rem;">＋ Add Row</button>
+        <button class="toolbar-btn" onclick="addRow(\'${mon}\')" style="padding:0.3rem 0.65rem;font-size:0.76rem;">＋ Add Row</button>
       </div>
     </td>`;
     tbody.appendChild(addRowTr);
@@ -4008,21 +4065,48 @@ function deleteRow(e, rowKey) {
   document.getElementById('editRowsBtn').textContent = '✓ Done Editing';
 }
 
+// Track add-row type per month section
+const addRowTypes = {};
+function setAddRowType(mon, type) {
+  addRowTypes[mon] = type;
+  const actBtn = document.getElementById('addRowTypeActivity_' + mon);
+  const divBtn = document.getElementById('addRowTypeDivider_' + mon);
+  if (actBtn) actBtn.classList.toggle('active', type === 'activity');
+  if (divBtn) divBtn.classList.toggle('active', type === 'divider');
+  // Adjust icon/label placeholders
+  const iconEl = document.getElementById('addRowIcon_' + mon);
+  const labelEl = document.getElementById('addRowLabel_' + mon);
+  if (type === 'divider') {
+    if (iconEl) iconEl.value = '—';
+    if (labelEl) labelEl.placeholder = 'e.g. Lunch, Break, Travel…';
+  } else {
+    if (iconEl && iconEl.value === '—') iconEl.value = '';
+    if (labelEl) labelEl.placeholder = 'New row name…';
+  }
+}
+
 function addRow(mon) {
   const iconEl = document.getElementById('addRowIcon_' + mon);
   const labelEl = document.getElementById('addRowLabel_' + mon);
   const icon = iconEl.value.trim() || '📌';
   const label = labelEl.value.trim();
   if (!label) { labelEl.focus(); return; }
+  const type = addRowTypes[mon] || 'activity';
   const sheet = getActiveSheet();
-  const key = 'custom_' + Date.now();
+  const key = (type === 'divider' ? 'divider_' : 'custom_') + Date.now();
   // Insert before _notes row if it exists, otherwise at end
   const notesIdx = sheet.rowDefs.findIndex(r => r.key === '_notes');
-  const newRow = {key, label, icon, userAdded: true};
+  const newRow = {key, label, icon, userAdded: true, type};
   if (notesIdx >= 0) sheet.rowDefs.splice(notesIdx, 0, newRow);
   else sheet.rowDefs.push(newRow);
   iconEl.value = '';
   labelEl.value = '';
+  // Reset type toggle back to activity
+  addRowTypes[mon] = 'activity';
+  const actBtn = document.getElementById('addRowTypeActivity_' + mon);
+  const divBtn = document.getElementById('addRowTypeDivider_' + mon);
+  if (actBtn) actBtn.classList.add('active');
+  if (divBtn) divBtn.classList.remove('active');
   saveState();
   renderPlanner();
   document.getElementById('plannerContent').classList.add('edit-mode');
