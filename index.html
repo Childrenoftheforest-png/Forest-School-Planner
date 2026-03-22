@@ -4241,21 +4241,31 @@ function wizAddRow() {
 }
 
 function generateSessionDates(days, startMonth, startYear, endMonth, endYear) {
-  const monthOrder = ['Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
-  const startMon = monthOrder.indexOf(startMonth);
-  const endMon = monthOrder.indexOf(endMonth);
+  // Calendar month names (JS Date uses 0=Jan...11=Dec)
+  const CAL_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  // Academic month labels used as session keys
+  const LABEL_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-  // Build start/end dates
-  const startDate = new Date(startYear, startMon, 1);
-  const endDate = new Date(endYear, endMon + 1, 0); // last day of end month
+  const startMonIdx = CAL_MONTHS.indexOf(startMonth); // real calendar month index
+  const endMonIdx   = CAL_MONTHS.indexOf(endMonth);
+
+  // Determine real calendar year for end month
+  // If end month is earlier in calendar than start month, it's the next year
+  const realEndYear = (endMonIdx < startMonIdx) ? endYear : endYear;
+
+  const startDate = new Date(startYear, startMonIdx, 1);
+  const endDate   = new Date(
+    endMonIdx < startMonIdx ? endYear : endYear,
+    endMonIdx + 1, 0
+  ); // last day of end month
 
   const sessions = {};
   const cur = new Date(startDate);
   while (cur <= endDate) {
     if (days.includes(cur.getDay())) {
       const day = cur.getDate();
-      const mon = monthOrder[cur.getMonth()];
-      const key = `${day}-${mon}`;
+      const mon = CAL_MONTHS[cur.getMonth()]; // use real calendar month for key
+      const key = day + '-' + mon;
       sessions[key] = {};
     }
     cur.setDate(cur.getDate() + 1);
