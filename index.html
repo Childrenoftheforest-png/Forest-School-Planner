@@ -3477,11 +3477,30 @@ function renderPlanner() {
     addRowTr.innerHTML = `<td colspan="${dates.length+1}" style="padding:0.4rem 0.6rem;">
       <div class="add-row-bar" id="addRowBar_${mon}">
         <div class="add-row-type-toggle">
-          <button class="add-row-type-btn active" id="addRowTypeActivity_${mon}" onclick="setAddRowType(\'${mon}\',\'activity\')" title="Normal activity row">📌 Activity</button>
+          <button class="add-row-type-btn active" id="addRowTypeActivity_${mon}" onclick="setAddRowType(\'${mon}\',\'activity\')" title="Normal activity row">📌 Activity row</button>
           <button class="add-row-type-btn" id="addRowTypeDivider_${mon}" onclick="setAddRowType(\'${mon}\',\'divider\')" title="Break / lunch divider">— Divider</button>
         </div>
-        <input class="add-row-icon-input" id="addRowIcon_${mon}" placeholder="🎯" maxlength="4">
-        <input class="add-row-input" id="addRowLabel_${mon}" placeholder="New row name…">
+        <div id="addRowActivityOptions_${mon}" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;flex:1;">
+          <select class="add-row-input" id="addRowCat_${mon}" style="flex:none;width:auto;min-width:160px;font-size:0.82rem;padding:0.3rem 0.5rem;">
+          <option value="games">🦊 Wide Games</option>
+          <option value="bushcraft">🔥 Bushcraft &amp; Skills</option>
+          <option value="crafts">🌿 Craft Projects</option>
+          <option value="recipes">🍞 Recipes &amp; Cooking</option>
+          <option value="foraging">🌱 Foraging</option>
+          <option value="stories">📖 Stories</option>
+          <option value="songs">🎶 Songs</option>
+          <option value="seasonal">🌙 Seasonal &amp; Spiritual</option>
+          <option value="woodland">🌳 Woodland Tasks</option>
+          <option value="tea">🍵 Afternoon Tea</option>
+          <option value="general">🎮 Games</option>
+          <option value="any">✨ Any (seasonal mix)</option>
+          </select>
+          <input class="add-row-input" id="addRowLabel_${mon}" placeholder="Row label e.g. Wide Game (PM)…" style="flex:1;min-width:140px;">
+        </div>
+        <div id="addRowDividerOptions_${mon}" style="display:none;align-items:center;gap:0.5rem;flex:1;">
+          <input class="add-row-icon-input" id="addRowIcon_${mon}" placeholder="☀️" maxlength="4">
+          <input class="add-row-input" id="addRowDividerLabel_${mon}" placeholder="e.g. Lunch, Break, Travel…" style="flex:1;">
+        </div>
         <button class="toolbar-btn" onclick="addRow(\'${mon}\')" style="padding:0.3rem 0.65rem;font-size:0.76rem;">＋ Add Row</button>
       </div>
     </td>`;
@@ -4071,42 +4090,59 @@ function setAddRowType(mon, type) {
   addRowTypes[mon] = type;
   const actBtn = document.getElementById('addRowTypeActivity_' + mon);
   const divBtn = document.getElementById('addRowTypeDivider_' + mon);
+  const actOpts = document.getElementById('addRowActivityOptions_' + mon);
+  const divOpts = document.getElementById('addRowDividerOptions_' + mon);
   if (actBtn) actBtn.classList.toggle('active', type === 'activity');
   if (divBtn) divBtn.classList.toggle('active', type === 'divider');
-  // Adjust icon/label placeholders
-  const iconEl = document.getElementById('addRowIcon_' + mon);
-  const labelEl = document.getElementById('addRowLabel_' + mon);
-  if (type === 'divider') {
-    if (iconEl) iconEl.value = '—';
-    if (labelEl) labelEl.placeholder = 'e.g. Lunch, Break, Travel…';
-  } else {
-    if (iconEl && iconEl.value === '—') iconEl.value = '';
-    if (labelEl) labelEl.placeholder = 'New row name…';
-  }
+  if (actOpts) actOpts.style.display = type === 'activity' ? 'flex' : 'none';
+  if (divOpts) divOpts.style.display = type === 'divider' ? 'flex' : 'none';
 }
 
 function addRow(mon) {
-  const iconEl = document.getElementById('addRowIcon_' + mon);
-  const labelEl = document.getElementById('addRowLabel_' + mon);
-  const icon = iconEl.value.trim() || '📌';
-  const label = labelEl.value.trim();
-  if (!label) { labelEl.focus(); return; }
   const type = addRowTypes[mon] || 'activity';
   const sheet = getActiveSheet();
-  const key = (type === 'divider' ? 'divider_' : 'custom_') + Date.now();
+  let label, icon, cat, key;
+
+  if (type === 'divider') {
+    const iconEl = document.getElementById('addRowIcon_' + mon);
+    const labelEl = document.getElementById('addRowDividerLabel_' + mon);
+    icon = (iconEl && iconEl.value.trim()) || '—';
+    label = labelEl && labelEl.value.trim();
+    if (!label) { if (labelEl) labelEl.focus(); return; }
+    key = 'divider_' + Date.now();
+    cat = null;
+  } else {
+    const catEl = document.getElementById('addRowCat_' + mon);
+    const labelEl = document.getElementById('addRowLabel_' + mon);
+    cat = catEl ? catEl.value : 'any';
+    label = labelEl && labelEl.value.trim();
+    // Auto-generate label from category if empty
+    if (!label) {
+      const catObj = CATEGORIES.find(c => c.id === cat);
+      label = catObj ? catObj.label : 'Activity';
+    }
+    // Pick icon from category
+    const catObj = CATEGORIES.find(c => c.id === cat);
+    icon = catObj ? catObj.emoji : '📌';
+    key = 'custom_' + Date.now();
+  }
+
   // Insert before _notes row if it exists, otherwise at end
   const notesIdx = sheet.rowDefs.findIndex(r => r.key === '_notes');
-  const newRow = {key, label, icon, userAdded: true, type};
+  const newRow = {key, label, icon, userAdded: true, type, cat};
   if (notesIdx >= 0) sheet.rowDefs.splice(notesIdx, 0, newRow);
   else sheet.rowDefs.push(newRow);
-  iconEl.value = '';
-  labelEl.value = '';
+
+  // Reset inputs
+  const labelEl = document.getElementById('addRowLabel_' + mon);
+  const divLabelEl = document.getElementById('addRowDividerLabel_' + mon);
+  if (labelEl) labelEl.value = '';
+  if (divLabelEl) divLabelEl.value = '';
+
   // Reset type toggle back to activity
   addRowTypes[mon] = 'activity';
-  const actBtn = document.getElementById('addRowTypeActivity_' + mon);
-  const divBtn = document.getElementById('addRowTypeDivider_' + mon);
-  if (actBtn) actBtn.classList.add('active');
-  if (divBtn) divBtn.classList.remove('active');
+  setAddRowType(mon, 'activity');
+
   saveState();
   renderPlanner();
   document.getElementById('plannerContent').classList.add('edit-mode');
@@ -4151,23 +4187,36 @@ function getAdjacentMonths(mon) {
 
 function pickActivityForCell(rowKey, mon) {
   const adjacentMonths = getAdjacentMonths(mon);
-  // Find menu items relevant to this row
-  const rowKeyLower = rowKey.toLowerCase();
+  const sheet = getActiveSheet();
+
+  // First: check if the rowDef has an explicit cat stored (user-created rows)
+  const rowDef = (sheet.rowDefs || []).find(r => r.key === rowKey);
+  const explicitCat = rowDef && rowDef.cat && rowDef.cat !== 'any' ? rowDef.cat : null;
+
+  // For divider rows: never populate
+  if (rowDef && rowDef.type === 'divider') return null;
+
   let candidates = state.menuItems.filter(item => {
     if (!adjacentMonths.includes(item.month)) return false;
-    // Match by category heuristic
+    if (item.hidden) return false;
+
+    // Use explicit category if set on the rowDef
+    if (explicitCat) return item.cat === explicitCat;
+
+    // Otherwise fall back to heuristic based on row key name
+    const rowKeyLower = rowKey.toLowerCase();
     if (rowKeyLower.includes('game') || rowKeyLower.includes('wide')) return item.cat === 'games';
-    if (rowKeyLower.includes('bush') || rowKeyLower.includes('craft') && rowKeyLower.includes('active')) return item.cat === 'bushcraft';
+    if (rowKeyLower.includes('bush') || (rowKeyLower.includes('craft') && rowKeyLower.includes('active'))) return item.cat === 'bushcraft';
     if (rowKeyLower.includes('cook') || rowKeyLower.includes('recipe')) return item.cat === 'recipes';
     if (rowKeyLower.includes('forag') || rowKeyLower.includes('nature') || rowKeyLower.includes('woodland')) return item.cat === 'foraging';
     if (rowKeyLower.includes('craft') || rowKeyLower.includes('art')) return item.cat === 'crafts';
-    if (rowKeyLower.includes('story') || rowKeyLower.includes('song') || rowKeyLower.includes('sing') || rowKeyLower.includes('plan')) return item.cat === 'stories';
-    if (rowKeyLower.includes('afternoon') || rowKeyLower.includes('tea') || rowKeyLower.includes('project') || rowKeyLower.includes('camp') || rowKeyLower.includes('custom')) return true;
+    if (rowKeyLower.includes('tea')) return item.cat === 'tea';
+    if (rowKeyLower.includes('story') || rowKeyLower.includes('song') || rowKeyLower.includes('sing') || rowKeyLower.includes('plan')) return item.cat === 'songs';
     return true;
   });
+
   if (candidates.length === 0) {
-    // Fall back to any month-appropriate activity
-    candidates = state.menuItems.filter(i => adjacentMonths.includes(i.month));
+    candidates = state.menuItems.filter(i => adjacentMonths.includes(i.month) && !i.hidden);
   }
   if (candidates.length === 0) return null;
   return candidates[Math.floor(Math.random() * candidates.length)];
@@ -4192,7 +4241,7 @@ function runPopulate() {
     filled++;
   };
 
-  const rows = sheet.rowDefs.filter(r => r.key !== '_notes');
+  const rows = sheet.rowDefs.filter(r => r.key !== '_notes' && r.type !== 'divider');
   const allDates = Object.keys(sheet.sessions);
 
   if (populateScope === 'all') {
