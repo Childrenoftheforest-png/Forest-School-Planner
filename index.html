@@ -7363,7 +7363,10 @@ function renderUpcomingView() {
     const weekSessions = [];
     for (const d of weekDays) {
       const key = dateToSessionKey(d);
-      if (sheet.sessions && sheet.sessions[key]) {
+      // Only show if this day of week is a scheduled session day for this sheet
+      const dow = d.getDay();
+      const isScheduledDay = !sheet.days || sheet.days.length === 0 || sheet.days.includes(dow);
+      if (isScheduledDay && sheet.sessions && sheet.sessions[key]) {
         weekSessions.push({ date: d, key, data: sheet.sessions[key] });
       }
     }
@@ -7570,7 +7573,10 @@ function mBuildSessionList() {
       const year = monIdx >= academicStartMon ? startYear : endYear;
 
       const jsDate = new Date(year, monIdx, day);
-      mState.sessions.push({ key, jsDate, sheet });
+      // Only include if this date's day of week matches the sheet's scheduled days
+      const dow = jsDate.getDay();
+      const isScheduled = !sheet.days || sheet.days.length === 0 || sheet.days.includes(dow);
+      if (isScheduled) mState.sessions.push({ key, jsDate, sheet });
     }
   }
 
@@ -7710,12 +7716,14 @@ function mRenderWeek() {
   for (const d of weekDays) {
     const key = dateToSessionKey(d);
     const isToday = d.toDateString() === today.toDateString();
+    const dow = d.getDay();
 
-    // Find session in any sheet
+    // Find session in any sheet, only if this day is scheduled for that sheet
     let foundSession = null;
     let foundSheet = null;
     for (const sheet of state.sheets) {
-      if (sheet.sessions && sheet.sessions[key]) {
+      const isScheduledDay = !sheet.days || sheet.days.length === 0 || sheet.days.includes(dow);
+      if (isScheduledDay && sheet.sessions && sheet.sessions[key]) {
         foundSession = sheet.sessions[key];
         foundSheet = sheet;
         break;
