@@ -8160,3 +8160,19 @@ window.addEventListener('resize', () => {
 })();
 // Overlay listeners wired in async INIT above
 </script>
+
+<!-- ─── RESOURCES PANEL ─── -->
+<div class="res-panel-overlay" id="resPanelOverlay" onclick="closeResourcesPanel()"></div>
+<div class="res-panel" id="resPanel">
+  <div class="res-panel-header">
+    <div class="res-panel-header-top">
+      <div class="res-panel-title">📋 Day Resources</div>
+      <button class="res-panel-close" onclick="closeResourcesPanel()">✕</button>
+    </div>
+    <div class="res-panel-date" id="resPanelDate"></div>
+  </div>
+  <div class="res-panel-body" id="resPanelBody"></div>
+  <div class="res-panel-footer">
+    <button class="res-copy-btn" onclick="copyResourcesList()">📋 Copy list</button>
+  </div>
+</div>
