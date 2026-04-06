@@ -2250,6 +2250,25 @@ body {
   font-style: italic;
   letter-spacing: 0;
 }
+
+/* ─── PRINT DAY BUTTON ─── */
+.print-btn {
+  font-family: 'Lora', serif;
+  font-size: 0.67rem;
+  padding: 0.28rem 0.5rem;
+  border-radius: 7px;
+  border: 1.5px solid rgba(61,90,46,0.22);
+  background: var(--parchment);
+  color: var(--bark);
+  cursor: pointer;
+  transition: all 0.13s;
+  white-space: nowrap;
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 0.25rem;
+}
+.print-btn:hover { background: var(--bark); color: #fff; border-color: var(--bark); }
 </style>
 
   <!-- Firebase SDK -->
@@ -3865,6 +3884,11 @@ function renderPlanner() {
       btn.textContent = '📋 Day list';
       btn.onclick = () => openResourcesPanel(date, sheet);
       td.appendChild(btn);
+      const printBtn = document.createElement('button');
+      printBtn.className = 'print-btn';
+      printBtn.textContent = '🖨 Print Day';
+      printBtn.onclick = () => printDay(date, sheet);
+      td.appendChild(printBtn);
       tfootRow.appendChild(td);
     }
     tfoot.appendChild(tfootRow);
@@ -9094,6 +9118,11 @@ function renderHolidayPlanner(sheet) {
     btn.textContent = '📋 Day list';
     btn.onclick = () => openHolidayResourcesPanel(iso, sheet);
     td.appendChild(btn);
+    const pBtn = document.createElement('button');
+    pBtn.className = 'print-btn';
+    pBtn.textContent = '🖨 Print Day';
+    pBtn.onclick = () => printHolidayDay(iso, sheet);
+    td.appendChild(pBtn);
     tfootRow.appendChild(td);
   });
   tfoot.appendChild(tfootRow);
@@ -9553,6 +9582,167 @@ function doImportCsv() {
 
   const uniqueNames = new Set(csvParsedRows.map(r => r.name)).size;
   alert(`✅ Imported ${uniqueNames} new activit${uniqueNames===1?'y':'ies'} into your Activity Menu!`);
+}
+
+
+
+// ═══════════════════════════════════════════════════════════════
+// PRINT DAY
+// ═══════════════════════════════════════════════════════════════
+
+function buildPrintHtml(dateLabel, sheetName, rows, sessionData, logoSrc) {
+  // Build row HTML
+  let rowsHtml = '';
+  for (const row of rows) {
+    if (row.key === '_notes') {
+      // Notes: blank lines
+      rowsHtml += `
+        <tr class="notes-row">
+          <td class="row-label-cell">📝 Notes</td>
+          <td class="activity-cell">
+            <div class="blank-line"></div>
+            <div class="blank-line"></div>
+            <div class="blank-line"></div>
+          </td>
+        </tr>`;
+      continue;
+    }
+    if (row.type === 'divider') {
+      rowsHtml += `<tr class="divider-row"><td colspan="2"><hr class="divider-hr"><span class="divider-label">${escHtml(row.icon)} ${escHtml(row.label)}</span></td></tr>`;
+      continue;
+    }
+    const acts = (sessionData[row.key] || []);
+    let cellContent = '';
+    if (acts.length === 0) {
+      cellContent = '<div class="blank-line"></div>';
+    } else {
+      cellContent = acts.map(a => `<div class="activity-item">${escHtml(a.text)}</div>`).join('');
+    }
+    rowsHtml += `
+      <tr>
+        <td class="row-label-cell"><span class="row-icon-print">${row.icon || ''}</span>${escHtml(row.label)}</td>
+        <td class="activity-cell">${cellContent}</td>
+      </tr>`;
+  }
+
+  // Build resources section
+  let resourcesHtml = '';
+  const resourceLines = [];
+  for (const row of rows) {
+    if (row.key === '_notes' || row.type === 'divider') continue;
+    const acts = (sessionData[row.key] || []);
+    for (const act of acts) {
+      const menuItem = state.menuItems.find(m => m.name === act.text);
+      if (menuItem && menuItem.resources && menuItem.resources.trim()) {
+        resourceLines.push(`<strong>${escHtml(act.text)}:</strong> ${escHtml(menuItem.resources.replace(/\\n/g, ' · ').replace(/\n/g, ' · '))}`);
+      }
+    }
+  }
+  if (resourceLines.length > 0) {
+    resourcesHtml = `<div class="resources-section"><div class="resources-title">📋 Resources</div>${resourceLines.map(r => `<div class="resource-line">${r}</div>`).join('')}</div>`;
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>${sheetName} — ${dateLabel}</title>
+<style>
+  @page { size: A4; margin: 12mm 14mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Georgia, 'Times New Roman', serif; font-size: 10pt; color: #2a1f0e; background: #fff; }
+
+  .page-header { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #3d5a2e; padding-bottom: 6px; margin-bottom: 10px; }
+  .header-logo { height: 38px; width: auto; object-fit: contain; }
+  .header-text { flex: 1; }
+  .header-sheet { font-size: 8pt; color: #6b4226; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 1px; }
+  .header-date { font-size: 14pt; font-weight: bold; color: #2a1f0e; }
+
+  table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  td { vertical-align: top; padding: 5px 7px; border: 1px solid #c8b89a; font-size: 9.5pt; line-height: 1.35; }
+
+  .row-label-cell { width: 30%; background: #f5f0e8; font-weight: 600; color: #3d5a2e; white-space: nowrap; }
+  .row-icon-print { margin-right: 4px; font-size: 10pt; }
+  .activity-cell { width: 70%; }
+  .activity-item { padding: 1px 0; }
+  .activity-item + .activity-item { border-top: 1px dotted #c8b89a; padding-top: 2px; margin-top: 2px; }
+
+  .blank-line { border-bottom: 1px solid #c8b89a; margin: 6px 0; min-height: 14px; }
+
+  .divider-row td { padding: 3px 7px; border: none; background: none; }
+  .divider-hr { border: none; border-top: 1.5px solid #3d5a2e; margin-bottom: -8px; }
+  .divider-label { display: inline-block; background: #fff; padding: 0 6px; font-size: 8pt; color: #3d5a2e; font-style: italic; position: relative; top: -6px; left: 10px; }
+
+  .notes-row .row-label-cell { color: #6b4226; }
+
+  .resources-section { border: 1px solid #c8b89a; border-radius: 4px; padding: 6px 8px; background: #faf7f2; }
+  .resources-title { font-weight: bold; font-size: 8.5pt; color: #3d5a2e; margin-bottom: 4px; }
+  .resource-line { font-size: 8.5pt; line-height: 1.4; margin-bottom: 2px; color: #2a1f0e; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <img class="header-logo" src="${logoSrc}" alt="CotF">
+    <div class="header-text">
+      <div class="header-sheet">${escHtml(sheetName)}</div>
+      <div class="header-date">${escHtml(dateLabel)}</div>
+    </div>
+  </div>
+  <table>${rowsHtml}</table>
+  ${resourcesHtml}
+</body>
+</html>`;
+}
+
+// ─── MAIN PLANNER PRINT ───────────────────────────────────────
+function printDay(date, sheet) {
+  const CAL_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  // date format: "3-Sep"
+  const [day, mon] = date.split('-');
+  const monthIdx = CAL_MONTHS.indexOf(mon);
+  const dateLabel = `${getDayName(date, sheet)} ${day} ${mon}`;
+
+  const rows = sheet.rowDefs || [];
+  const sessionData = sheet.sessions[date] || {};
+  const logoSrc = document.querySelector('.app-header-logo-img')?.src || '';
+
+  const printHtml = buildPrintHtml(dateLabel, sheet.name, rows, sessionData, logoSrc);
+  openPrintWindow(printHtml);
+}
+
+function getDayName(date, sheet) {
+  // Find this date in the sessions and get the weekday
+  const CAL_MONTHS_FULL = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  const [day, mon] = date.split('-');
+  if (!(mon in CAL_MONTHS_FULL)) return '';
+  // We need the year — find it from the sheet date range
+  const year = CAL_MONTHS_FULL[mon] >= CAL_MONTHS_FULL[sheet.startMonth]
+    ? sheet.startYear
+    : sheet.endYear;
+  const d = new Date(year, CAL_MONTHS_FULL[mon], parseInt(day));
+  return d.toLocaleDateString('en-GB', { weekday: 'long' });
+}
+
+// ─── HOLIDAY PLANNER PRINT ────────────────────────────────────
+function printHolidayDay(isoDate, sheet) {
+  const d = new Date(isoDate + 'T12:00:00');
+  const dateLabel = d.toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+
+  const rows = sheet.rowDefs || [];
+  const sessionData = sheet.sessions[isoDate] || {};
+  const logoSrc = document.querySelector('.app-header-logo-img')?.src || '';
+
+  const printHtml = buildPrintHtml(dateLabel, sheet.name, rows, sessionData, logoSrc);
+  openPrintWindow(printHtml);
+}
+
+// ─── SHARED ───────────────────────────────────────────────────
+function openPrintWindow(printHtml) {
+  const w = window.open('', '_blank', 'width=900,height=700');
+  w.document.write(printHtml);
+  w.document.close();
+  w.focus();
+  setTimeout(() => { w.print(); }, 400);
 }
 
 
