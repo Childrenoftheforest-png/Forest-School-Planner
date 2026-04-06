@@ -2243,6 +2243,13 @@ body {
   justify-content: flex-end;
   margin-top: 1.2rem;
 }
+
+.month-all {
+  background: rgba(61,90,46,0.12) !important;
+  color: var(--moss) !important;
+  font-style: italic;
+  letter-spacing: 0;
+}
 </style>
 
   <!-- Firebase SDK -->
@@ -2354,6 +2361,7 @@ body {
       <div class="detail-section">
         <label class="detail-section-label">🗓 Month</label>
         <select class="detail-field" id="calEditMonth">
+          <option value="all">🌿 Year Round</option>
           <option value="Jan">January</option><option value="Feb">February</option>
           <option value="Mar">March</option><option value="Apr">April</option>
           <option value="May">May</option><option value="Jun">June</option>
@@ -2532,6 +2540,7 @@ body {
       <div class="form-group">
         <label class="form-label">Best Month(s)</label>
         <select class="form-select" id="ideaMonth">
+          <option value="all">🌿 Year Round</option>
           <option value="Jan">January</option>
           <option value="Feb">February</option>
           <option value="Mar">March</option>
@@ -2595,6 +2604,7 @@ body {
       <div class="detail-section">
         <label class="detail-section-label">📅 Month</label>
         <select class="detail-field" id="dpMonthInput">
+          <option value="all">🌿 Year Round</option>
           <option value="Jan">January</option><option value="Feb">February</option>
           <option value="Mar">March</option><option value="Apr">April</option>
           <option value="May">May</option><option value="Jun">June</option>
@@ -2656,6 +2666,7 @@ body {
         <select class="form-select" id="popMonthVal">
           <option value="Sep">September</option><option value="Oct">October</option>
           <option value="Nov">November</option><option value="Dec">December</option>
+          <option value="all">🌿 Year Round</option>
           <option value="Jan">January</option><option value="Feb">February</option>
           <option value="Mar">March</option><option value="Apr">April</option>
           <option value="May">May</option><option value="Jun">June</option>
@@ -2710,7 +2721,8 @@ body {
           <select class="form-select" id="wizStartMonth">
             <option value="Sep">September</option><option value="Oct">October</option>
             <option value="Nov">November</option><option value="Dec">December</option>
-            <option value="Jan">January</option><option value="Feb">February</option>
+            <option value="all">🌿 Year Round</option>
+          <option value="Jan">January</option><option value="Feb">February</option>
             <option value="Mar">March</option><option value="Apr">April</option>
             <option value="May">May</option><option value="Jun">June</option>
             <option value="Jul">July</option><option value="Aug">August</option>
@@ -2729,7 +2741,8 @@ body {
           <select class="form-select" id="wizEndMonth">
             <option value="Sep">September</option><option value="Oct">October</option>
             <option value="Nov">November</option><option value="Dec">December</option>
-            <option value="Jan">January</option><option value="Feb">February</option>
+            <option value="all">🌿 Year Round</option>
+          <option value="Jan">January</option><option value="Feb">February</option>
             <option value="Mar">March</option><option value="Apr">April</option>
             <option value="May">May</option><option value="Jun">June</option>
             <option value="Jul" selected>July</option><option value="Aug">August</option>
@@ -4071,7 +4084,7 @@ function filterPicker() {
     const div = document.createElement('div');
     div.className = 'picker-item';
     const cat = CATEGORIES.find(c=>c.id===item.cat);
-    div.innerHTML = `<span class="month-tag month-${item.month}" style="">${item.month}</span> ${escHtml(item.name)} <span class="picker-cat-tag">${cat?cat.emoji+' '+cat.label:''}</span>`;
+    div.innerHTML = `<span class="month-tag month-${item.month === 'all' ? 'all' : item.month}" style="">${item.month === 'all' ? '∞' : item.month}</span> ${escHtml(item.name)} <span class="picker-cat-tag">${cat?cat.emoji+' '+cat.label:''}</span>`;
     div.addEventListener('click', () => addFromPicker(item));
     list.appendChild(div);
   }
@@ -4122,7 +4135,7 @@ function renderMenu() {
       <ul class="menu-item-list">
         ${shown.map(item => `
           <li class="menu-item ${item.userAdded?'user-added':''}" data-name="${escHtml(item.name).replace(/"/g,'&quot;')}" data-cat="${item.cat}">
-            <span class="month-tag month-${item.month}">${item.month}</span>
+            <span class="month-tag month-${item.month === 'all' ? 'all' : item.month}">${item.month === 'all' ? 'Year Round' : item.month}</span>
             <span>${escHtml(item.name)}</span>
             ${item.userAdded?'<span class="tag-user">✦ yours</span>':''}
             ${item.link?`<a href="${escHtml(item.link)}" target="_blank" class="item-link-icon" title="Open link" onclick="event.stopPropagation()">🔗</a>`:''}
@@ -4539,7 +4552,7 @@ function pickActivityForCell(rowKey, mon) {
   if (rowDef && rowDef.type === 'divider') return null;
 
   let candidates = state.menuItems.filter(item => {
-    if (!adjacentMonths.includes(item.month)) return false;
+    if (item.month !== 'all' && !adjacentMonths.includes(item.month)) return false;
     if (item.hidden) return false;
 
     // Use explicit category if set on the rowDef
@@ -4558,7 +4571,7 @@ function pickActivityForCell(rowKey, mon) {
   });
 
   if (candidates.length === 0) {
-    candidates = state.menuItems.filter(i => adjacentMonths.includes(i.month) && !i.hidden);
+    candidates = state.menuItems.filter(i => (i.month === 'all' || adjacentMonths.includes(i.month)) && !i.hidden);
   }
   if (candidates.length === 0) return null;
   return candidates[Math.floor(Math.random() * candidates.length)];
