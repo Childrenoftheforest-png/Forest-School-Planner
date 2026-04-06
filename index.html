@@ -2140,6 +2140,109 @@ body {
   outline: 2px dashed var(--moss);
   background: rgba(61,90,46,0.08);
 }
+
+/* ─── CSV IMPORT/EXPORT ─── */
+.menu-csv-btn {
+  font-family: 'Lora', serif;
+  font-size: 0.78rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 10px;
+  border: 1.5px solid rgba(61,90,46,0.3);
+  background: transparent;
+  color: var(--moss);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.menu-csv-btn:hover { background: rgba(61,90,46,0.08); border-color: var(--moss); }
+.menu-csv-btn.import { border-color: rgba(107,66,38,0.3); color: var(--bark); }
+.menu-csv-btn.import:hover { background: rgba(107,66,38,0.06); border-color: var(--bark); }
+
+/* ─── IMPORT MODAL ─── */
+#csvImportModal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(30,45,20,0.55);
+  z-index: 600;
+  align-items: center;
+  justify-content: center;
+}
+#csvImportModal.open { display: flex; }
+.csv-modal-box {
+  background: #fff;
+  border-radius: 14px;
+  padding: 1.8rem 2rem;
+  max-width: 560px;
+  width: 94vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.22);
+}
+.csv-modal-title {
+  font-family: 'Lora', serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--bark);
+  margin-bottom: 0.4rem;
+}
+.csv-modal-sub {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.88rem;
+  color: var(--bark-light);
+  margin-bottom: 1.2rem;
+  line-height: 1.5;
+}
+.csv-drop-zone {
+  border: 2.5px dashed rgba(61,90,46,0.3);
+  border-radius: 10px;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: rgba(61,90,46,0.02);
+  margin-bottom: 1rem;
+}
+.csv-drop-zone:hover, .csv-drop-zone.drag-over {
+  border-color: var(--moss);
+  background: rgba(61,90,46,0.06);
+}
+.csv-drop-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+.csv-drop-text { font-family: 'Lora', serif; font-size: 0.85rem; color: var(--bark-light); }
+.csv-drop-text strong { color: var(--moss); }
+.csv-preview-box {
+  background: rgba(61,90,46,0.04);
+  border: 1px solid rgba(61,90,46,0.15);
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1rem;
+  font-family: 'Lora', serif;
+  font-size: 0.82rem;
+  color: var(--bark);
+  line-height: 1.6;
+}
+.csv-preview-good { color: var(--moss); font-weight: 600; }
+.csv-preview-warn { color: #b86000; }
+.csv-preview-err { color: #c00; }
+.csv-col-guide {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.82rem;
+  color: var(--bark-light);
+  margin-bottom: 1rem;
+}
+.csv-col-guide code {
+  background: rgba(61,90,46,0.08);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.78rem;
+}
+.csv-modal-btns {
+  display: flex;
+  gap: 0.7rem;
+  justify-content: flex-end;
+  margin-top: 1.2rem;
+}
 </style>
 
   <!-- Firebase SDK -->
@@ -2202,6 +2305,8 @@ body {
     <div class="menu-view" id="menuView">
       <div class="menu-search-bar">
         <input type="text" class="menu-search-input" id="menuSearchMain" placeholder="🔍  Search all activities…" oninput="filterMenu()">
+        <button class="menu-csv-btn import" onclick="openCsvImportModal()" title="Import activities from CSV spreadsheet">⬆ Import CSV</button>
+        <button class="menu-csv-btn" onclick="exportMenuCsv()" title="Export all activities as CSV spreadsheet">⬇ Export CSV</button>
         <button class="add-idea-btn" onclick="openAddIdeaModal()">＋ Add New Idea</button>
       </div>
       <div class="menu-grid" id="menuGrid"></div>
@@ -9157,6 +9262,287 @@ function openHolidayResourcesPanel(isoDate, sheet) {
   document.getElementById('resPanel').classList.add('open');
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// CSV IMPORT / EXPORT
+// ═══════════════════════════════════════════════════════════════
+
+const CSV_HEADERS = ['name','category','month','resources','notes','link'];
+const VALID_CATS = ['games','bushcraft','crafts','recipes','foraging','stories','songs','seasonal','woodland','tea','general'];
+const VALID_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','all'];
+
+// ─── EXPORT ───────────────────────────────────────────────────
+function exportMenuCsv() {
+  // Build rows: base items + user added/edited
+  const allItems = state.menuItems.filter(i => i && i.name && !i.hidden);
+
+  // Also include base items not in state (they're baked in)
+  // We export everything currently visible
+  const rows = [CSV_HEADERS];
+
+  allItems.forEach(item => {
+    rows.push([
+      item.name    || '',
+      item.cat     || '',
+      item.month   || '',
+      (item.resources || '').split('\n').join('\\n'),
+      (item.notes     || '').split('\n').join('\\n'),
+      item.link    || ''
+    ].map(csvEscapeField));
+  });
+
+  // Also export base items that aren't in state.menuItems (unedited base)
+  if (typeof MENU_ITEMS_BASE !== 'undefined') {
+    const stateNames = new Set(allItems.map(i => i.name));
+    MENU_ITEMS_BASE.forEach(item => {
+      if (!item || !item.name || stateNames.has(item.name) || item.hidden) return;
+      rows.push([
+        item.name    || '',
+        item.cat     || '',
+        item.month   || '',
+        (item.resources || '').split('\n').join('\\n'),
+        (item.notes     || '').split('\n').join('\\n'),
+        item.link    || ''
+      ].map(csvEscapeField));
+    });
+  }
+
+  const csvContent = rows.map(r => r.join(',')).join('\r\n');
+  const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cotf-activities.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function csvEscapeField(val) {
+  const s = String(val);
+  if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+// ─── IMPORT ───────────────────────────────────────────────────
+let csvParsedRows = [];
+
+function openCsvImportModal() {
+  csvParsedRows = [];
+  document.getElementById('csvPreviewBox').style.display = 'none';
+  document.getElementById('csvPreviewBox').innerHTML = '';
+  document.getElementById('csvFileInput').value = '';
+  document.getElementById('csvImportBtn').disabled = true;
+  document.getElementById('csvImportBtn').style.opacity = '0.5';
+  document.getElementById('csvImportModal').classList.add('open');
+}
+
+function closeCsvImportModal() {
+  document.getElementById('csvImportModal').classList.remove('open');
+}
+
+function csvDragOver(e) {
+  e.preventDefault();
+  document.getElementById('csvDropZone').classList.add('drag-over');
+}
+function csvDragLeave(e) {
+  document.getElementById('csvDropZone').classList.remove('drag-over');
+}
+function csvDrop(e) {
+  e.preventDefault();
+  document.getElementById('csvDropZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processCsvFile(file);
+}
+function csvFileChosen(e) {
+  const file = e.target.files[0];
+  if (file) processCsvFile(file);
+}
+
+function processCsvFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const text = e.target.result;
+      parseCsvAndPreview(text);
+    } catch(err) {
+      showCsvPreview('<span class="csv-preview-err">❌ Could not read file: ' + escHtml(err.message) + '</span>', false);
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseCsvText(text) {
+  // Robust CSV parser - handles quoted fields, escaped quotes, newlines in fields
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  let i = 0;
+  while (i < text.length) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i+1] === '"') { field += '"'; i += 2; continue; }
+        inQuotes = false; i++; continue;
+      }
+      field += ch; i++; continue;
+    }
+    if (ch === '"') { inQuotes = true; i++; continue; }
+    if (ch === ',') { row.push(field.trim()); field = ''; i++; continue; }
+    if (ch === '\r') { i++; continue; }
+    if (ch === '\n') {
+      row.push(field.trim());
+      if (row.some(f => f)) rows.push(row);
+      row = []; field = ''; i++; continue;
+    }
+    field += ch; i++;
+  }
+  if (field || row.length) { row.push(field.trim()); if (row.some(f => f)) rows.push(row); }
+  return rows;
+}
+
+function parseCsvAndPreview(text) {
+  const rows = parseCsvText(text);
+  if (rows.length < 2) {
+    showCsvPreview('<span class="csv-preview-err">❌ File appears empty or has no data rows.</span>', false);
+    return;
+  }
+
+  // Detect header row
+  const header = rows[0].map(h => h.toLowerCase().trim());
+  const nameIdx     = header.indexOf('name');
+  const catIdx      = header.indexOf('category');
+  const monthIdx    = header.indexOf('month');
+  const resourceIdx = header.indexOf('resources');
+  const notesIdx    = header.indexOf('notes');
+  const linkIdx     = header.indexOf('link');
+
+  if (nameIdx < 0 || catIdx < 0 || monthIdx < 0) {
+    showCsvPreview('<span class="csv-preview-err">❌ Missing required columns. Need at least: <strong>name</strong>, <strong>category</strong>, <strong>month</strong>.</span>', false);
+    return;
+  }
+
+  // Get existing names to detect duplicates
+  const existingNames = new Set();
+  state.menuItems.forEach(i => { if (i && i.name) existingNames.add(i.name.toLowerCase()); });
+  if (typeof MENU_ITEMS_BASE !== 'undefined') {
+    MENU_ITEMS_BASE.forEach(i => { if (i && i.name) existingNames.add(i.name.toLowerCase()); });
+  }
+
+  const dataRows = rows.slice(1);
+  csvParsedRows = [];
+  let skippedDupe = 0, skippedBad = 0, warnings = [];
+
+  dataRows.forEach((row, ri) => {
+    const name = row[nameIdx] || '';
+    if (!name) { skippedBad++; return; }
+
+    const cat   = (row[catIdx]      || '').toLowerCase().trim();
+    const month = (row[monthIdx]    || '').trim();
+    const resources = (row[resourceIdx] || '').replace(/\\n/g, '\n');
+    const notes     = (row[notesIdx]    || '').replace(/\\n/g, '\n');
+    const link      = row[linkIdx]      || '';
+
+    // Validate category
+    let finalCat = cat;
+    if (!VALID_CATS.includes(cat)) {
+      finalCat = 'general';
+      warnings.push(`Row ${ri+2}: unknown category "${cat}" — set to "general"`);
+    }
+
+    // Validate month — support 'all' → expand to all months, or comma-separated
+    // We store one entry per month (like base items)
+    let months = [];
+    if (!month || month.toLowerCase() === 'all') {
+      months = VALID_MONTHS.filter(m => m !== 'all');
+    } else {
+      months = month.split(/[,;\/]/).map(m => {
+        m = m.trim();
+        // Accept full names: January → Jan
+        const full = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+        const fi = full.indexOf(m.toLowerCase());
+        if (fi >= 0) return VALID_MONTHS[fi];
+        // Accept 3-letter
+        const match = VALID_MONTHS.find(vm => vm.toLowerCase() === m.toLowerCase());
+        return match || null;
+      }).filter(Boolean);
+      if (months.length === 0) {
+        months = ['Jan'];
+        warnings.push(`Row ${ri+2}: unrecognised month "${month}" — set to Jan`);
+      }
+    }
+
+    // Check for duplicate (by name, case-insensitive)
+    if (existingNames.has(name.toLowerCase())) {
+      skippedDupe++;
+      return;
+    }
+
+    // Create one entry per month (matches how MENU_ITEMS_BASE works)
+    months.forEach(mon => {
+      csvParsedRows.push({
+        name, cat: finalCat, month: mon,
+        resources, notes, link,
+        userAdded: true
+      });
+    });
+    // Mark as seen to avoid self-duplicates across month rows
+    existingNames.add(name.toLowerCase());
+  });
+
+  // Build preview message
+  const newCount = new Set(csvParsedRows.map(r => r.name)).size;
+  let msg = '';
+  if (newCount > 0) {
+    msg += `<span class="csv-preview-good">✓ ${newCount} new activit${newCount===1?'y':'ies'} ready to import</span>`;
+    if (csvParsedRows.length > newCount) {
+      msg += ` <span style="color:var(--bark-light);">(${csvParsedRows.length} total rows after month expansion)</span>`;
+    }
+  }
+  if (skippedDupe > 0) msg += `<br><span class="csv-preview-warn">⚠ ${skippedDupe} activit${skippedDupe===1?'y':'ies'} skipped — already exist in your menu</span>`;
+  if (skippedBad > 0)  msg += `<br><span class="csv-preview-warn">⚠ ${skippedBad} row${skippedBad===1?' was':'s were'} skipped — missing name</span>`;
+  warnings.slice(0,5).forEach(w => { msg += `<br><span class="csv-preview-warn">⚠ ${escHtml(w)}</span>`; });
+  if (warnings.length > 5) msg += `<br><span class="csv-preview-warn">… and ${warnings.length - 5} more warnings</span>`;
+  if (newCount === 0) msg += (msg ? '<br>' : '') + '<span class="csv-preview-err">Nothing new to import.</span>';
+
+  showCsvPreview(msg, newCount > 0);
+}
+
+function showCsvPreview(html, enableBtn) {
+  const box = document.getElementById('csvPreviewBox');
+  box.style.display = 'block';
+  box.innerHTML = html;
+  const btn = document.getElementById('csvImportBtn');
+  btn.disabled = !enableBtn;
+  btn.style.opacity = enableBtn ? '1' : '0.5';
+}
+
+function doImportCsv() {
+  if (!csvParsedRows.length) return;
+
+  // Merge into state.menuItems (userAdded items)
+  const existingNames = new Set(state.menuItems.map(i => i && i.name ? i.name.toLowerCase() : ''));
+  let added = 0;
+  csvParsedRows.forEach(item => {
+    if (!existingNames.has(item.name.toLowerCase())) {
+      state.menuItems.push(item);
+      existingNames.add(item.name.toLowerCase());
+      added++;
+    }
+  });
+
+  saveState();
+  renderMenu();
+  renderCatFilters();
+  closeCsvImportModal();
+
+  const uniqueNames = new Set(csvParsedRows.map(r => r.name)).size;
+  alert(`✅ Imported ${uniqueNames} new activit${uniqueNames===1?'y':'ies'} into your Activity Menu!`);
+}
+
+
 // ─── INIT: load from cloud first, localStorage as fallback ───
 (async () => {
   // Show loading state
@@ -9265,6 +9651,41 @@ function openHolidayResourcesPanel(isoDate, sheet) {
     <div class="holiday-modal-btns">
       <button class="btn-secondary" onclick="closeHolidayModal()">Cancel</button>
       <button class="btn-primary" onclick="createHolidayClub()">Create Plan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── CSV IMPORT MODAL ─── -->
+<div id="csvImportModal" onclick="if(event.target===this)closeCsvImportModal()">
+  <div class="csv-modal-box">
+    <div class="csv-modal-title">⬆ Import Activities from CSV</div>
+    <div class="csv-modal-sub">Upload a CSV file to add new activities to your menu. Existing activities won't be overwritten — only new ones are added.</div>
+
+    <div class="csv-col-guide">
+      <strong>Required columns (in order):</strong><br>
+      <code>name</code> &nbsp;·&nbsp;
+      <code>category</code> &nbsp;·&nbsp;
+      <code>month</code> &nbsp;·&nbsp;
+      <code>resources</code> &nbsp;·&nbsp;
+      <code>notes</code> &nbsp;·&nbsp;
+      <code>link</code><br><br>
+      <strong>Category values:</strong> games · bushcraft · crafts · recipes · foraging · stories · songs · seasonal · woodland · tea · general<br>
+      <strong>Month values:</strong> Jan · Feb · Mar · Apr · May · Jun · Jul · Aug · Sep · Oct · Nov · Dec · all
+    </div>
+
+    <div class="csv-drop-zone" id="csvDropZone"
+      ondragover="csvDragOver(event)" ondragleave="csvDragLeave(event)" ondrop="csvDrop(event)"
+      onclick="document.getElementById('csvFileInput').click()">
+      <div class="csv-drop-icon">📄</div>
+      <div class="csv-drop-text"><strong>Click to choose a file</strong> or drag and drop here<br>(.csv files only)</div>
+    </div>
+    <input type="file" id="csvFileInput" accept=".csv,text/csv" style="display:none" onchange="csvFileChosen(event)">
+
+    <div class="csv-preview-box" id="csvPreviewBox" style="display:none;"></div>
+
+    <div class="csv-modal-btns">
+      <button class="btn-secondary" onclick="closeCsvImportModal()">Cancel</button>
+      <button class="btn-primary" id="csvImportBtn" onclick="doImportCsv()" disabled style="opacity:0.5;">Import Activities</button>
     </div>
   </div>
 </div>
