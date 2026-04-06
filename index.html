@@ -2135,6 +2135,11 @@ body {
   margin-left: 0.6rem;
   vertical-align: middle;
 }
+
+.holiday-row-item.drag-over {
+  outline: 2px dashed var(--moss);
+  background: rgba(61,90,46,0.08);
+}
 </style>
 
   <!-- Firebase SDK -->
@@ -8539,23 +8544,64 @@ function renderHcWizRows() {
   const list = document.getElementById('hcRowList');
   if (!list) return;
   list.innerHTML = '';
+  if (hcWizRows.length === 0) {
+    list.innerHTML = '<div style="padding:0.6rem 0.9rem;font-family:Lora,serif;font-size:0.8rem;color:var(--bark-light);font-style:italic;">No rows yet — add some above</div>';
+    return;
+  }
+  let dragSrc = null;
+
   hcWizRows.forEach((row, i) => {
     const div = document.createElement('div');
     div.className = 'holiday-row-item' + (row.type === 'divider' ? ' divider-row' : '');
-    div.innerHTML = `<span class="holiday-row-item-icon">${row.icon}</span><span>${escHtml(row.label)}</span>`;
+    div.draggable = true;
+    div.dataset.idx = i;
+    div.style.cursor = 'grab';
+
+    // drag handle + content
+    div.innerHTML = `<span style="margin-right:0.4rem;opacity:0.35;font-size:0.85rem;cursor:grab;">⠿</span><span class="holiday-row-item-icon">${row.icon}</span><span>${escHtml(row.label)}</span>`;
+
+    // delete button
     if (row.key !== '_notes') {
       const del = document.createElement('button');
       del.className = 'holiday-row-del';
       del.title = 'Remove row';
       del.textContent = '✕';
-      del.onclick = () => hcDeleteRow(i);
+      del.onclick = (e) => { e.stopPropagation(); hcDeleteRow(i); };
       div.appendChild(del);
     }
+
+    // drag events
+    div.addEventListener('dragstart', (e) => {
+      dragSrc = i;
+      div.style.opacity = '0.4';
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    div.addEventListener('dragend', () => {
+      div.style.opacity = '1';
+      list.querySelectorAll('.holiday-row-item').forEach(el => el.classList.remove('drag-over'));
+    });
+    div.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      div.classList.add('drag-over');
+    });
+    div.addEventListener('dragleave', () => {
+      div.classList.remove('drag-over');
+    });
+    div.addEventListener('drop', (e) => {
+      e.preventDefault();
+      div.classList.remove('drag-over');
+      const targetIdx = parseInt(div.dataset.idx, 10);
+      if (dragSrc !== null && dragSrc !== targetIdx) {
+        const [moved] = hcWizRows.splice(dragSrc, 1);
+        hcWizRows.splice(targetIdx, 0, moved);
+        renderHcWizRows();
+      }
+      dragSrc = null;
+    });
+
     list.appendChild(div);
   });
-  if (hcWizRows.length === 0) {
-    list.innerHTML = '<div style="padding:0.6rem 0.9rem;font-family:Lora,serif;font-size:0.8rem;color:var(--bark-light);font-style:italic;">No rows yet — add some above</div>';
-  }
 }
 
 function openHolidayModal() {
@@ -8852,10 +8898,24 @@ function renderHolidayPlanner(sheet) {
         td.appendChild(ta);
         tr.appendChild(td);
       } else {
+        const activities = session[rowDef.key] || [];
         const td = document.createElement('td');
-        td.className = 'session-cell';
-        const acts = session[rowDef.key] || [];
-        renderCellActivities(td, acts, iso, rowDef, sheet);
+        td.className = 'plan-cell';
+        td.dataset.date = iso;
+        td.dataset.rowKey = rowDef.key;
+        td.dataset.rowLabel = rowDef.label;
+        td.dataset.rowIcon = rowDef.icon;
+        td.innerHTML = renderCellActivities(activities);
+        td.addEventListener('click', (e) => {
+          if (e.target.classList.contains('remove-activity') || e.target.classList.contains('cell-activity-name')) return;
+          openCellModal(iso, rowDef.key, rowDef.label, rowDef.icon);
+        });
+        td.addEventListener('click', (e) => {
+          if (e.target.classList.contains('remove-activity')) {
+            const idx = parseInt(e.target.dataset.idx);
+            removeActivityFromCell(iso, rowDef.key, idx);
+          }
+        });
         tr.appendChild(td);
       }
     }
@@ -8909,7 +8969,7 @@ function renderHolidayPlanner(sheet) {
     const btn = document.createElement('button');
     btn.className = 'resources-btn';
     btn.textContent = '📋 Day list';
-    btn.onclick = () => openResourcesPanel(iso, sheet);
+    btn.onclick = () => openHolidayResourcesPanel(iso, sheet);
     td.appendChild(btn);
     tfootRow.appendChild(td);
   });
@@ -9015,6 +9075,82 @@ function addRowToHolidaySheet(sheetId) {
   document.getElementById('editRowsBtn').textContent = '✓ Done Editing';
 }
 
+
+
+function openHolidayResourcesPanel(isoDate, sheet) {
+  // Convert ISO date to display label
+  const d = new Date(isoDate + 'T12:00:00');
+  const dayLabel = d.toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long'});
+  document.getElementById('resPanelDate').textContent = dayLabel;
+
+  const body = document.getElementById('resPanelBody');
+  body.innerHTML = '';
+
+  const sessionData = sheet.sessions[isoDate] || {};
+  const rowDefs = sheet.rowDefs || [];
+
+  let anyActivities = false;
+  let plainTextLines = ['📋 Resources for ' + dayLabel, ''];
+
+  for (const row of rowDefs) {
+    if (row.key === '_notes' || row.type === 'divider') continue;
+    const activities = sessionData[row.key] || [];
+    if (activities.length === 0) continue;
+
+    for (const act of activities) {
+      anyActivities = true;
+      const menuItem = state.menuItems.find(m => m.name === act.text);
+      const resources = menuItem && menuItem.resources ? menuItem.resources.trim() : '';
+      const notes = menuItem && menuItem.notes ? menuItem.notes.trim() : '';
+
+      const block = document.createElement('div');
+      block.className = 'res-activity-block';
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'res-activity-name';
+      nameEl.innerHTML = `${row.icon || '•'} ${escHtml(act.text)} <span class="res-activity-row-tag">${escHtml(row.label)}</span>`;
+      block.appendChild(nameEl);
+
+      if (resources) {
+        const resEl = document.createElement('div');
+        resEl.className = 'res-resources-text';
+        resEl.innerHTML = escHtml(resources).replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
+        block.appendChild(resEl);
+        plainTextLines.push(`${row.icon || '•'} ${act.text} [${row.label}]`);
+        plainTextLines.push(resources);
+        plainTextLines.push('');
+      } else if (notes) {
+        const resEl = document.createElement('div');
+        resEl.className = 'res-resources-text';
+        resEl.innerHTML = escHtml(notes).replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
+        block.appendChild(resEl);
+        plainTextLines.push(`${row.icon || '•'} ${act.text} [${row.label}]`);
+        plainTextLines.push(notes);
+        plainTextLines.push('');
+      } else {
+        const noRes = document.createElement('div');
+        noRes.className = 'res-no-resources';
+        noRes.textContent = 'No resources listed';
+        block.appendChild(noRes);
+        plainTextLines.push(`${row.icon || '•'} ${act.text} [${row.label}] — no resources listed`);
+        plainTextLines.push('');
+      }
+
+      const divider = document.createElement('hr');
+      divider.className = 'res-divider';
+      block.appendChild(divider);
+      body.appendChild(block);
+    }
+  }
+
+  if (!anyActivities) {
+    body.innerHTML = '<div class="res-empty-msg">No activities planned for this day yet.</div>';
+  }
+
+  document.getElementById('resPanel').dataset.plainText = plainTextLines.join('\n');
+  document.getElementById('resPanelOverlay').classList.add('open');
+  document.getElementById('resPanel').classList.add('open');
+}
 
 // ─── INIT: load from cloud first, localStorage as fallback ───
 (async () => {
