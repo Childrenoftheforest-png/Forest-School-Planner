@@ -4423,7 +4423,12 @@ function pickActivityForCell(rowKey, mon) {
 
   // First: check if the rowDef has an explicit cat stored (user-created rows)
   const rowDef = (sheet.rowDefs || []).find(r => r.key === rowKey);
-  const explicitCat = rowDef && rowDef.cat && rowDef.cat !== 'any' ? rowDef.cat : null;
+  // For holiday clubs, fall back to HOLIDAY_DEFAULT_ROWS cat if not set
+  let explicitCat = rowDef && rowDef.cat && rowDef.cat !== 'any' ? rowDef.cat : null;
+  if (!explicitCat && sheet && sheet.type === 'holiday') {
+    const defaultRow = HOLIDAY_DEFAULT_ROWS.find(r => r.key === rowKey);
+    if (defaultRow && defaultRow.cat) explicitCat = defaultRow.cat;
+  }
 
   // For divider rows: never populate
   if (rowDef && rowDef.type === 'divider') return null;
@@ -8492,14 +8497,14 @@ window.addEventListener('resize', () => {
 // ═══════════════════════════════════════════════════════════════
 
 const HOLIDAY_DEFAULT_ROWS = [
-  {key:'Morning Circle Question', label:'Morning Circle', icon:'💬'},
-  {key:'Wide Game', label:'Wide Game (AM)', icon:'🦊'},
-  {key:'Active Bushcraft Activity / Role Playing Activity', label:'Bushcraft / Activity', icon:'🔥'},
-  {key:'Low Energy Craft', label:'Craft', icon:'🌿'},
+  {key:'Morning Circle Question', label:'Morning Circle', icon:'💬', cat:'seasonal'},
+  {key:'Wide Game', label:'Wide Game (AM)', icon:'🦊', cat:'games'},
+  {key:'Active Bushcraft Activity / Role Playing Activity', label:'Bushcraft / Activity', icon:'🔥', cat:'bushcraft'},
+  {key:'Low Energy Craft', label:'Craft', icon:'🌿', cat:'crafts'},
   {key:'divider_lunch_default', label:'Lunch', icon:'🥪', type:'divider'},
-  {key:'Nature-Based Activity / Woodland Management Task', label:'Nature / Woodland Task', icon:'🌳'},
-  {key:'Afternoon Activity', label:'Afternoon Activity', icon:'🎯'},
-  {key:'Planning & Singing', label:'Planning & Singing', icon:'🎶'},
+  {key:'Nature-Based Activity / Woodland Management Task', label:'Nature / Woodland Task', icon:'🌳', cat:'woodland'},
+  {key:'Afternoon Activity', label:'Afternoon Activity', icon:'🎯', cat:'general'},
+  {key:'Planning & Singing', label:'Planning & Singing', icon:'🎶', cat:'songs'},
   {key:'_notes', label:'Session Notes', icon:'📝'},
 ];
 
