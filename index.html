@@ -2359,6 +2359,107 @@ body {
     color: var(--bark-light);
     line-height: 1.35;
   }
+
+/* ─── BACKFILL / APPLY TO SESSIONS ─── */
+.apply-sessions-btn {
+  font-family: 'Lora', serif;
+  font-size: 0.82rem;
+  padding: 0.55rem 1.1rem;
+  background: var(--bark);
+  color: var(--parchment);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-top: 0.7rem;
+  width: 100%;
+}
+.apply-sessions-btn:hover { background: #4a2c0e; }
+
+/* Session picker modal */
+#sessionPickerModal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(30,45,20,0.55);
+  z-index: 600;
+  align-items: center;
+  justify-content: center;
+}
+#sessionPickerModal.open { display: flex; }
+.session-picker-box {
+  background: #fff;
+  border-radius: 14px;
+  padding: 1.6rem 1.8rem;
+  max-width: 420px;
+  width: 94vw;
+  max-height: 82vh;
+  overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.22);
+}
+.session-picker-title {
+  font-family: 'Lora', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--bark);
+  margin-bottom: 0.3rem;
+}
+.session-picker-sub {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.88rem;
+  color: var(--bark-light);
+  margin-bottom: 1.1rem;
+  line-height: 1.4;
+}
+.session-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.session-date-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.9rem;
+  border: 1.5px solid rgba(107,66,38,0.2);
+  border-radius: 8px;
+  background: #fff;
+  font-family: 'Lora', serif;
+  font-size: 0.85rem;
+  color: var(--bark);
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align: left;
+}
+.session-date-btn:hover { background: rgba(61,90,46,0.07); border-color: var(--moss); color: var(--moss); }
+.session-date-btn .date-label { font-weight: 600; }
+.session-date-btn .date-sheet { font-size: 0.72rem; color: var(--bark-light); font-style: italic; }
+.session-date-btn .date-rows { font-size: 0.72rem; color: var(--moss); margin-top: 0.1rem; }
+.session-picker-empty {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.9rem;
+  color: var(--bark-light);
+  font-style: italic;
+  padding: 0.8rem 0;
+}
+.session-picker-btns {
+  display: flex;
+  justify-content: flex-end;
+}
+/* Apply confirmation banner */
+.backfill-result-banner {
+  display: none;
+  background: rgba(61,90,46,0.1);
+  border: 1.5px solid rgba(61,90,46,0.3);
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  font-family: 'Lora', serif;
+  font-size: 0.82rem;
+  color: var(--moss);
+  margin-top: 0.6rem;
+  line-height: 1.5;
+}
 </style>
 
   <!-- Firebase SDK -->
@@ -2423,8 +2524,10 @@ body {
         <input type="text" class="menu-search-input" id="menuSearchMain" placeholder="🔍  Search all activities…" oninput="filterMenu()">
         <button class="menu-csv-btn import" onclick="openCsvImportModal()" title="Import activities from CSV spreadsheet">⬆ Import CSV</button>
         <button class="menu-csv-btn" onclick="exportMenuCsv()" title="Export all activities as CSV spreadsheet">⬇ Export CSV</button>
+        <button class="menu-csv-btn import" onclick="openBulkReclassifyModal()" title="Fix category of multiple activities at once">✏ Fix Categories</button>
         <button class="add-idea-btn" onclick="openAddIdeaModal()">＋ Add New Idea</button>
       </div>
+      <div class="backfill-result-banner" id="backfillOfferBanner" style="display:none;margin-bottom:0.8rem;"></div>
       <div class="menu-grid" id="menuGrid"></div>
     </div>
 
@@ -4356,11 +4459,14 @@ function saveNewIdea() {
   const link = document.getElementById('ideaLink').value.trim();
   const notes = document.getElementById('ideaNotes').value.trim();
   const resources = document.getElementById('ideaResources').value.trim();
-  state.menuItems.push({name, cat, month, link, notes, resources, userAdded: true});
+  const newItem = {name, cat, month, link, notes, resources, userAdded: true};
+  state.menuItems.push(newItem);
   saveState();
   renderCatFilters();
   closeAddIdeaModal();
   if (document.getElementById('menuView').classList.contains('visible')) renderMenu();
+  // Offer to add to a specific session
+  openSessionPicker(newItem);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -9456,6 +9562,56 @@ function openHolidayResourcesPanel(isoDate, sheet) {
 // CSV IMPORT / EXPORT
 // ═══════════════════════════════════════════════════════════════
 
+
+// Map CSV category strings (both labels and IDs) to internal category IDs
+function resolveCsvCategory(raw) {
+  if (!raw) return null;
+  const s = raw.trim().toLowerCase();
+  // Direct ID match first
+  const byId = CATEGORIES.find(c => c.id === s);
+  if (byId) return byId.id;
+  // Label match (case-insensitive)
+  const byLabel = CATEGORIES.find(c => c.label.toLowerCase() === s);
+  if (byLabel) return byLabel.id;
+  // Partial / common aliases
+  const aliases = {
+    'wide games': 'games',
+    'wide game':  'games',
+    'games':      'general',  // plain "games" → 🎮 Games, not Wide Games
+    'game':       'general',
+    'bushcraft':  'bushcraft',
+    'bushcraft & skills': 'bushcraft',
+    'craft':      'crafts',
+    'craft projects': 'crafts',
+    'crafts':     'crafts',
+    'cooking':    'recipes',
+    'recipes':    'recipes',
+    'recipe':     'recipes',
+    'recipes & cooking': 'recipes',
+    'foraging':   'foraging',
+    'forage':     'foraging',
+    'stories':    'stories',
+    'story':      'stories',
+    'storytelling': 'stories',
+    'songs':      'songs',
+    'song':       'songs',
+    'singing':    'songs',
+    'seasonal':   'seasonal',
+    'seasonal & spiritual': 'seasonal',
+    'spiritual':  'seasonal',
+    'woodland':   'woodland',
+    'woodland tasks': 'woodland',
+    'nature':     'woodland',
+    'tea':        'tea',
+    'afternoon tea': 'tea',
+    'afternoon tea club': 'tea',
+    'general':    'general',
+    'any':        'general',
+  };
+  if (aliases[s] !== undefined) return aliases[s];
+  return null;
+}
+
 const CSV_HEADERS = ['name','category','month','resources','notes','link'];
 const VALID_CATS = ['games','bushcraft','crafts','recipes','foraging','stories','songs','seasonal','woodland','tea','general'];
 const VALID_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','all'];
@@ -9472,7 +9628,7 @@ function exportMenuCsv() {
   allItems.forEach(item => {
     rows.push([
       item.name    || '',
-      item.cat     || '',
+      (CATEGORIES.find(c => c.id === item.cat)?.label || item.cat || ''),
       item.month   || '',
       (item.resources || '').split('\n').join('\\n'),
       (item.notes     || '').split('\n').join('\\n'),
@@ -9487,7 +9643,7 @@ function exportMenuCsv() {
       if (!item || !item.name || stateNames.has(item.name) || item.hidden) return;
       rows.push([
         item.name    || '',
-        item.cat     || '',
+        (CATEGORIES.find(c => c.id === item.cat)?.label || item.cat || ''),
         item.month   || '',
         (item.resources || '').split('\n').join('\\n'),
         (item.notes     || '').split('\n').join('\\n'),
@@ -9634,11 +9790,11 @@ function parseCsvAndPreview(text) {
     const notes     = (row[notesIdx]    || '').replace(/\\n/g, '\n');
     const link      = row[linkIdx]      || '';
 
-    // Validate category
-    let finalCat = cat;
-    if (!VALID_CATS.includes(cat)) {
+    // Validate category — accept both human-readable labels and internal IDs
+    let finalCat = resolveCsvCategory(cat);
+    if (!finalCat) {
       finalCat = 'general';
-      warnings.push(`Row ${ri+2}: unknown category "${cat}" — set to "general"`);
+      warnings.push(`Row ${ri+2}: unknown category "${cat}" — set to "Games"`);
     }
 
     // Validate month — support 'all' → expand to all months, or comma-separated
@@ -9713,12 +9869,12 @@ function doImportCsv() {
 
   // Merge into state.menuItems (userAdded items)
   const existingNames = new Set(state.menuItems.map(i => i && i.name ? i.name.toLowerCase() : ''));
-  let added = 0;
+  const newlyAdded = [];
   csvParsedRows.forEach(item => {
     if (!existingNames.has(item.name.toLowerCase())) {
       state.menuItems.push(item);
       existingNames.add(item.name.toLowerCase());
-      added++;
+      newlyAdded.push(item);
     }
   });
 
@@ -9727,8 +9883,31 @@ function doImportCsv() {
   renderCatFilters();
   closeCsvImportModal();
 
-  const uniqueNames = new Set(csvParsedRows.map(r => r.name)).size;
-  alert(`✅ Imported ${uniqueNames} new activit${uniqueNames===1?'y':'ies'} into your Activity Menu!`);
+  // Track for backfill — deduplicate by name
+  const seen = new Set();
+  state._lastImported = newlyAdded.filter(i => {
+    if (seen.has(i.name)) return false;
+    seen.add(i.name);
+    return true;
+  });
+
+  const uniqueCount = state._lastImported.length;
+  if (uniqueCount > 0) {
+    showBackfillOffer(uniqueCount);
+  }
+}
+
+function showBackfillOffer(count) {
+  // Show a prompt banner asking if they want to apply to upcoming sessions
+  const banner = document.getElementById('backfillOfferBanner');
+  if (!banner) return;
+  banner.innerHTML = `
+    <strong>✅ ${count} new activit${count===1?'y':'ies'} imported.</strong><br>
+    Would you like to add ${count===1?'it':'them'} to upcoming session plans?
+    <button class="apply-sessions-btn" onclick="runBackfill()">📅 Apply to Upcoming Sessions</button>
+    <div class="backfill-result-banner" id="backfillResultBanner"></div>
+  `;
+  banner.style.display = 'block';
 }
 
 
@@ -9893,6 +10072,316 @@ function openPrintWindow(printHtml) {
 }
 
 
+
+// ═══════════════════════════════════════════════════════════════
+// BACKFILL — APPLY NEW ACTIVITIES TO UPCOMING SESSIONS
+// ═══════════════════════════════════════════════════════════════
+
+const CAL_MONTHS_BF = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// Get all future session dates across all non-holiday sheets, sorted chronologically
+function getAllFutureSessionDates() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const results = []; // [{key, date, sheet, sheetId}]
+
+  state.sheets.forEach(sheet => {
+    if (sheet.type === 'holiday') return; // holiday clubs separate
+    if (!sheet.sessions) return;
+
+    const startMonIdx = CAL_MONTHS_BF.indexOf(sheet.startMonth);
+    const endMonIdx   = CAL_MONTHS_BF.indexOf(sheet.endMonth);
+
+    Object.keys(sheet.sessions).forEach(key => {
+      const [dayStr, mon] = key.split('-');
+      const monIdx = CAL_MONTHS_BF.indexOf(mon);
+      if (monIdx < 0) return;
+      // Determine year
+      const year = monIdx >= startMonIdx ? sheet.startYear : sheet.endYear;
+      const d = new Date(year, monIdx, parseInt(dayStr));
+      if (d >= today) {
+        results.push({ key, date: d, sheet, sheetId: sheet.id });
+      }
+    });
+  });
+
+  results.sort((a, b) => a.date - b.date);
+  return results;
+}
+
+// Get the 3-letter month for a session key
+function sessionMonth(dateKey, sheet) {
+  if (!dateKey) return null;
+  if (dateKey.includes('-') && dateKey.split('-').length === 3) {
+    // ISO format
+    const monIdx = parseInt(dateKey.split('-')[1], 10) - 1;
+    return CAL_MONTHS_BF[monIdx];
+  }
+  // Legacy "D-Mon"
+  return dateKey.split('-')[1] || null;
+}
+
+// Check if an activity is seasonally appropriate for a given month
+function activityFitsMonth(item, mon) {
+  if (!item.month || item.month === 'all') return true;
+  const adjacent = getAdjacentMonths(mon);
+  return adjacent.includes(item.month);
+}
+
+// Find matching rowDef keys in a sheet for a given category
+function matchingRowKeys(sheet, cat) {
+  const rows = sheet.rowDefs || [];
+  return rows.filter(r => r.type !== 'divider' && r.key !== '_notes' && r.cat === cat).map(r => r.key);
+}
+
+// ─── BULK BACKFILL (after CSV import) ────────────────────────
+function runBackfill() {
+  const items = state._lastImported;
+  if (!items || items.length === 0) return;
+
+  // Group unique items by category
+  const byCategory = {};
+  items.forEach(item => {
+    if (!byCategory[item.cat]) byCategory[item.cat] = [];
+    // Avoid duplicating same name in same group
+    if (!byCategory[item.cat].find(i => i.name === item.name)) {
+      byCategory[item.cat].push(item);
+    }
+  });
+
+  const futureSessions = getAllFutureSessionDates();
+  let totalAdded = 0;
+  const sessionSummary = {}; // dateKey → [activity names added]
+
+  // For each category, distribute one activity per matching future session
+  Object.entries(byCategory).forEach(([cat, catItems]) => {
+    let itemIdx = 0;
+    let sessionsAssigned = 0;
+    const targetCount = catItems.length; // one session per new activity
+
+    for (let si = 0; si < futureSessions.length && sessionsAssigned < targetCount; si++) {
+      const {key, date, sheet} = futureSessions[si];
+      const rowKeys = matchingRowKeys(sheet, cat);
+      if (rowKeys.length === 0) continue;
+
+      const mon = sessionMonth(key, sheet);
+      const item = catItems[itemIdx % catItems.length];
+
+      // Check seasonal fit
+      if (!activityFitsMonth(item, mon)) {
+        // Look ahead for a seasonally appropriate session
+        continue;
+      }
+
+      // Add to all matching rows in this session
+      if (!sheet.sessions[key]) sheet.sessions[key] = {};
+      rowKeys.forEach(rowKey => {
+        if (!sheet.sessions[key][rowKey]) sheet.sessions[key][rowKey] = [];
+        // Avoid exact duplicate in same cell
+        if (!sheet.sessions[key][rowKey].find(a => a.text === item.name)) {
+          sheet.sessions[key][rowKey].push({ text: item.name, link: item.link || '' });
+          totalAdded++;
+        }
+      });
+
+      if (!sessionSummary[key]) sessionSummary[key] = [];
+      sessionSummary[key].push(item.name);
+      itemIdx++;
+      sessionsAssigned++;
+    }
+
+    // Second pass: for seasonal items that didn't fit in order, try again
+    if (sessionsAssigned < targetCount) {
+      for (let si = 0; si < futureSessions.length && sessionsAssigned < targetCount; si++) {
+        const {key, date, sheet} = futureSessions[si];
+        const rowKeys = matchingRowKeys(sheet, cat);
+        if (rowKeys.length === 0) continue;
+        if (sessionSummary[key] && sessionSummary[key].find(n => n === catItems[itemIdx % catItems.length].name)) continue;
+
+        const mon = sessionMonth(key, sheet);
+        const item = catItems[itemIdx % catItems.length];
+        if (!activityFitsMonth(item, mon)) continue;
+        if (!sheet.sessions[key]) sheet.sessions[key] = {};
+        rowKeys.forEach(rowKey => {
+          if (!sheet.sessions[key][rowKey]) sheet.sessions[key][rowKey] = [];
+          if (!sheet.sessions[key][rowKey].find(a => a.text === item.name)) {
+            sheet.sessions[key][rowKey].push({ text: item.name, link: item.link || '' });
+            totalAdded++;
+          }
+        });
+        if (!sessionSummary[key]) sessionSummary[key] = [];
+        sessionSummary[key].push(item.name);
+        itemIdx++;
+        sessionsAssigned++;
+      }
+    }
+  });
+
+  saveState();
+  renderPlanner();
+
+  // Show result
+  const sessionCount = Object.keys(sessionSummary).length;
+  const banner = document.getElementById('backfillResultBanner');
+  if (banner) {
+    banner.style.display = 'block';
+    banner.innerHTML = `✅ Added activities to <strong>${sessionCount}</strong> upcoming session${sessionCount !== 1 ? 's' : ''} across <strong>${totalAdded}</strong> row${totalAdded !== 1 ? 's' : ''}.`;
+  }
+  // Hide the apply button
+  const btn = document.querySelector('.apply-sessions-btn');
+  if (btn) btn.style.display = 'none';
+
+  state._lastImported = null;
+}
+
+// ─── SINGLE ITEM SESSION PICKER (after manual add) ──────────
+let _sessionPickerItem = null;
+
+function openSessionPicker(item) {
+  _sessionPickerItem = item;
+  const futureSessions = getAllFutureSessionDates();
+
+  // Filter to sessions that have a matching row for this category
+  const matching = futureSessions.filter(({key, sheet}) => {
+    const rowKeys = matchingRowKeys(sheet, item.cat);
+    return rowKeys.length > 0;
+  });
+
+  document.getElementById('sessionPickerTitle').textContent =
+    `📅 Add "${item.name}" to a session`;
+  document.getElementById('sessionPickerSub').textContent =
+    `Choose which upcoming session to add this activity to. It will be added to all ${item.cat} rows in that session.`;
+
+  const list = document.getElementById('sessionPickerList');
+  list.innerHTML = '';
+
+  if (matching.length === 0) {
+    list.innerHTML = '<div class="session-picker-empty">No upcoming sessions with matching rows found.</div>';
+  } else {
+    matching.slice(0, 24).forEach(({key, date, sheet}) => {
+      const mon = sessionMonth(key, sheet);
+      const seasonal = activityFitsMonth(item, mon);
+      const rowKeys = matchingRowKeys(sheet, item.cat);
+      const dayName = date.toLocaleDateString('en-GB', {weekday:'short'});
+      const dateStr = date.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+
+      const btn = document.createElement('button');
+      btn.className = 'session-date-btn';
+      if (!seasonal) btn.style.opacity = '0.55';
+      btn.innerHTML = `
+        <div>
+          <div class="date-label">${dayName} ${dateStr}</div>
+          <div class="date-sheet">${escHtml(sheet.name)}</div>
+          <div class="date-rows">Adds to: ${rowKeys.map(k => escHtml(k)).join(', ')}</div>
+          ${!seasonal ? '<div style="font-size:0.7rem;color:#b86000;">⚠ Outside seasonal range</div>' : ''}
+        </div>
+        <span style="color:var(--moss);font-size:1.1rem;">＋</span>
+      `;
+      btn.onclick = () => applyToSession(key, sheet);
+      list.appendChild(btn);
+    });
+  }
+
+  document.getElementById('sessionPickerModal').classList.add('open');
+}
+
+function applyToSession(dateKey, sheet) {
+  const item = _sessionPickerItem;
+  if (!item) return;
+
+  if (!sheet.sessions[dateKey]) sheet.sessions[dateKey] = {};
+  const rowKeys = matchingRowKeys(sheet, item.cat);
+  let addedCount = 0;
+  rowKeys.forEach(rowKey => {
+    if (!sheet.sessions[dateKey][rowKey]) sheet.sessions[dateKey][rowKey] = [];
+    if (!sheet.sessions[dateKey][rowKey].find(a => a.text === item.name)) {
+      sheet.sessions[dateKey][rowKey].push({ text: item.name, link: item.link || '' });
+      addedCount++;
+    }
+  });
+
+  saveState();
+  renderPlanner();
+  closeSessionPicker();
+
+  const mon = sessionMonth(dateKey, sheet);
+  const [dayStr, monStr] = dateKey.split('-');
+  const dateLabel = `${dayStr} ${monStr || mon}`;
+  if (addedCount > 0) {
+    alert(`✅ "${item.name}" added to ${addedCount} row${addedCount !== 1 ? 's' : ''} on ${dateLabel}.`);
+  } else {
+    alert(`"${item.name}" was already in all matching rows on ${dateLabel}.`);
+  }
+}
+
+function closeSessionPicker() {
+  document.getElementById('sessionPickerModal').classList.remove('open');
+  _sessionPickerItem = null;
+}
+
+
+
+// ─── BULK RECLASSIFY ──────────────────────────────────────────
+function openBulkReclassifyModal() {
+  const fromSel = document.getElementById('reclassifyFrom');
+  const toSel   = document.getElementById('reclassifyTo');
+  const opts = CATEGORIES.map(c => `<option value="${c.id}">${c.emoji} ${c.label}</option>`).join('');
+  fromSel.innerHTML = opts;
+  toSel.innerHTML = opts;
+  // Default to games → general (the most common confusion)
+  fromSel.value = 'games';
+  toSel.value   = 'general';
+  document.getElementById('reclassifyPreview').style.display = 'none';
+  document.getElementById('reclassifyApplyBtn').style.display = 'none';
+  document.getElementById('bulkReclassifyModal').classList.add('open');
+}
+
+function closeBulkReclassify() {
+  document.getElementById('bulkReclassifyModal').classList.remove('open');
+}
+
+function previewReclassify() {
+  const fromCat = document.getElementById('reclassifyFrom').value;
+  const toCat   = document.getElementById('reclassifyTo').value;
+  if (fromCat === toCat) {
+    document.getElementById('reclassifyPreview').style.display = 'block';
+    document.getElementById('reclassifyPreview').innerHTML = '<span class="csv-preview-warn">⚠ Source and destination are the same.</span>';
+    document.getElementById('reclassifyApplyBtn').style.display = 'none';
+    return;
+  }
+  // Count userAdded items matching fromCat
+  const matches = state.menuItems.filter(i => i && i.userAdded && i.cat === fromCat);
+  const fromLabel = CATEGORIES.find(c => c.id === fromCat)?.label || fromCat;
+  const toLabel   = CATEGORIES.find(c => c.id === toCat)?.label || toCat;
+  const box = document.getElementById('reclassifyPreview');
+  box.style.display = 'block';
+  if (matches.length === 0) {
+    box.innerHTML = `<span class="csv-preview-warn">No manually-added activities found in ${fromLabel}.</span>`;
+    document.getElementById('reclassifyApplyBtn').style.display = 'none';
+  } else {
+    box.innerHTML = `<span class="csv-preview-good">✓ Found ${matches.length} activit${matches.length===1?'y':'ies'} in ${fromLabel} that will move to ${toLabel}.</span><br><span style="font-size:0.78rem;color:var(--bark-light);">${matches.slice(0,5).map(i => escHtml(i.name)).join(', ')}${matches.length > 5 ? ` … and ${matches.length-5} more` : ''}</span>`;
+    document.getElementById('reclassifyApplyBtn').style.display = 'inline-block';
+  }
+}
+
+function applyReclassify() {
+  const fromCat = document.getElementById('reclassifyFrom').value;
+  const toCat   = document.getElementById('reclassifyTo').value;
+  let count = 0;
+  state.menuItems.forEach(item => {
+    if (item && item.userAdded && item.cat === fromCat) {
+      item.cat = toCat;
+      count++;
+    }
+  });
+  saveState();
+  renderMenu();
+  renderCatFilters();
+  closeBulkReclassify();
+  const toLabel = CATEGORIES.find(c => c.id === toCat)?.label || toCat;
+  alert(`✅ Moved ${count} activit${count===1?'y':'ies'} to ${toLabel}.`);
+}
+
 // ─── INIT: load from cloud first, localStorage as fallback ───
 (async () => {
   // Show loading state
@@ -10019,7 +10508,7 @@ function openPrintWindow(printHtml) {
       <code>resources</code> &nbsp;·&nbsp;
       <code>notes</code> &nbsp;·&nbsp;
       <code>link</code><br><br>
-      <strong>Category values:</strong> games · bushcraft · crafts · recipes · foraging · stories · songs · seasonal · woodland · tea · general<br>
+      <strong>Category values:</strong> Wide Games · Games · Bushcraft &amp; Skills · Craft Projects · Recipes &amp; Cooking · Foraging · Stories · Songs · Seasonal &amp; Spiritual · Woodland Tasks · Afternoon Tea Club<br>
       <strong>Month values:</strong> Jan · Feb · Mar · Apr · May · Jun · Jul · Aug · Sep · Oct · Nov · Dec · all
     </div>
 
@@ -10036,6 +10525,41 @@ function openPrintWindow(printHtml) {
     <div class="csv-modal-btns">
       <button class="btn-secondary" onclick="closeCsvImportModal()">Cancel</button>
       <button class="btn-primary" id="csvImportBtn" onclick="doImportCsv()" disabled style="opacity:0.5;">Import Activities</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SESSION PICKER MODAL ─── -->
+<div id="sessionPickerModal" onclick="if(event.target===this)closeSessionPicker()">
+  <div class="session-picker-box">
+    <div class="session-picker-title" id="sessionPickerTitle">📅 Add to a session</div>
+    <div class="session-picker-sub" id="sessionPickerSub">Choose which upcoming session to add this activity to. It will be added to all matching rows in that session.</div>
+    <div class="session-picker-list" id="sessionPickerList"></div>
+    <div class="session-picker-btns">
+      <button class="btn-secondary" onclick="closeSessionPicker()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── BULK RECLASSIFY MODAL ─── -->
+<div id="bulkReclassifyModal" onclick="if(event.target===this)closeBulkReclassify()">
+  <div class="csv-modal-box">
+    <div class="csv-modal-title">✏ Fix Categories in Bulk</div>
+    <div class="csv-modal-sub">Change the category of all your manually-added activities that currently have one category to another. This is useful after a CSV import where the wrong category was assigned.</div>
+
+    <div class="holiday-field-group">
+      <label>Find activities currently in…</label>
+      <select id="reclassifyFrom" style="width:100%;font-family:'EB Garamond',serif;font-size:0.9rem;padding:0.4rem 0.6rem;border:1.5px solid rgba(107,66,38,0.25);border-radius:7px;"></select>
+    </div>
+    <div class="holiday-field-group">
+      <label>Move them to…</label>
+      <select id="reclassifyTo" style="width:100%;font-family:'EB Garamond',serif;font-size:0.9rem;padding:0.4rem 0.6rem;border:1.5px solid rgba(107,66,38,0.25);border-radius:7px;"></select>
+    </div>
+    <div class="csv-preview-box" id="reclassifyPreview" style="display:none;"></div>
+    <div class="csv-modal-btns">
+      <button class="btn-secondary" onclick="closeBulkReclassify()">Cancel</button>
+      <button class="btn-primary" onclick="previewReclassify()">Preview</button>
+      <button class="btn-primary" id="reclassifyApplyBtn" onclick="applyReclassify()" style="display:none;background:var(--bark);">Apply Change</button>
     </div>
   </div>
 </div>
