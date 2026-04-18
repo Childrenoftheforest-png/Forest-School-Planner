@@ -277,13 +277,7 @@ body {
   position: relative;
 }
 .cell-activity.has-link { border-left: 2px solid var(--water); }
-.cell-activity .activity-link-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--water);
-  flex-shrink: 0;
-  margin-top: 4px;
-}
+.cell-activity .activity-link-dot { display: none; }
 .cell-activity .remove-activity {
   margin-left: auto;
   flex-shrink: 0;
@@ -439,7 +433,7 @@ body {
 }
 .menu-item .item-link-icon { color: var(--water); font-size: 0.7rem; margin-left: 0.2rem; }
 .menu-item.user-added { }
-.menu-item.user-added .month-tag { border: 1.5px dashed var(--gold); }
+.menu-item.user-added .month-tag { }
 
 .show-more-menu {
   font-family: 'Lora', serif;
@@ -712,7 +706,7 @@ body {
   .main-area { height: calc(100vh - 58px); }
 }
 
-.tag-user { font-size: 0.6rem; background: rgba(184,134,11,0.15); color: var(--gold); border: 1px solid var(--gold-light); padding: 0.05rem 0.3rem; border-radius: 3px; margin-left: 0.3rem; }
+.tag-user { display: none !important; }
 
 .save-indicator {
   font-family: 'Lora', serif;
@@ -4279,7 +4273,7 @@ function renderCellActivities(activities) {
     const hasLink = a.link && a.link.trim() && a.link.trim().startsWith('http');
     const nameEsc = escHtml(a.text).replace(/'/g, '&#39;');
     return `<div class="cell-activity ${hasLink?'has-link':''}">
-      ${hasLink?'<span class="activity-link-dot" title="Has link"></span>':''}
+
       <span class="cell-activity-name" onclick="event.stopPropagation();openDetailPanel('${nameEsc}')" title="View details">${escHtml(a.text)}</span>
       <button class="remove-activity" data-idx="${i}" title="Remove">✕</button>
     </div>`;
@@ -4532,7 +4526,7 @@ function renderMenu() {
           <li class="menu-item ${item.userAdded?'user-added':''}" data-name="${escHtml(item.name).replace(/"/g,'&quot;')}" data-cat="${item.cat}">
             <span class="month-tag month-${item.month === 'all' ? 'all' : item.month}">${item.month === 'all' ? 'Year Round' : item.month}</span>
             <span>${escHtml(item.name)}</span>
-            ${item.userAdded?'<span class="tag-user">✦ yours</span>':''}
+
             ${item.link?`<a href="${escHtml(item.link)}" target="_blank" class="item-link-icon" title="Open link" onclick="event.stopPropagation()">🔗</a>`:''}
             ${item.notes||item.resources?'<span style="font-size:0.6rem;opacity:0.5;margin-left:auto;">📝</span>':''}
           </li>
