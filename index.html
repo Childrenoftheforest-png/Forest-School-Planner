@@ -4271,10 +4271,10 @@ function renderCellActivities(activities) {
   }
   const items = activities.map((a, i) => {
     const hasLink = a.link && a.link.trim() && a.link.trim().startsWith('http');
-    const nameEsc = escHtml(a.text).replace(/'/g, '&#39;');
+    // Store name in data attribute to avoid JS string escaping issues with apostrophes etc.
+    const nameAttr = escHtml(a.text);
     return `<div class="cell-activity ${hasLink?'has-link':''}">
-
-      <span class="cell-activity-name" onclick="event.stopPropagation();openDetailPanel('${nameEsc}')" title="View details">${escHtml(a.text)}</span>
+      <span class="cell-activity-name" data-activity-name="${nameAttr}" onclick="event.stopPropagation();openDetailPanel(this.dataset.activityName)" title="View details">${escHtml(a.text)}</span>
       <button class="remove-activity" data-idx="${i}" title="Remove">✕</button>
     </div>`;
   }).join('');
