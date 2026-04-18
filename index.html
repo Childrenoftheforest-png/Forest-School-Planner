@@ -9717,13 +9717,11 @@ function openHolidayResourcesPanel(isoDate, sheet) {
 function resolveCsvCategory(raw) {
   if (!raw) return null;
   const s = raw.trim().toLowerCase();
-  // Direct ID match first
-  const byId = CATEGORIES.find(c => c.id === s);
-  if (byId) return byId.id;
-  // Label match (case-insensitive)
+  // Label match FIRST (case-insensitive) — "Games" must map to 🎮 Games (id:general),
+  // not accidentally match the ID "games" which belongs to 🦊 Wide Games
   const byLabel = CATEGORIES.find(c => c.label.toLowerCase() === s);
   if (byLabel) return byLabel.id;
-  // Partial / common aliases
+  // Alias table covers ambiguous cases
   const aliases = {
     'wide games': 'games',
     'wide game':  'games',
