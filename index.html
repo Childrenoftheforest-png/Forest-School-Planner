@@ -2471,6 +2471,145 @@ body {
   justify-content: center;
 }
 #bulkReclassifyModal.open { display: flex; }
+
+/* ─── CSV ALIGN REVIEW ─── */
+.align-modal-box {
+  background: #fff;
+  border-radius: 14px;
+  padding: 1.4rem 1.6rem;
+  max-width: 640px;
+  width: 96vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.22);
+}
+.align-modal-title {
+  font-family: 'Lora', serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--bark);
+  margin-bottom: 0.25rem;
+  flex-shrink: 0;
+}
+.align-modal-sub {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.87rem;
+  color: var(--bark-light);
+  margin-bottom: 0.9rem;
+  flex-shrink: 0;
+}
+.align-bulk-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.align-bulk-btn {
+  font-family: 'Lora', serif;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 7px;
+  border: 1.5px solid rgba(107,66,38,0.25);
+  background: #fff;
+  color: var(--bark);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.align-bulk-btn:hover { background: rgba(107,66,38,0.07); }
+.align-bulk-btn.use-csv { border-color: var(--moss); color: var(--moss); }
+.align-bulk-btn.use-csv:hover { background: rgba(61,90,46,0.07); }
+.align-conflict-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+  padding-right: 0.2rem;
+}
+.align-conflict-item {
+  border: 1.5px solid rgba(107,66,38,0.15);
+  border-radius: 9px;
+  padding: 0.65rem 0.85rem;
+  background: #fafaf8;
+}
+.align-conflict-name {
+  font-family: 'Lora', serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--bark);
+  margin-bottom: 0.35rem;
+}
+.align-conflict-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  margin-bottom: 0.5rem;
+}
+.align-diff-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'EB Garamond', serif;
+  font-size: 0.84rem;
+}
+.align-diff-label {
+  font-weight: 600;
+  color: var(--bark-light);
+  min-width: 60px;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.align-diff-menu { color: #b86000; }
+.align-diff-arrow { color: var(--bark-light); font-size: 0.75rem; }
+.align-diff-csv  { color: var(--moss); font-weight: 600; }
+.align-conflict-btns {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.align-choice-btn {
+  font-family: 'Lora', serif;
+  font-size: 0.72rem;
+  padding: 0.28rem 0.6rem;
+  border-radius: 6px;
+  border: 1.5px solid rgba(107,66,38,0.2);
+  background: #fff;
+  color: var(--bark);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.align-choice-btn:hover { background: rgba(107,66,38,0.06); }
+.align-choice-btn.selected-menu { border-color: #b86000; background: rgba(184,96,0,0.08); color: #b86000; font-weight: 600; }
+.align-choice-btn.selected-csv  { border-color: var(--moss); background: rgba(61,90,46,0.08); color: var(--moss); font-weight: 600; }
+.align-choice-btn.selected-both { border-color: #5a5aaa; background: rgba(90,90,170,0.07); color: #5a5aaa; font-weight: 600; }
+.align-modal-footer {
+  display: flex;
+  gap: 0.7rem;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(107,66,38,0.1);
+}
+.align-summary {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.83rem;
+  color: var(--bark-light);
+}
+#csvAlignModal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(30,45,20,0.55);
+  z-index: 700;
+  align-items: center;
+  justify-content: center;
+}
+#csvAlignModal.open { display: flex; }
 </style>
 
   <!-- Firebase SDK -->
@@ -9801,6 +9940,7 @@ function parseCsvAndPreview(text) {
 
   const dataRows = rows.slice(1);
   csvParsedRows = [];
+  let csvConflicts = [];
   let skippedDupe = 0, skippedBad = 0, warnings = [];
 
   dataRows.forEach((row, ri) => {
@@ -9843,19 +9983,47 @@ function parseCsvAndPreview(text) {
       }
     }
 
-    // Check for duplicate (by name+month, or just name for 'all')
-    const previewKeys = months.map(mon =>
-      mon === 'all' ? name.toLowerCase() : (name.toLowerCase() + '|' + mon)
-    );
-    const allDupes = previewKeys.every(k => existingNames.has(k));
-    if (allDupes) {
-      skippedDupe++;
+    // Check if name already exists (any month) — detect conflicts vs new
+    const nameLower = name.toLowerCase();
+    const existingItem = [...(state.menuItems), ...(typeof MENU_ITEMS_BASE !== 'undefined' ? MENU_ITEMS_BASE : [])]
+      .find(i => i && i.name && i.name.toLowerCase() === nameLower);
+
+    if (existingItem) {
+      // Check for differences
+      const changes = [];
+      const csvCatLabel = CATEGORIES.find(c => c.id === finalCat)?.label || finalCat;
+      const menuCatLabel = CATEGORIES.find(c => c.id === existingItem.cat)?.label || existingItem.cat || '';
+      if (finalCat !== existingItem.cat) {
+        changes.push({field:'Category', menuVal: menuCatLabel, csvVal: csvCatLabel});
+      }
+      const csvMonth = months[0] || 'all';
+      const menuMonth = existingItem.month || 'all';
+      if (csvMonth !== menuMonth) {
+        changes.push({field:'Month', menuVal: menuMonth, csvVal: csvMonth});
+      }
+      if (resources && resources !== (existingItem.resources || '')) {
+        changes.push({field:'Resources', menuVal: (existingItem.resources||'').slice(0,30)||'(none)', csvVal: resources.slice(0,30)});
+      }
+      if (notes && notes !== (existingItem.notes || '')) {
+        changes.push({field:'Notes', menuVal: (existingItem.notes||'').slice(0,30)||'(none)', csvVal: notes.slice(0,30)});
+      }
+
+      if (changes.length > 0) {
+        csvConflicts.push({
+          name,
+          menuItem: existingItem,
+          csvItem: {name, cat: finalCat, month: months[0]||'all', resources, notes, link, userAdded: true},
+          changes
+        });
+      } else {
+        skippedDupe++;
+      }
       return;
     }
 
-    // Create one entry per month (or single 'all' entry)
+    // Truly new — create one entry per month (or single 'all' entry)
     months.forEach(mon => {
-      const k = mon === 'all' ? name.toLowerCase() : (name.toLowerCase() + '|' + mon);
+      const k = mon === 'all' ? nameLower : (nameLower + '|' + mon);
       if (!existingNames.has(k)) {
         csvParsedRows.push({
           name, cat: finalCat, month: mon,
@@ -9867,22 +10035,30 @@ function parseCsvAndPreview(text) {
     });
   });
 
+  // Store conflicts for use by doImportCsv
+  window._csvConflicts = csvConflicts;
+
   // Build preview message
   const newCount = new Set(csvParsedRows.map(r => r.name)).size;
+  const conflictCount = csvConflicts.length;
   let msg = '';
   if (newCount > 0) {
-    msg += `<span class="csv-preview-good">✓ ${newCount} new activit${newCount===1?'y':'ies'} ready to import</span>`;
-    if (csvParsedRows.length > newCount) {
-      msg += ` <span style="color:var(--bark-light);">(${csvParsedRows.length} total rows after month expansion)</span>`;
-    }
+    msg += `<span class="csv-preview-good">✓ ${newCount} new activit${newCount===1?'y':'ies'} to add</span>`;
   }
-  if (skippedDupe > 0) msg += `<br><span class="csv-preview-warn">⚠ ${skippedDupe} activit${skippedDupe===1?'y':'ies'} skipped — already exist in your menu</span>`;
+  if (conflictCount > 0) {
+    msg += `${msg?'<br>':''}<span class="csv-preview-warn">⚠ ${conflictCount} activit${conflictCount===1?'y':'ies'} differ from what\'s in your menu — you\'ll be able to choose what to keep</span>`;
+  }
+  if (skippedDupe > 0) msg += `<br><span style="color:var(--bark-light);">✓ ${skippedDupe} unchanged — already match your menu</span>`;
   if (skippedBad > 0)  msg += `<br><span class="csv-preview-warn">⚠ ${skippedBad} row${skippedBad===1?' was':'s were'} skipped — missing name</span>`;
   warnings.slice(0,5).forEach(w => { msg += `<br><span class="csv-preview-warn">⚠ ${escHtml(w)}</span>`; });
   if (warnings.length > 5) msg += `<br><span class="csv-preview-warn">… and ${warnings.length - 5} more warnings</span>`;
-  if (newCount === 0) msg += (msg ? '<br>' : '') + '<span class="csv-preview-err">Nothing new to import.</span>';
+  if (newCount === 0 && conflictCount === 0) msg += (msg?'<br>':'') + '<span class="csv-preview-err">Nothing to add or update.</span>';
 
-  showCsvPreview(msg, newCount > 0);
+  const hasWork = newCount > 0 || conflictCount > 0;
+  const btnLabel = conflictCount > 0 ? 'Continue →' : 'Import Activities';
+  const btn = document.getElementById('csvImportBtn');
+  if (btn) btn.textContent = btnLabel;
+  showCsvPreview(msg, hasWork);
 }
 
 function showCsvPreview(html, enableBtn) {
@@ -9895,11 +10071,15 @@ function showCsvPreview(html, enableBtn) {
 }
 
 function doImportCsv() {
-  if (!csvParsedRows.length) return;
+  const conflicts = window._csvConflicts || [];
 
-  // Merge into state.menuItems (userAdded items)
-  // Key on name+month so same activity can appear in multiple months
-  // but 'all' items are keyed just on name (one entry covers all months)
+  // If there are conflicts, open the align review modal
+  if (conflicts.length > 0) {
+    openAlignModal(csvParsedRows, conflicts);
+    return;
+  }
+
+  // No conflicts — straight add of new items only
   const existingKeys = new Set(state.menuItems.map(i => {
     if (!i || !i.name) return '';
     return i.month === 'all' ? i.name.toLowerCase() : (i.name.toLowerCase() + '|' + (i.month || ''));
@@ -9919,7 +10099,7 @@ function doImportCsv() {
   renderCatFilters();
   closeCsvImportModal();
 
-  // Track for backfill — deduplicate by name
+  // Track for backfill
   const seen = new Set();
   state._lastImported = newlyAdded.filter(i => {
     if (seen.has(i.name)) return false;
@@ -9930,6 +10110,9 @@ function doImportCsv() {
   const uniqueCount = state._lastImported.length;
   if (uniqueCount > 0) {
     showBackfillOffer(uniqueCount);
+  } else {
+    const banner = document.getElementById('backfillOfferBanner');
+    if (banner) { banner.innerHTML = '✅ All items imported successfully.'; banner.style.display = 'block'; }
   }
 }
 
@@ -10418,6 +10601,199 @@ function applyReclassify() {
   alert(`✅ Moved ${count} activit${count===1?'y':'ies'} to ${toLabel}.`);
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// CSV ALIGN — REVIEW & RESOLVE DIFFERENCES
+// ═══════════════════════════════════════════════════════════════
+
+// Parsed results from CSV analysis
+let alignState = {
+  toAdd: [],        // brand new items
+  conflicts: [],    // [{name, menuItem, csvItem, field changes}]
+  choices: {},      // name → 'menu' | 'csv' | 'both'
+};
+
+// Called instead of doImportCsv when conflicts exist
+function openAlignModal(toAdd, conflicts) {
+  alignState.toAdd = toAdd;
+  alignState.conflicts = conflicts;
+  alignState.choices = {};
+  // Default all to 'csv' (use CSV values)
+  conflicts.forEach(c => { alignState.choices[c.name] = 'csv'; });
+
+  const newCount = new Set(toAdd.map(i => i.name)).size;
+  const subEl = document.getElementById('alignSub');
+  const parts = [];
+  if (newCount > 0) parts.push(`<strong>${newCount}</strong> new activit${newCount===1?'y':'ies'} will be added`);
+  if (conflicts.length > 0) parts.push(`<strong>${conflicts.length}</strong> existing activit${conflicts.length===1?'y':'ies'} differ from the CSV`);
+  subEl.innerHTML = parts.join(' · ') + '. Choose what to do with each difference below, or use the bulk buttons.';
+
+  renderAlignConflicts();
+  document.getElementById('csvAlignModal').classList.add('open');
+  updateAlignSummary();
+}
+
+function closeAlignModal() {
+  document.getElementById('csvAlignModal').classList.remove('open');
+}
+
+function renderAlignConflicts() {
+  const list = document.getElementById('alignConflictList');
+  list.innerHTML = '';
+  if (alignState.conflicts.length === 0) {
+    list.innerHTML = '<div style="font-family:EB Garamond,serif;font-size:0.9rem;color:var(--bark-light);font-style:italic;padding:0.5rem 0;">No differences to review.</div>';
+    return;
+  }
+
+  alignState.conflicts.forEach(conflict => {
+    const choice = alignState.choices[conflict.name] || 'csv';
+    const div = document.createElement('div');
+    div.className = 'align-conflict-item';
+    div.id = 'conflict-' + CSS.escape(conflict.name);
+
+    // Build diff rows
+    let diffHtml = '';
+    conflict.changes.forEach(ch => {
+      diffHtml += `<div class="align-diff-row">
+        <span class="align-diff-label">${escHtml(ch.field)}</span>
+        <span class="align-diff-menu">${escHtml(ch.menuVal)}</span>
+        <span class="align-diff-arrow">→</span>
+        <span class="align-diff-csv">${escHtml(ch.csvVal)}</span>
+      </div>`;
+    });
+
+    div.innerHTML = `
+      <div class="align-conflict-name">${escHtml(conflict.name)}</div>
+      <div class="align-conflict-diff">${diffHtml}</div>
+      <div class="align-conflict-btns">
+        <button class="align-choice-btn ${choice==='menu'?'selected-menu':''}"
+          onclick="setAlignChoice(${JSON.stringify(conflict.name)},'menu')">🔒 Keep menu</button>
+        <button class="align-choice-btn ${choice==='csv'?'selected-csv':''}"
+          onclick="setAlignChoice(${JSON.stringify(conflict.name)},'csv')">✅ Use CSV</button>
+        <button class="align-choice-btn ${choice==='both'?'selected-both':''}"
+          onclick="setAlignChoice(${JSON.stringify(conflict.name)},'both')">➕ Keep both</button>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function setAlignChoice(name, choice) {
+  alignState.choices[name] = choice;
+  // Re-render just this item's buttons
+  const div = document.getElementById('conflict-' + CSS.escape(name));
+  if (div) {
+    div.querySelectorAll('.align-choice-btn').forEach(btn => {
+      btn.classList.remove('selected-menu','selected-csv','selected-both');
+    });
+    const btns = div.querySelectorAll('.align-choice-btn');
+    if (choice === 'menu' && btns[0]) btns[0].classList.add('selected-menu');
+    if (choice === 'csv'  && btns[1]) btns[1].classList.add('selected-csv');
+    if (choice === 'both' && btns[2]) btns[2].classList.add('selected-both');
+  }
+  updateAlignSummary();
+}
+
+function alignBulkAll(choice) {
+  alignState.conflicts.forEach(c => { alignState.choices[c.name] = choice; });
+  renderAlignConflicts();
+  updateAlignSummary();
+}
+
+function updateAlignSummary() {
+  const counts = {menu:0, csv:0, both:0};
+  Object.values(alignState.choices).forEach(v => counts[v]++);
+  const parts = [];
+  if (counts.csv  > 0) parts.push(`${counts.csv} updated from CSV`);
+  if (counts.menu > 0) parts.push(`${counts.menu} kept as-is`);
+  if (counts.both > 0) parts.push(`${counts.both} keeping both`);
+  const newCount = new Set(alignState.toAdd.map(i => i.name)).size;
+  if (newCount > 0) parts.unshift(`${newCount} new`);
+  document.getElementById('alignSummary').textContent = parts.join(' · ');
+}
+
+function applyAlignChoices() {
+  let addedNew = 0, updatedExisting = 0, addedBoth = 0;
+
+  // 1. Add brand new items
+  const existingKeys = new Set(state.menuItems.map(i => {
+    if (!i || !i.name) return '';
+    return i.month === 'all' ? i.name.toLowerCase() : (i.name.toLowerCase() + '|' + (i.month||''));
+  }));
+
+  alignState.toAdd.forEach(item => {
+    const key = item.month === 'all' ? item.name.toLowerCase() : (item.name.toLowerCase()+'|'+(item.month||''));
+    if (!existingKeys.has(key)) {
+      state.menuItems.push(item);
+      existingKeys.add(key);
+      addedNew++;
+    }
+  });
+
+  // 2. Apply conflict resolutions
+  alignState.conflicts.forEach(conflict => {
+    const choice = alignState.choices[conflict.name] || 'csv';
+
+    if (choice === 'menu') {
+      // Do nothing — keep existing
+    } else if (choice === 'csv') {
+      // Overwrite the existing userAdded item, or update if it's userAdded
+      const existing = state.menuItems.find(i => i && i.name === conflict.name);
+      if (existing && existing.userAdded) {
+        // Update in place
+        Object.assign(existing, conflict.csvItem);
+        updatedExisting++;
+      } else if (existing) {
+        // It's a base item — can't edit in place, add a userAdded override
+        // Remove old and add new
+        const idx = state.menuItems.indexOf(existing);
+        if (idx >= 0) state.menuItems.splice(idx, 1);
+        state.menuItems.push({...conflict.csvItem, userAdded: true});
+        updatedExisting++;
+      } else {
+        // Wasn't in menuItems — add it
+        state.menuItems.push({...conflict.csvItem, userAdded: true});
+        updatedExisting++;
+      }
+    } else if (choice === 'both') {
+      // Keep existing AND add CSV version with a slightly different entry
+      const csvItem = {...conflict.csvItem, userAdded: true, name: conflict.csvItem.name};
+      const key = csvItem.month === 'all' ? csvItem.name.toLowerCase() : (csvItem.name.toLowerCase()+'|'+(csvItem.month||''));
+      if (!existingKeys.has(key)) {
+        state.menuItems.push(csvItem);
+        existingKeys.add(key);
+        addedBoth++;
+      }
+    }
+  });
+
+  saveState();
+  renderMenu();
+  renderCatFilters();
+  closeAlignModal();
+  closeCsvImportModal();
+
+  // Track newly added for backfill
+  const allNewItems = [
+    ...alignState.toAdd,
+    ...alignState.conflicts.filter(c => alignState.choices[c.name] !== 'menu').map(c => c.csvItem)
+  ];
+  const seen = new Set();
+  state._lastImported = allNewItems.filter(i => {
+    if (seen.has(i.name)) return false;
+    seen.add(i.name);
+    return true;
+  });
+
+  const total = addedNew + updatedExisting + addedBoth;
+  if (total > 0 && state._lastImported.length > 0) {
+    showBackfillOffer(state._lastImported.length);
+  } else if (total === 0) {
+    const banner = document.getElementById('backfillOfferBanner');
+    if (banner) { banner.innerHTML = '✅ No changes made.'; banner.style.display = 'block'; }
+  }
+}
+
+
 // ─── INIT: load from cloud first, localStorage as fallback ───
 (async () => {
   // Show loading state
@@ -10530,11 +10906,32 @@ function applyReclassify() {
   </div>
 </div>
 
+<!-- ─── CSV ALIGN MODAL ─── -->
+<div id="csvAlignModal">
+  <div class="align-modal-box">
+    <div class="align-modal-title">🔀 Review Differences</div>
+    <div class="align-modal-sub" id="alignSub"></div>
+    <div class="align-bulk-bar">
+      <button class="align-bulk-btn use-csv" onclick="alignBulkAll('csv')">✅ Use CSV for all</button>
+      <button class="align-bulk-btn" onclick="alignBulkAll('menu')">🔒 Keep menu for all</button>
+      <button class="align-bulk-btn" onclick="alignBulkAll('both')">➕ Keep both for all</button>
+    </div>
+    <div class="align-conflict-list" id="alignConflictList"></div>
+    <div class="align-modal-footer">
+      <div class="align-summary" id="alignSummary"></div>
+      <div style="display:flex;gap:0.6rem;">
+        <button class="btn-secondary" onclick="closeAlignModal()">Cancel</button>
+        <button class="btn-primary" id="alignApplyBtn" onclick="applyAlignChoices()">Apply Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ─── CSV IMPORT MODAL ─── -->
 <div id="csvImportModal" onclick="if(event.target===this)closeCsvImportModal()">
   <div class="csv-modal-box">
     <div class="csv-modal-title">⬆ Import Activities from CSV</div>
-    <div class="csv-modal-sub">Upload a CSV file to add new activities to your menu. Existing activities won't be overwritten — only new ones are added.</div>
+    <div class="csv-modal-sub">Upload a CSV file to add new activities and align existing ones. New items are added; differences in existing items are flagged for review.</div>
 
     <div class="csv-col-guide">
       <strong>Required columns (in order):</strong><br>
@@ -10560,7 +10957,7 @@ function applyReclassify() {
 
     <div class="csv-modal-btns">
       <button class="btn-secondary" onclick="closeCsvImportModal()">Cancel</button>
-      <button class="btn-primary" id="csvImportBtn" onclick="doImportCsv()" disabled style="opacity:0.5;">Import Activities</button>
+      <button class="btn-primary" id="csvImportBtn" onclick="doImportCsv()" disabled style="opacity:0.5;">Continue →</button>
     </div>
   </div>
 </div>
