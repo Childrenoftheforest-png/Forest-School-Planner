@@ -9780,11 +9780,23 @@ function parseCsvAndPreview(text) {
     return;
   }
 
-  // Get existing names to detect duplicates
+  // Get existing items as name|month keys (matching the per-row check format)
+  // 'all' items keyed by name only; month-specific items keyed by name|month
   const existingNames = new Set();
-  state.menuItems.forEach(i => { if (i && i.name) existingNames.add(i.name.toLowerCase()); });
+  const addToExisting = (i) => {
+    if (!i || !i.name) return;
+    const n = i.name.toLowerCase();
+    if (!i.month || i.month === 'all') {
+      existingNames.add(n);
+    } else {
+      existingNames.add(n + '|' + i.month);
+      // Also add plain name so 'all' exports of the same item are caught
+      existingNames.add(n);
+    }
+  };
+  state.menuItems.forEach(addToExisting);
   if (typeof MENU_ITEMS_BASE !== 'undefined') {
-    MENU_ITEMS_BASE.forEach(i => { if (i && i.name) existingNames.add(i.name.toLowerCase()); });
+    MENU_ITEMS_BASE.forEach(addToExisting);
   }
 
   const dataRows = rows.slice(1);
