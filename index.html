@@ -2460,6 +2460,17 @@ body {
   margin-top: 0.6rem;
   line-height: 1.5;
 }
+
+#bulkReclassifyModal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(30,45,20,0.55);
+  z-index: 600;
+  align-items: center;
+  justify-content: center;
+}
+#bulkReclassifyModal.open { display: flex; }
 </style>
 
   <!-- Firebase SDK -->
@@ -9614,7 +9625,7 @@ function resolveCsvCategory(raw) {
 
 const CSV_HEADERS = ['name','category','month','resources','notes','link'];
 const VALID_CATS = ['games','bushcraft','crafts','recipes','foraging','stories','songs','seasonal','woodland','tea','general'];
-const VALID_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','all'];
+const VALID_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','all','Year Round'];
 
 // ─── EXPORT ───────────────────────────────────────────────────
 function exportMenuCsv() {
@@ -9797,11 +9808,12 @@ function parseCsvAndPreview(text) {
       warnings.push(`Row ${ri+2}: unknown category "${cat}" — set to "Games"`);
     }
 
-    // Validate month — support 'all' → expand to all months, or comma-separated
-    // We store one entry per month (like base items)
+    // Validate month — 'all'/'year round' stored as single item with month:'all'
+    // Comma-separated months create one entry per month
     let months = [];
-    if (!month || month.toLowerCase() === 'all') {
-      months = VALID_MONTHS.filter(m => m !== 'all');
+    const monthLower = (month || '').toLowerCase().trim();
+    if (!month || monthLower === 'all' || monthLower === 'year round' || monthLower === 'year-round' || monthLower === 'yearround') {
+      months = ['all']; // stored as single year-round item
     } else {
       months = month.split(/[,;\/]/).map(m => {
         m = m.trim();
@@ -9819,22 +9831,28 @@ function parseCsvAndPreview(text) {
       }
     }
 
-    // Check for duplicate (by name, case-insensitive)
-    if (existingNames.has(name.toLowerCase())) {
+    // Check for duplicate (by name+month, or just name for 'all')
+    const previewKeys = months.map(mon =>
+      mon === 'all' ? name.toLowerCase() : (name.toLowerCase() + '|' + mon)
+    );
+    const allDupes = previewKeys.every(k => existingNames.has(k));
+    if (allDupes) {
       skippedDupe++;
       return;
     }
 
-    // Create one entry per month (matches how MENU_ITEMS_BASE works)
+    // Create one entry per month (or single 'all' entry)
     months.forEach(mon => {
-      csvParsedRows.push({
-        name, cat: finalCat, month: mon,
-        resources, notes, link,
-        userAdded: true
-      });
+      const k = mon === 'all' ? name.toLowerCase() : (name.toLowerCase() + '|' + mon);
+      if (!existingNames.has(k)) {
+        csvParsedRows.push({
+          name, cat: finalCat, month: mon,
+          resources, notes, link,
+          userAdded: true
+        });
+        existingNames.add(k);
+      }
     });
-    // Mark as seen to avoid self-duplicates across month rows
-    existingNames.add(name.toLowerCase());
   });
 
   // Build preview message
@@ -9868,12 +9886,18 @@ function doImportCsv() {
   if (!csvParsedRows.length) return;
 
   // Merge into state.menuItems (userAdded items)
-  const existingNames = new Set(state.menuItems.map(i => i && i.name ? i.name.toLowerCase() : ''));
+  // Key on name+month so same activity can appear in multiple months
+  // but 'all' items are keyed just on name (one entry covers all months)
+  const existingKeys = new Set(state.menuItems.map(i => {
+    if (!i || !i.name) return '';
+    return i.month === 'all' ? i.name.toLowerCase() : (i.name.toLowerCase() + '|' + (i.month || ''));
+  }));
   const newlyAdded = [];
   csvParsedRows.forEach(item => {
-    if (!existingNames.has(item.name.toLowerCase())) {
+    const key = item.month === 'all' ? item.name.toLowerCase() : (item.name.toLowerCase() + '|' + (item.month || ''));
+    if (!existingKeys.has(key)) {
       state.menuItems.push(item);
-      existingNames.add(item.name.toLowerCase());
+      existingKeys.add(key);
       newlyAdded.push(item);
     }
   });
@@ -10509,7 +10533,7 @@ function applyReclassify() {
       <code>notes</code> &nbsp;·&nbsp;
       <code>link</code><br><br>
       <strong>Category values:</strong> Wide Games · Games · Bushcraft &amp; Skills · Craft Projects · Recipes &amp; Cooking · Foraging · Stories · Songs · Seasonal &amp; Spiritual · Woodland Tasks · Afternoon Tea Club<br>
-      <strong>Month values:</strong> Jan · Feb · Mar · Apr · May · Jun · Jul · Aug · Sep · Oct · Nov · Dec · all
+      <strong>Month values:</strong> Jan · Feb · Mar · Apr · May · Jun · Jul · Aug · Sep · Oct · Nov · Dec · all (or "Year Round")
     </div>
 
     <div class="csv-drop-zone" id="csvDropZone"
