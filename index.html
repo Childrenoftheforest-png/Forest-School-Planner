@@ -9091,6 +9091,22 @@ function mRenderSession() {
       '<span class="m-activity-name" style="font-style:italic;font-size:0.88rem;">' + escHtml(notes) + '</span>';
     rowsEl.appendChild(notesDiv);
   }
+
+  // Add edit (✎) button to each activity row
+  const editableRows = (sheet.rowDefs || []).filter(r => r.type !== 'divider' && r.key !== '_notes');
+  document.querySelectorAll('#mSessionRows .m-activity-row').forEach((rowDiv, i) => {
+    const row = editableRows[i];
+    if (!row) return;
+    const editBtn = document.createElement('button');
+    editBtn.textContent = '✎';
+    editBtn.style.cssText = 'background:none;border:none;color:var(--bark-light);font-size:1rem;padding:0.2rem 0.5rem;cursor:pointer;flex-shrink:0;margin-left:auto;';
+    editBtn.onclick = (e) => {
+      e.stopPropagation();
+      mOpenCellEdit(key, row.key, row.label, row.icon || '', sheet);
+    };
+    rowDiv.appendChild(editBtn);
+    rowDiv.onclick = null; // disable tap-to-view, use explicit taps on activity names
+  });
 }
 
 // ── Week View ──
@@ -9269,6 +9285,14 @@ function mFilterMenu() {
 
 // ── Activity Detail Panel ──
 function mOpenActivityPanel(name) {
+  // Track for mobile edit mode
+  mPanelCurrentName = name;
+  mPanelEditMode = false;
+  const editBtn = document.getElementById('mPanelEditBtn');
+  if (editBtn) { editBtn.textContent = '✏ Edit'; editBtn.style.display = ''; }
+  const doneBtn = document.getElementById('mPanelDoneBtn');
+  if (doneBtn) doneBtn.textContent = 'Done';
+
   const item = state.menuItems.find(i => i && i.name === name);
 
   document.getElementById('mPanelTitle').textContent = name;
@@ -9428,7 +9452,6 @@ function mShowView(view) {
   });
   document.querySelectorAll('.m-nav-item').forEach(b => b.classList.remove('active'));
 
-  // Show/hide bottom nav — hidden on welcome screen
   const nav = document.querySelector('.m-bottom-nav');
 
   if (view === 'welcome') {
@@ -9450,6 +9473,10 @@ function mShowView(view) {
     document.getElementById('mMenuView').classList.add('active');
     document.getElementById('mNavMenu').classList.add('active');
     mFilterMenu();
+  } else if (view === 'shop') {
+    document.getElementById('mShopView').classList.add('active');
+    document.getElementById('mNavShop')?.classList.add('active');
+    mBuildShoppingList();
   }
 }
 
@@ -11237,18 +11264,7 @@ function applyAlignChoices() {
 let mPanelEditMode = false;
 let mPanelCurrentName = null;
 
-// Override mOpenActivityPanel to track current item name
-const _mOpenActivityPanel_orig = mOpenActivityPanel;
-function mOpenActivityPanel(name) {
-  mPanelCurrentName = name;
-  mPanelEditMode = false;
-  // Reset edit button
-  const editBtn = document.getElementById('mPanelEditBtn');
-  if (editBtn) { editBtn.textContent = '✏ Edit'; editBtn.style.display = ''; }
-  const doneBtn = document.getElementById('mPanelDoneBtn');
-  if (doneBtn) doneBtn.textContent = 'Done';
-  _mOpenActivityPanel_orig(name);
-}
+// mOpenActivityPanel edit state merged into original
 
 function mToggleEditMode() {
   if (!mPanelEditMode) {
@@ -11540,34 +11556,7 @@ function mGetSessionMonth(key, sheet) {
 // MOBILE SESSION VIEW — add tap-to-edit on rows
 // ═══════════════════════════════════════════════════════════════
 
-// Patch mRenderSession to add edit buttons on rows
-const _mRenderSession_orig = mRenderSession;
-function mRenderSession() {
-  _mRenderSession_orig();
-  // After render, wire up row tap to open cell edit
-  const { key, sheet } = mState.sessions[mState.sessionIndex] || {};
-  if (!key || !sheet) return;
-  const sessionData = sheet.sessions[key] || {};
-  const rows = (sheet.rowDefs || []).filter(r => r.type !== 'divider' && r.key !== '_notes');
 
-  document.querySelectorAll('#mSessionRows .m-activity-row').forEach((rowDiv, i) => {
-    const row = rows[i];
-    if (!row) return;
-    // Add edit button
-    const editBtn = document.createElement('button');
-    editBtn.className = 'm-row-edit-btn';
-    editBtn.textContent = '✎';
-    editBtn.style.cssText = 'background:none;border:none;color:var(--bark-light);font-size:1rem;padding:0.2rem 0.4rem;cursor:pointer;flex-shrink:0;margin-left:auto;';
-    editBtn.onclick = (e) => {
-      e.stopPropagation();
-      mOpenCellEdit(key, row.key, row.label, row.icon || '', sheet);
-    };
-    rowDiv.style.position = 'relative';
-    rowDiv.appendChild(editBtn);
-    // Override default tap to open edit instead of detail panel
-    rowDiv.onclick = null;
-  });
-}
 
 // ═══════════════════════════════════════════════════════════════
 // MOBILE SHOPPING LIST
@@ -11768,23 +11757,7 @@ function mShopAddCustom() {
   mShopRender();
 }
 
-// ══════════════════════════════════════════════
-// UPDATE mShowView to handle 'shop'
-// ══════════════════════════════════════════════
-const _mShowView_orig = mShowView;
-function mShowView(view) {
-  _mShowView_orig(view);
-  // Handle shop view
-  if (view === 'shop') {
-    document.querySelectorAll('.m-view').forEach(v => v.classList.remove('active'));
-    document.querySelectorAll('.m-nav-item').forEach(b => b.classList.remove('active'));
-    document.getElementById('mShopView').classList.add('active');
-    document.getElementById('mNavShop')?.classList.add('active');
-    const nav = document.querySelector('.m-bottom-nav');
-    if (nav) nav.style.display = 'flex';
-    mBuildShoppingList();
-  }
-}
+
 
 // ─── INIT: load from cloud first, localStorage as fallback ───
 (async () => {
