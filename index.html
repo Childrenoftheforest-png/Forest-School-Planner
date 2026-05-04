@@ -3392,8 +3392,12 @@ body {
       <textarea class="form-textarea" id="ideaNotes" placeholder="Any details, materials needed, source…"></textarea>
     </div>
     <div class="form-group">
-      <label class="form-label">Resources (ingredients, kit, instructions…)</label>
-      <textarea class="form-textarea" id="ideaResources" placeholder="e.g. 2 cups flour, mixing bowl, campfire tongs…"></textarea>
+      <label class="form-label">🔧 Equipment <span style="font-size:0.75rem;color:#888;font-weight:400;">(reusable kit)</span></label>
+      <textarea class="form-textarea" id="ideaEquipment" placeholder="e.g. Kelly kettle, tarpaulin, scissors…"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">🛒 Consumables <span style="font-size:0.75rem;color:#888;font-weight:400;">(used up / needs buying)</span></label>
+      <textarea class="form-textarea" id="ideaConsumables" placeholder="e.g. 2 cups flour, matches, clay…"></textarea>
     </div>
 
     <div class="modal-btns">
@@ -3460,8 +3464,12 @@ body {
     </div>
 
     <div class="detail-section">
-      <label class="detail-section-label">🎒 Resources</label>
-      <textarea class="detail-textarea resources" id="dpResourcesInput" placeholder="Ingredients, kit list, equipment, instructions…&#10;e.g.&#10;• 2 cups flour&#10;• Campfire tongs&#10;• Mixing bowl"></textarea>
+      <label class="detail-section-label">🔧 Equipment <span style="font-size:0.7rem;color:var(--bark-light);font-weight:400;font-style:italic;">(reusable kit)</span></label>
+      <textarea class="detail-textarea resources" id="dpEquipmentInput" placeholder="e.g.&#10;• Kelly kettle&#10;• Tarpaulin&#10;• Scissors"></textarea>
+    </div>
+    <div class="detail-section">
+      <label class="detail-section-label">🛒 Consumables <span style="font-size:0.7rem;color:var(--bark-light);font-weight:400;font-style:italic;">(used up / needs buying)</span></label>
+      <textarea class="detail-textarea resources" id="dpConsumablesInput" placeholder="e.g.&#10;• 2 cups flour&#10;• Matches&#10;• Clay (500g)"></textarea>
     </div>
   </div>
 
@@ -5045,8 +5053,10 @@ function saveNewIdea() {
   const month = document.getElementById('ideaMonth').value;
   const link = document.getElementById('ideaLink').value.trim();
   const notes = document.getElementById('ideaNotes').value.trim();
-  const resources = document.getElementById('ideaResources').value.trim();
-  const newItem = {name, cat, month, link, notes, resources, userAdded: true};
+  const equipment   = document.getElementById('ideaEquipment')?.value.trim() || '';
+  const consumables = document.getElementById('ideaConsumables')?.value.trim() || '';
+  const resources   = equipment;
+  const newItem = {name, cat, month, link, notes, resources, equipment, consumables, userAdded: true};
   state.menuItems.push(newItem);
   saveState();
   renderCatFilters();
@@ -5112,7 +5122,8 @@ function openDetailPanel(name, catId) {
   document.getElementById('dpCatInput').value = item.cat;
   document.getElementById('dpLinkInput').value = item.link || '';
   document.getElementById('dpNotesInput').value = (item.notes || '').replace(/\\n/g, '\n');
-  document.getElementById('dpResourcesInput').value = (item.resources || '').replace(/\\n/g, '\n');
+  document.getElementById('dpEquipmentInput').value   = (item.equipment   || item.resources || '').replace(/\\n/g, '\n');
+  document.getElementById('dpConsumablesInput').value = (item.consumables || '').replace(/\\n/g, '\n');
 
   // Link open button
   const linkOpen = document.getElementById('dpLinkOpen');
@@ -5127,7 +5138,7 @@ function openDetailPanel(name, catId) {
   document.getElementById('dpUnsavedDot').classList.remove('visible');
 
   // Wire up change listeners to show unsaved dot
-  ['dpNameInput','dpMonthInput','dpCatInput','dpLinkInput','dpNotesInput','dpResourcesInput'].forEach(id => {
+  ['dpNameInput','dpMonthInput','dpCatInput','dpLinkInput','dpNotesInput','dpEquipmentInput','dpConsumablesInput'].forEach(id => {
     const el = document.getElementById(id);
     el.oninput = () => {
       document.getElementById('dpUnsavedDot').classList.add('visible');
@@ -5166,7 +5177,9 @@ function saveDetailPanel() {
     cat: document.getElementById('dpCatInput').value,
     link: document.getElementById('dpLinkInput').value.trim(),
     notes: document.getElementById('dpNotesInput').value.trim(),
-    resources: document.getElementById('dpResourcesInput').value.trim(),
+    equipment:   document.getElementById('dpEquipmentInput').value.trim(),
+    consumables: document.getElementById('dpConsumablesInput').value.trim(),
+    resources:   document.getElementById('dpEquipmentInput').value.trim(),
     userEdited: true,  // mark as user-modified so it gets saved
   };
 
@@ -10224,7 +10237,7 @@ function resolveCsvCategory(raw) {
   return null;
 }
 
-const CSV_HEADERS = ['name','category','month','resources','notes','link'];
+const CSV_HEADERS = ['name','category','month','equipment','consumables','notes','link'];
 const VALID_CATS = ['games','bushcraft','crafts','recipes','foraging','stories','songs','seasonal','woodland','tea','general'];
 const VALID_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','all','Year Round'];
 
@@ -10242,8 +10255,9 @@ function exportMenuCsv() {
       item.name    || '',
       (CATEGORIES.find(c => c.id === item.cat)?.label || item.cat || ''),
       item.month   || '',
-      (item.resources || '').split('\n').join('\\n'),
-      (item.notes     || '').split('\n').join('\\n'),
+      (item.equipment   || item.resources || '').split('\n').join('\\n'),
+      (item.consumables || '').split('\n').join('\\n'),
+      (item.notes       || '').split('\n').join('\\n'),
       item.link    || ''
     ].map(csvEscapeField));
   });
@@ -10373,6 +10387,8 @@ function parseCsvAndPreview(text) {
   const catIdx      = header.indexOf('category');
   const monthIdx    = header.indexOf('month');
   const resourceIdx = header.indexOf('resources');
+  const equipIdx    = header.indexOf('equipment');
+  const consumIdx   = header.indexOf('consumables');
   const notesIdx    = header.indexOf('notes');
   const linkIdx     = header.indexOf('link');
 
@@ -10411,9 +10427,12 @@ function parseCsvAndPreview(text) {
 
     const cat   = (row[catIdx]      || '').toLowerCase().trim();
     const month = (row[monthIdx]    || '').trim();
-    const resources = (row[resourceIdx] || '').replace(/\\n/g, '\n');
-    const notes     = (row[notesIdx]    || '').replace(/\\n/g, '\n');
-    const link      = row[linkIdx]      || '';
+    const legacyRes   = resourceIdx >= 0 ? (row[resourceIdx] || '').replace(/\\n/g, '\n') : '';
+    const equipment   = equipIdx  >= 0 ? (row[equipIdx]  || '').replace(/\\n/g, '\n') : legacyRes;
+    const consumables = consumIdx >= 0 ? (row[consumIdx] || '').replace(/\\n/g, '\n') : '';
+    const resources   = legacyRes || equipment;
+    const notes       = (row[notesIdx] || '').replace(/\\n/g, '\n');
+    const link        = row[linkIdx]   || '';
 
     // Validate category — accept both human-readable labels and internal IDs
     let finalCat = resolveCsvCategory(cat);
@@ -10463,8 +10482,11 @@ function parseCsvAndPreview(text) {
       if (csvMonth !== menuMonth) {
         changes.push({field:'Month', menuVal: menuMonth, csvVal: csvMonth});
       }
-      if (resources && resources !== (existingItem.resources || '')) {
-        changes.push({field:'Resources', menuVal: (existingItem.resources||'').slice(0,30)||'(none)', csvVal: resources.slice(0,30)});
+      if (equipment && equipment !== (existingItem.equipment || existingItem.resources || '')) {
+        changes.push({field:'Equipment', menuVal: (existingItem.equipment||existingItem.resources||'').slice(0,30)||'(none)', csvVal: equipment.slice(0,30)});
+      }
+      if (consumables && consumables !== (existingItem.consumables || '')) {
+        changes.push({field:'Consumables', menuVal: (existingItem.consumables||'').slice(0,30)||'(none)', csvVal: consumables.slice(0,30)});
       }
       if (notes && notes !== (existingItem.notes || '')) {
         changes.push({field:'Notes', menuVal: (existingItem.notes||'').slice(0,30)||'(none)', csvVal: notes.slice(0,30)});
@@ -10474,7 +10496,7 @@ function parseCsvAndPreview(text) {
         csvConflicts.push({
           name,
           menuItem: existingItem,
-          csvItem: {name, cat: finalCat, month: months[0]||'all', resources, notes, link, userAdded: true},
+          csvItem: {name, cat: finalCat, month: months[0]||'all', resources, equipment, consumables, notes, link, userAdded: true},
           changes
         });
       } else {
@@ -10489,7 +10511,7 @@ function parseCsvAndPreview(text) {
       if (!existingNames.has(k)) {
         csvParsedRows.push({
           name, cat: finalCat, month: mon,
-          resources, notes, link,
+          resources, equipment, consumables, notes, link,
           userAdded: true
         });
         existingNames.add(k);
@@ -10640,8 +10662,15 @@ function buildPrintHtml(dateLabel, sheetName, rows, sessionData, logoSrc) {
     const acts = (sessionData[row.key] || []);
     for (const act of acts) {
       const menuItem = state.menuItems.find(m => m.name === act.text);
-      if (menuItem && menuItem.resources && menuItem.resources.trim()) {
-        resourceLines.push(`<strong>${escHtml(act.text)}:</strong> ${escHtml(menuItem.resources.replace(/\\n/g, ' · ').replace(/\n/g, ' · '))}`);
+      if (menuItem) {
+        const eq = (menuItem.equipment || menuItem.resources || '').replace(/\\n/g,' · ').replace(/\n/g,' · ').trim();
+        const co = (menuItem.consumables || '').replace(/\\n/g,' · ').replace(/\n/g,' · ').trim();
+        if (eq || co) {
+          let resStr = '';
+          if (eq) resStr += '🔧 ' + escHtml(eq);
+          if (co) resStr += (resStr ? '  |  ' : '') + '🛒 ' + escHtml(co);
+          resourceLines.push('<strong>' + escHtml(act.text) + ':</strong> ' + resStr);
+        }
       }
     }
   }
@@ -11319,8 +11348,12 @@ function mEnterEditMode() {
         </div>
       </div>
       <div class="m-edit-field-group">
-        <label>Resources</label>
-        <textarea class="m-edit-textarea" id="mEditResources" rows="4" placeholder="Equipment, materials…">${escHtml(res)}</textarea>
+        <label>🔧 Equipment</label>
+        <textarea class="m-edit-textarea" id="mEditEquipment" rows="3" placeholder="Kelly kettle, scissors…">${escHtml((item.equipment || item.resources || '').replace(/\\\\n/g,'\n'))}</textarea>
+      </div>
+      <div class="m-edit-field-group">
+        <label>🛒 Consumables</label>
+        <textarea class="m-edit-textarea" id="mEditConsumables" rows="3" placeholder="Flour, matches, clay…">${escHtml((item.consumables || '').replace(/\\\\n/g,'\n'))}</textarea>
       </div>
       <div class="m-edit-field-group">
         <label>Notes</label>
@@ -11346,7 +11379,9 @@ function mSaveEdits() {
   const newName      = document.getElementById('mEditName')?.value.trim();
   const newMonth     = document.getElementById('mEditMonth')?.value;
   const newCat       = document.getElementById('mEditCat')?.value;
-  const newResources = document.getElementById('mEditResources')?.value.replace(/\n/g, '\\n');
+  const newEquipment   = document.getElementById('mEditEquipment')?.value.replace(/\n/g, '\\n') || '';
+  const newConsumables = document.getElementById('mEditConsumables')?.value.replace(/\n/g, '\\n') || '';
+  const newResources   = newEquipment;
   const newNotes     = document.getElementById('mEditNotes')?.value.replace(/\n/g, '\\n');
   const newLink      = document.getElementById('mEditLink')?.value.trim();
 
@@ -11356,7 +11391,9 @@ function mSaveEdits() {
   item.name      = newName;
   item.month     = newMonth;
   item.cat       = newCat;
-  item.resources = newResources;
+  item.equipment   = newEquipment;
+  item.consumables = newConsumables;
+  item.resources   = newEquipment;
   item.notes     = newNotes;
   item.link      = newLink;
   item.userAdded = true;
@@ -11662,7 +11699,9 @@ function mBuildShoppingList() {
         acts.forEach(act => {
           const menuItem = state.menuItems.find(m => m && m.name === act.text);
           if (!menuItem) return;
-          const consumables = extractConsumables(menuItem.resources);
+          const consumables = menuItem.consumables
+            ? menuItem.consumables.replace(/\\n/g,'\n').split(/[\n•·]+/).map(s=>s.replace(/^[\s\-*]+/,'').trim()).filter(s=>s.length>1)
+            : extractConsumables(menuItem.resources);
           consumables.forEach(c => {
             const key2 = c.toLowerCase();
             if (!seen.has(key2)) {
