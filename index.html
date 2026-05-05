@@ -9330,25 +9330,40 @@ function mOpenActivityPanel(name) {
   body.innerHTML = '';
 
   if (item) {
-    // Resources
-    const res = (item.resources || '').replace(/\\n/g, '\n');
+    // Equipment + Consumables (separate fields)
+    const eq    = (item.equipment   || item.resources || '').replace(/\\n/g, '\n');
+    const cons  = (item.consumables || '').replace(/\\n/g, '\n');
     const notes = (item.notes || '').replace(/\\n/g, '\n');
 
-    if (res) {
+    if (eq) {
       const sec = document.createElement('div');
       sec.className = 'm-panel-section';
       const lbl = document.createElement('div');
       lbl.className = 'm-panel-section-label';
-      lbl.textContent = 'Resources';
+      lbl.textContent = '🔧 Equipment';
       const txt = document.createElement('div');
       txt.className = 'm-panel-resources';
-      txt.textContent = res;
+      txt.textContent = eq;
       sec.appendChild(lbl);
       sec.appendChild(txt);
       body.appendChild(sec);
     }
 
-    if (notes && notes !== res) {
+    if (cons) {
+      const sec = document.createElement('div');
+      sec.className = 'm-panel-section';
+      const lbl = document.createElement('div');
+      lbl.className = 'm-panel-section-label';
+      lbl.textContent = '🛒 Consumables';
+      const txt = document.createElement('div');
+      txt.className = 'm-panel-resources';
+      txt.textContent = cons;
+      sec.appendChild(lbl);
+      sec.appendChild(txt);
+      body.appendChild(sec);
+    }
+
+    if (notes) {
       const sec = document.createElement('div');
       sec.className = 'm-panel-section';
       const lbl = document.createElement('div');
@@ -11699,9 +11714,10 @@ function mBuildShoppingList() {
         acts.forEach(act => {
           const menuItem = state.menuItems.find(m => m && m.name === act.text);
           if (!menuItem) return;
+          // Only pull from dedicated consumables field — not equipment/resources
           const consumables = menuItem.consumables
             ? menuItem.consumables.replace(/\\n/g,'\n').split(/[\n•·]+/).map(s=>s.replace(/^[\s\-*]+/,'').trim()).filter(s=>s.length>1)
-            : extractConsumables(menuItem.resources);
+            : [];
           consumables.forEach(c => {
             const key2 = c.toLowerCase();
             if (!seen.has(key2)) {
@@ -11770,9 +11786,9 @@ function mShopRender() {
   };
 
   if (sessionItems.length === 0 && customItems.length === 0) {
-    list.innerHTML = '<div style="padding:2rem;text-align:center;font-family:Lora,serif;font-style:italic;color:var(--bark-light);">No sessions with resources found this week.<br>Add custom items below.</div>';
+    list.innerHTML = '<div style="padding:2rem;text-align:center;font-family:Lora,serif;font-style:italic;color:var(--bark-light);">No consumables found this week.<br><span style="font-size:0.8rem;">Fill in the Consumables field on activity cards, then tap refresh.</span></div>';
   } else {
-    renderSection(sessionItems, 'From sessions this week');
+    renderSection(sessionItems, '🛒 Consumables from sessions this week');
     renderSection(customItems, 'Added manually');
   }
 }
