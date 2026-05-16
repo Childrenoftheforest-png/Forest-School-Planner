@@ -4538,6 +4538,26 @@ function saveState() {
 // VIEW SWITCHING
 // ═══════════════════════════════════════════════════════════════
 function showView(v) {
+  // Hide register view unless explicitly requested
+  const regView = document.getElementById('registerView');
+  if (regView) regView.classList.remove('active');
+
+  if (v === 'register') {
+    document.querySelectorAll('[data-view]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.view === 'register');
+    });
+    document.getElementById('plannerView').classList.remove('visible');
+    document.getElementById('menuView').classList.remove('visible');
+    document.getElementById('calendarView').classList.remove('visible');
+    document.getElementById('upcomingView').classList.remove('visible');
+    document.getElementById('monthList').style.display = 'none';
+    document.getElementById('catFilterSection').style.display = 'none';
+    if (regView) regView.classList.add('active');
+    populateRegisterSheetSelect();
+    renderRegisterTable();
+    return;
+  }
+
   document.getElementById('plannerView').classList.toggle('visible', v==='planner');
   document.getElementById('menuView').classList.toggle('visible', v==='menu');
   document.getElementById('calendarView').classList.toggle('visible', v==='calendar');
@@ -9714,6 +9734,9 @@ function mShowView(view) {
     document.getElementById('mShopView').classList.add('active');
     document.getElementById('mNavShop')?.classList.add('active');
     mBuildShoppingList();
+  } else if (view === 'register') {
+    document.getElementById('mRegisterView').classList.add('active');
+    mOpenRegister();
   }
 }
 
@@ -12370,35 +12393,9 @@ function mRecordArrival(iso, personId, btn, info) {
 
 // ═══════════════════════════════ VIEW ROUTING ═══════════════════════════════
 
-const _mShowView_reg = mShowView;
-function mShowView(view) {
-  if (view === 'register') {
-    document.querySelectorAll('.m-view').forEach(v => v.classList.remove('active'));
-    document.querySelectorAll('.m-nav-item').forEach(b => b.classList.remove('active'));
-    document.getElementById('mRegisterView').classList.add('active');
-    const nav = document.querySelector('.m-bottom-nav');
-    if (nav) nav.style.display = 'flex';
-    mOpenRegister();
-  } else {
-    _mShowView_reg(view);
-  }
-}
 
-const _showView_reg = showView;
-function showView(view) {
-  if (view === 'register') {
-    document.querySelectorAll('.main-view').forEach(v => v.classList.remove('active'));
-    document.querySelectorAll('.header-tab[data-view]').forEach(b => b.classList.remove('active'));
-    document.getElementById('registerView').classList.add('active');
-    const btn = document.querySelector('.header-tab[data-view="register"]');
-    if (btn) btn.classList.add('active');
-    populateRegisterSheetSelect();
-    renderRegisterTable();
-  } else {
-    document.getElementById('registerView').classList.remove('active');
-    _showView_reg(view);
-  }
-}
+
+
 
 // ─── INIT: load from cloud first, localStorage as fallback ───
 (async () => {
