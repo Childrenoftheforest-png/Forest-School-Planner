@@ -3216,6 +3216,22 @@ body {
       <div id="upcomingContent"></div>
     </div>
 
+    <!-- DESKTOP REGISTER VIEW -->
+    <div id="registerView">
+      <div class="register-toolbar">
+        <span class="register-toolbar-title">📋 Register</span>
+        <select id="registerSheetSelect" class="register-btn" onchange="renderRegisterTable()" style="font-family:Lora,serif;font-size:0.78rem;padding:0.3rem 0.5rem;"></select>
+        <button class="register-btn primary" onclick="openManageRegister()">👥 Manage People</button>
+        <button class="register-btn" onclick="exportRegisterCSV()">⬇ Export CSV</button>
+      </div>
+      <div class="register-scroll-area">
+        <table class="register-table" id="registerTable">
+          <thead id="registerTableHead"></thead>
+          <tbody id="registerTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
   </main>
 
 <!-- ─── CALENDAR EDIT PANEL ─── -->
@@ -3371,21 +3387,7 @@ body {
 </div>
 
 
-<!-- DESKTOP REGISTER VIEW -->
-<div id="registerView">
-  <div class="register-toolbar">
-    <span class="register-toolbar-title">📋 Register</span>
-    <select id="registerSheetSelect" class="register-btn" onchange="renderRegisterTable()" style="font-family:Lora,serif;font-size:0.78rem;padding:0.3rem 0.5rem;"></select>
-    <button class="register-btn primary" onclick="openManageRegister()">👥 Manage People</button>
-    <button class="register-btn" onclick="exportRegisterCSV()">⬇ Export CSV</button>
-  </div>
-  <div class="register-scroll-area">
-    <table class="register-table" id="registerTable">
-      <thead id="registerTableHead"></thead>
-      <tbody id="registerTableBody"></tbody>
-    </table>
-  </div>
-</div>
+
 <!-- MANAGE PANEL -->
 <div id="manageRegisterPanel" onclick="if(event.target===this)closeManageRegister()">
   <div class="manage-register-box">
