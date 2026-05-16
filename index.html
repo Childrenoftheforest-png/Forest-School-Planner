@@ -12296,7 +12296,9 @@ function closePersonProfile() {
 
 // ═══════════════════════════════ MOBILE REGISTER ═══════════════════════════════
 
-function mOpenRegister() {
+async function mOpenRegister() {
+  // Always reload fresh from Firebase so desktop changes show immediately
+  await loadRegister();
   const sheet = state.sheets.find(s => s.type!=='holiday') || state.sheets[0];
   if (!sheet) return;
   mRegisterSheetId = sheet.id;
