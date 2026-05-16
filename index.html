@@ -3122,6 +3122,8 @@ body {
   .m-register-person-time{font-family:'EB Garamond',serif;font-size:0.8rem;color:var(--moss);font-style:italic;}
   .m-register-arrive-btn{font-family:'Lora',serif;font-size:0.75rem;padding:0.35rem 0.8rem;border-radius:20px;border:1.5px solid rgba(61,90,46,0.3);background:rgba(61,90,46,0.06);color:var(--moss);cursor:pointer;white-space:nowrap;flex-shrink:0;}
   .m-register-arrive-btn.arrived{background:var(--moss);color:#fff;border-color:var(--moss);}
+  .m-register-remove-btn{background:none;border:none;color:rgba(255,255,255,0.75);font-size:0.8rem;padding:0 0.15rem 0 0.3rem;cursor:pointer;line-height:1;flex-shrink:0;}
+  .m-register-arrive-wrap{display:flex;align-items:center;flex-shrink:0;}
 </style>
 
   <!-- Firebase SDK -->
@@ -12429,15 +12431,19 @@ function mRenderRegister() {
       info.onclick = () => openPersonProfileById(p.id);
       const nameEl = document.createElement('div'); nameEl.className = 'm-register-person-name';
       nameEl.textContent = p.preferredName||p.fullName||'—'; info.appendChild(nameEl);
-      if (arrivals[p.id]) {
-        const t = document.createElement('div'); t.className = 'm-register-person-time';
-        t.textContent = 'Arrived '+arrivals[p.id]; info.appendChild(t);
-      }
       const btn = document.createElement('button');
-      btn.className = 'm-register-arrive-btn'+(arrivals[p.id]?' arrived':'');
+      btn.className = 'm-register-arrive-btn' + (arrivals[p.id] ? ' arrived' : '');
       btn.textContent = arrivals[p.id] ? 'On site' : 'Arrived';
       btn.onclick = () => mRecordArrival(iso, p.id, btn, info);
-      row.appendChild(info); row.appendChild(btn); list.appendChild(row);
+      row.appendChild(info);
+      row.appendChild(btn);
+      list.appendChild(row);
+      // If already arrived, wire up the full arrived UI with remove button
+      if (arrivals[p.id]) {
+        const t = document.createElement('div'); t.className = 'm-register-person-time';
+        t.textContent = 'Arrived ' + arrivals[p.id]; info.appendChild(t);
+        mUpdateArrivedUI(iso, p.id, btn, info, arrivals[p.id]);
+      }
     });
   };
   renderSection(children,'Children');
@@ -12449,12 +12455,63 @@ function mRecordArrival(iso, personId, btn, info) {
   if (!regState.arrivals[iso]) regState.arrivals[iso] = {};
   regState.arrivals[iso][personId] = time;
   saveRegister();
-  btn.textContent = 'On site'; btn.classList.add('arrived');
+  // Replace the plain button with a pill+remove wrap
+  mUpdateArrivedUI(iso, personId, btn, info, time);
+  mUpdateOnSiteCount(iso);
+}
+
+function mUpdateArrivedUI(iso, personId, btn, info, time) {
+  // Convert btn into arrived pill with ✕ remove button
+  btn.textContent = 'On site';
+  btn.classList.add('arrived');
+  // Add remove button if not already there
+  const wrap = btn.parentElement;
+  if (!wrap.querySelector('.m-register-remove-btn')) {
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'm-register-remove-btn';
+    removeBtn.textContent = '✕';
+    removeBtn.title = 'Remove arrival';
+    removeBtn.onclick = (e) => {
+      e.stopPropagation();
+      mRemoveArrival(iso, personId, btn, info, wrap);
+    };
+    // Wrap btn + removeBtn together
+    const container = document.createElement('div');
+    container.className = 'm-register-arrive-wrap';
+    btn.parentNode.insertBefore(container, btn);
+    container.appendChild(btn);
+    container.appendChild(removeBtn);
+  }
+  // Update time label
   let t = info.querySelector('.m-register-person-time');
   if (!t) { t = document.createElement('div'); t.className = 'm-register-person-time'; info.appendChild(t); }
-  t.textContent = 'Arrived '+time;
-  const arr = regState.arrivals[iso]||{};
-  document.getElementById('mRegisterCount').textContent = regState.people.filter(p=>arr[p.id]).length+' on site';
+  t.textContent = 'Arrived ' + time;
+}
+
+function mRemoveArrival(iso, personId, btn, info, wrap) {
+  // Clear from state
+  if (regState.arrivals[iso]) delete regState.arrivals[iso][personId];
+  saveRegister();
+  // Reset UI — unwrap, restore plain button
+  btn.textContent = 'Arrived';
+  btn.classList.remove('arrived');
+  const removeBtn = wrap.querySelector('.m-register-remove-btn');
+  if (removeBtn) removeBtn.remove();
+  // Move btn back out of container
+  wrap.parentNode.insertBefore(btn, wrap);
+  wrap.remove();
+  // Re-wire arrived button
+  btn.onclick = () => mRecordArrival(iso, personId, btn, info);
+  // Clear time label
+  const t = info.querySelector('.m-register-person-time');
+  if (t) t.remove();
+  mUpdateOnSiteCount(iso);
+}
+
+function mUpdateOnSiteCount(iso) {
+  const arr = regState.arrivals[iso] || {};
+  document.getElementById('mRegisterCount').textContent =
+    regState.people.filter(p => arr[p.id]).length + ' on site';
 }
 
 // ═══════════════════════════════ VIEW ROUTING ═══════════════════════════════
