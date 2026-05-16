@@ -3043,25 +3043,37 @@ body {
   /* DESKTOP REGISTER */
   #registerView{display:none;flex-direction:column;height:100%;overflow:hidden;}
   #registerView.active{display:flex;}
-  .register-toolbar{display:flex;align-items:center;gap:0.7rem;padding:0.7rem 1rem;border-bottom:1px solid rgba(107,66,38,0.12);flex-shrink:0;background:var(--parchment-mid);flex-wrap:wrap;}
-  .register-toolbar-title{font-family:'Lora',serif;font-size:0.95rem;font-weight:700;color:var(--bark);margin-right:0.5rem;}
+  .register-toolbar{display:flex;align-items:center;gap:0.7rem;padding:0.6rem 1rem;border-bottom:1px solid rgba(107,66,38,0.12);flex-shrink:0;background:var(--parchment-mid);flex-wrap:wrap;}
+  .register-toolbar-title{font-family:'Lora',serif;font-size:0.95rem;font-weight:700;color:var(--bark);margin-right:0.3rem;}
   .register-btn{font-family:'Lora',serif;font-size:0.78rem;padding:0.3rem 0.75rem;border-radius:8px;border:1.5px solid rgba(107,66,38,0.25);background:#fff;color:var(--bark);cursor:pointer;}
   .register-btn:hover{background:rgba(61,90,46,0.07);}
   .register-btn.primary{background:var(--moss);color:#fff;border-color:var(--moss);}
+  .register-btn.active-month{background:var(--moss);color:#fff;border-color:var(--moss);}
   .register-btn.danger{color:#c0392b;border-color:rgba(192,57,43,0.3);}
-  .register-scroll-area{flex:1;overflow:auto;padding:1rem;}
-  .register-table{border-collapse:collapse;min-width:100%;font-family:'EB Garamond',serif;font-size:0.88rem;}
-  .register-table th{font-family:'Lora',serif;font-size:0.72rem;font-weight:700;color:var(--bark-light);text-transform:uppercase;letter-spacing:0.04em;padding:0.4rem 0.6rem;border-bottom:2px solid rgba(107,66,38,0.15);white-space:nowrap;background:var(--parchment);position:sticky;top:0;z-index:2;}
-  .register-table th.name-col{text-align:left;min-width:160px;position:sticky;left:0;z-index:3;}
-  .register-table td{padding:0.3rem 0.5rem;border-bottom:1px solid rgba(107,66,38,0.08);text-align:center;min-width:80px;vertical-align:middle;}
-  .register-table td.name-cell{text-align:left;font-family:'Lora',serif;font-size:0.82rem;font-weight:600;color:var(--bark);white-space:nowrap;cursor:pointer;position:sticky;left:0;background:#fff;z-index:1;}
+  /* Month nav bar */
+  .register-month-nav{display:flex;align-items:center;gap:0.4rem;padding:0.5rem 1rem;border-bottom:1px solid rgba(107,66,38,0.1);flex-shrink:0;background:#fff;flex-wrap:wrap;}
+  .register-month-btn{font-family:'Lora',serif;font-size:0.75rem;padding:0.2rem 0.6rem;border-radius:20px;border:1.5px solid rgba(107,66,38,0.18);background:var(--parchment);color:var(--bark-light);cursor:pointer;white-space:nowrap;transition:all 0.12s;}
+  .register-month-btn:hover{border-color:var(--moss);color:var(--moss);}
+  .register-month-btn.active{background:var(--moss);color:#fff;border-color:var(--moss);}
+  .register-week-nav{display:flex;align-items:center;gap:0.5rem;margin-left:auto;}
+  .register-week-label{font-family:'Lora',serif;font-size:0.78rem;color:var(--bark);font-weight:600;white-space:nowrap;}
+  /* Scroll area — overflow hidden on outer, scroll on inner */
+  .register-scroll-area{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+  .register-table-wrap{flex:1;overflow:auto;}
+  /* Table */
+  .register-table{border-collapse:collapse;font-family:'EB Garamond',serif;font-size:0.88rem;width:100%;}
+  .register-table th{font-family:'Lora',serif;font-size:0.72rem;font-weight:700;color:var(--bark-light);text-transform:uppercase;letter-spacing:0.04em;padding:0.4rem 0.7rem;border-bottom:2px solid rgba(107,66,38,0.15);white-space:nowrap;background:var(--parchment);position:sticky;top:0;z-index:2;}
+  .register-table th.name-col{text-align:left;min-width:160px;position:sticky;left:0;z-index:3;background:var(--parchment);}
+  .register-table td{padding:0.35rem 0.5rem;border-bottom:1px solid rgba(107,66,38,0.08);text-align:center;min-width:80px;vertical-align:middle;}
+  .register-table td.name-cell{text-align:left;font-family:'Lora',serif;font-size:0.83rem;font-weight:600;color:var(--bark);white-space:nowrap;cursor:pointer;position:sticky;left:0;background:#fff;z-index:1;border-right:2px solid rgba(107,66,38,0.1);}
   .register-table td.name-cell:hover{color:var(--moss);}
   .register-table tr:hover td{background:rgba(61,90,46,0.03);}
-  .register-table tr:hover td.name-cell{background:rgba(61,90,46,0.05);}
-  .register-table .section-header td{font-family:'Lora',serif;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--bark-light);background:var(--parchment-mid);padding:0.5rem 0.6rem 0.2rem;text-align:left;}
-  .time-cell-input{width:62px;font-family:'EB Garamond',serif;font-size:0.82rem;text-align:center;border:1px solid transparent;border-radius:4px;background:transparent;color:var(--moss);padding:0.15rem 0.2rem;cursor:pointer;}
+  .register-table tr:hover td.name-cell{background:rgba(61,90,46,0.06);}
+  .register-table .section-header td{font-family:'Lora',serif;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--bark-light);background:var(--parchment-mid);padding:0.5rem 0.7rem 0.25rem;text-align:left;position:sticky;left:0;}
+  .time-cell-input{width:58px;font-family:'EB Garamond',serif;font-size:0.85rem;text-align:center;border:1px solid transparent;border-radius:4px;background:transparent;color:var(--moss);padding:0.15rem 0.2rem;cursor:pointer;}
   .time-cell-input:hover{border-color:rgba(107,66,38,0.2);background:#fff;}
   .time-cell-input:focus{outline:none;border-color:var(--moss);background:#fff;}
+  .time-cell-input.has-time{color:var(--moss);font-weight:600;}
   /* MANAGE PANEL */
   #manageRegisterPanel{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:600;align-items:flex-start;justify-content:center;padding:2rem 1rem;overflow-y:auto;}
   #manageRegisterPanel.open{display:flex;}
@@ -3220,15 +3232,25 @@ body {
     <div id="registerView">
       <div class="register-toolbar">
         <span class="register-toolbar-title">📋 Register</span>
-        <select id="registerSheetSelect" class="register-btn" onchange="renderRegisterTable()" style="font-family:Lora,serif;font-size:0.78rem;padding:0.3rem 0.5rem;"></select>
-        <button class="register-btn primary" onclick="openManageRegister()">👥 Manage People</button>
-        <button class="register-btn" onclick="exportRegisterCSV()">⬇ Export CSV</button>
+        <select id="registerSheetSelect" class="register-btn" onchange="onRegisterSheetChange()" style="font-family:Lora,serif;font-size:0.78rem;padding:0.3rem 0.5rem;"></select>
+        <div class="register-week-nav">
+          <button class="register-btn" onclick="registerNavMonth(-1)">← Prev</button>
+          <span class="register-week-label" id="registerMonthLabel"></span>
+          <button class="register-btn" onclick="registerNavMonth(1)">Next →</button>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:0.5rem;">
+          <button class="register-btn primary" onclick="openManageRegister()">👥 Manage People</button>
+          <button class="register-btn" onclick="exportRegisterCSV()">⬇ Export CSV</button>
+        </div>
       </div>
+      <div class="register-month-nav" id="registerMonthNav"></div>
       <div class="register-scroll-area">
-        <table class="register-table" id="registerTable">
-          <thead id="registerTableHead"></thead>
-          <tbody id="registerTableBody"></tbody>
-        </table>
+        <div class="register-table-wrap">
+          <table class="register-table" id="registerTable">
+            <thead id="registerTableHead"></thead>
+            <tbody id="registerTableBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -4529,7 +4551,7 @@ function showView(v) {
     document.getElementById('catFilterSection').style.display = 'none';
     if (regView) regView.classList.add('active');
     populateRegisterSheetSelect();
-    renderRegisterTable();
+    onRegisterSheetChange();
     return;
   }
 
@@ -12111,6 +12133,11 @@ function formatRegisterDateShort(iso) {
 
 // ═══════════════════════════════ DESKTOP REGISTER ═══════════════════════════════
 
+// ── Register month navigation state ──
+let regViewMonthIdx = 0;   // index into regViewMonths array
+let regViewMonths   = [];  // ['2025-09', '2025-10', ...]
+let regAllDates     = [];  // all ISO dates for current sheet
+
 function populateRegisterSheetSelect() {
   const sel = document.getElementById('registerSheetSelect');
   if (!sel) return;
@@ -12121,36 +12148,98 @@ function populateRegisterSheetSelect() {
   });
 }
 
-function renderRegisterTable() {
+function onRegisterSheetChange() {
   const sel = document.getElementById('registerSheetSelect');
   const sheetId = sel ? sel.value : state.sheets[0]?.id;
   if (!sheetId) return;
-  const dates    = getRegisterSessionDates(sheetId);
+  regAllDates   = getRegisterSessionDates(sheetId);
+  // Build unique month list
+  const monthSet = new Set(regAllDates.map(d => d.slice(0,7)));
+  regViewMonths  = Array.from(monthSet).sort();
+  // Default to current month (or first month)
+  const todayMon = ukDateNow().slice(0,7);
+  regViewMonthIdx = regViewMonths.indexOf(todayMon);
+  if (regViewMonthIdx < 0) regViewMonthIdx = 0;
+  renderRegisterMonthNav();
+  renderRegisterTable();
+}
+
+function renderRegisterMonthNav() {
+  const nav = document.getElementById('registerMonthNav');
+  if (!nav) return;
+  nav.innerHTML = '';
+  regViewMonths.forEach((mon, i) => {
+    const d = new Date(mon + '-01T12:00:00');
+    const label = d.toLocaleDateString('en-GB', {month:'short', year:'numeric'});
+    const btn = document.createElement('button');
+    btn.className = 'register-month-btn' + (i === regViewMonthIdx ? ' active' : '');
+    btn.textContent = label;
+    btn.onclick = () => { regViewMonthIdx = i; renderRegisterMonthNav(); renderRegisterTable(); };
+    nav.appendChild(btn);
+  });
+  // Update label in toolbar
+  const lbl = document.getElementById('registerMonthLabel');
+  if (lbl && regViewMonths[regViewMonthIdx]) {
+    const d = new Date(regViewMonths[regViewMonthIdx] + '-01T12:00:00');
+    lbl.textContent = d.toLocaleDateString('en-GB', {month:'long', year:'numeric'});
+  }
+}
+
+function registerNavMonth(dir) {
+  regViewMonthIdx = Math.max(0, Math.min(regViewMonths.length - 1, regViewMonthIdx + dir));
+  renderRegisterMonthNav();
+  renderRegisterTable();
+}
+
+function renderRegisterTable() {
+  const currentMon = regViewMonths[regViewMonthIdx];
+  // Filter dates to current month only
+  const dates    = currentMon
+    ? regAllDates.filter(d => d.slice(0,7) === currentMon)
+    : regAllDates;
   const children = regState.people.filter(p => p.type === 'child');
   const staff    = regState.people.filter(p => p.type === 'staff');
   const head = document.getElementById('registerTableHead');
   const body = document.getElementById('registerTableBody');
 
+  // Header: name col + one col per date in this month
   head.innerHTML = '<tr><th class="name-col">Name</th>' +
-    dates.map(d => '<th>'+formatRegisterDateShort(d)+'</th>').join('') + '</tr>';
+    dates.map(d => {
+      const dt = new Date(d + 'T12:00:00');
+      const day   = dt.toLocaleDateString('en-GB', {weekday:'short'});
+      const dateN = dt.getDate();
+      return '<th style="text-align:center;">' + day + '<br><span style="font-size:0.9em;">' + dateN + '</span></th>';
+    }).join('') + '</tr>';
 
   let bodyHtml = '';
+  const colSpan = dates.length + 1;
+
   const renderSection = (people, label) => {
     if (!people.length) return;
-    bodyHtml += '<tr class="section-header"><td colspan="'+(dates.length+1)+'">'+label+'</td></tr>';
+    bodyHtml += '<tr class="section-header"><td colspan="'+colSpan+'">'+label+'</td></tr>';
     people.forEach(p => {
-      bodyHtml += '<tr><td class="name-cell" onclick="openPersonProfileById(\''+p.id+'\')">'+escHtml(p.preferredName||p.fullName||'—')+'</td>';
+      bodyHtml += '<tr><td class="name-cell" onclick="openPersonProfileById(\''+p.id+'\')">'+
+        escHtml(p.preferredName||p.fullName||'—')+'</td>';
       dates.forEach(d => {
         const t = (regState.arrivals[d]||{})[p.id]||'';
-        bodyHtml += '<td><input class="time-cell-input" type="text" value="'+escHtml(t)+'" placeholder="—" maxlength="5"'+
-          ' onchange="setArrivalTime(\''+d+'\',\''+p.id+'\',this.value)" title="Click to edit time"></td>';
+        bodyHtml += '<td><input class="time-cell-input'+(t?' has-time':'')+'" type="text" value="'+
+          escHtml(t)+'" placeholder="—" maxlength="5"'+
+          ' onchange="setArrivalTime(\''+d+'\',\''+p.id+'\',this.value)"'+
+          ' title="'+formatRegisterDate(d)+'"></td>';
       });
       bodyHtml += '</tr>';
     });
   };
+
   renderSection(children, '🧒 Children');
   renderSection(staff,    '🌿 Staff');
-  if (!bodyHtml) bodyHtml = '<tr><td colspan="'+(dates.length+1)+'" style="padding:2rem;text-align:center;font-style:italic;color:var(--bark-light);">No people yet — click Manage People to get started.</td></tr>';
+
+  if (!bodyHtml) {
+    const msg = regState.people.length === 0
+      ? 'No people yet — click Manage People to get started.'
+      : 'No sessions in ' + (currentMon ? new Date(currentMon+'-01T12:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'}) : 'this period') + '.';
+    bodyHtml = '<tr><td colspan="'+colSpan+'" style="padding:2rem;text-align:center;font-style:italic;color:var(--bark-light);">'+msg+'</td></tr>';
+  }
   body.innerHTML = bodyHtml;
 }
 
