@@ -2997,6 +2997,37 @@ body {
   }
   /* Shopping list nav item */
   .m-nav-shop { }
+
+  /* ── Back to home button ── */
+  .m-home-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-family: 'Lora', serif;
+    font-size: 0.75rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 20px;
+    border: 1.5px solid rgba(107,66,38,0.25);
+    background: rgba(255,255,255,0.8);
+    color: var(--bark-light);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .m-home-btn:active { background: rgba(107,66,38,0.08); }
+  .m-session-nav-bar {
+    display: flex;
+    align-items: center;
+    padding: 0.4rem 0.8rem 0;
+  }
+  .m-menu-top-bar {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.8rem 0;
+    gap: 0.6rem;
+  }
+  .m-menu-top-bar .m-menu-search {
+    flex: 1;
+  }
 </style>
 
   <!-- Firebase SDK -->
@@ -3162,6 +3193,9 @@ body {
 
     <!-- SESSION VIEW -->
     <div class="m-view active" id="mSessionView">
+      <div class="m-session-nav-bar">
+        <button class="m-home-btn" onclick="mShowView('welcome')">🏠 Home</button>
+      </div>
       <div class="m-session-nav" id="mSessionNav">
         <button class="m-nav-btn" id="mPrevBtn" onclick="mNavigateSession(-1)">← Prev</button>
         <div class="m-session-label" id="mSessionLabel">
@@ -3187,8 +3221,9 @@ body {
 
     <!-- MENU VIEW (mobile) -->
     <div class="m-view" id="mMenuView">
-      <div class="m-menu-search-bar">
-        <input type="text" class="m-menu-search" id="mMenuSearch"
+      <div class="m-menu-top-bar">
+        <button class="m-home-btn" onclick="mShowView('welcome')">🏠 Home</button>
+        <input type="text" class="m-menu-search m-menu-search-bar" id="mMenuSearch"
           placeholder="Search activities…" oninput="mFilterMenu()">
       </div>
       <div class="m-menu-cat-tabs" id="mCatTabs"></div>
@@ -3223,7 +3258,10 @@ body {
 <!-- ─── MOBILE SHOPPING LIST VIEW ─── -->
 <div class="m-view" id="mShopView">
   <div class="m-shop-header">
-    <div class="m-shop-title">🛒 This Week's Shopping</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.3rem;">
+      <div class="m-shop-title">🛒 This Week's Shopping</div>
+      <button class="m-home-btn" onclick="mShowView('welcome')">🏠 Home</button>
+    </div>
     <div class="m-shop-sub" id="mShopWeekLabel"></div>
     <button class="m-shop-regen-btn" onclick="mBuildShoppingList()">↻ Refresh from sessions</button>
   </div>
