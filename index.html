@@ -3242,6 +3242,7 @@ body {
         </div>
         <div style="margin-left:auto;display:flex;gap:0.5rem;">
           <button class="register-btn primary" onclick="openManageRegister()">👥 Manage People</button>
+          <button class="register-btn" onclick="openRegisterImport()">⬆ Import CSV</button>
           <button class="register-btn" onclick="exportRegisterCSV()">⬇ Export CSV</button>
         </div>
       </div>
@@ -12253,18 +12254,37 @@ function setArrivalTime(iso, personId, val) {
   saveRegister();
 }
 
+// All profile columns in export order
+const REGISTER_CSV_COLS = [
+  {key:'type',            label:'Type'},
+  {key:'preferredName',   label:'Preferred Name'},
+  {key:'fullName',        label:'Full Name'},
+  {key:'dob',             label:'Date of Birth'},
+  {key:'ec1Name',         label:'Emergency Contact 1 Name'},
+  {key:'ec1Phone',        label:'Emergency Contact 1 Phone'},
+  {key:'ec2Name',         label:'Emergency Contact 2 Name'},
+  {key:'ec2Phone',        label:'Emergency Contact 2 Phone'},
+  {key:'allergies',       label:'Allergies'},
+  {key:'dietary',         label:'Dietary Requirements'},
+  {key:'medical',         label:'Medical Notes'},
+  {key:'role',            label:'Role'},
+  {key:'phone',           label:'Phone'},
+  {key:'dbsNumber',       label:'DBS Number'},
+  {key:'medicalAllergies',label:'Medical / Allergies'},
+  {key:'nextOfKin',       label:'Next of Kin'},
+  {key:'notes',           label:'Notes'},
+];
+
 function exportRegisterCSV() {
-  const sel = document.getElementById('registerSheetSelect');
-  const sheetId = sel ? sel.value : state.sheets[0]?.id;
-  const dates = getRegisterSessionDates(sheetId);
   const esc = v => { const s=String(v||''); return (s.includes(',')||s.includes('"')||s.includes('\n'))?'"'+s.replace(/"/g,'""')+'"':s; };
-  const rows = [['Name','Type',...dates.map(d=>formatRegisterDateShort(d))].map(esc).join(',')];
+  const header = REGISTER_CSV_COLS.map(c => c.label);
+  const rows = [header.map(esc).join(',')];
   regState.people.forEach(p => {
-    rows.push([p.preferredName||p.fullName||'',p.type,...dates.map(d=>(regState.arrivals[d]||{})[p.id]||'')].map(esc).join(','));
+    rows.push(REGISTER_CSV_COLS.map(c => esc(p[c.key]||'')).join(','));
   });
   const a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(rows.join('\r\n'));
-  a.download = 'cotf-register.csv'; a.click();
+  a.download = 'cotf-register-people.csv'; a.click();
 }
 
 // ═══════════════════════════════ MANAGE PEOPLE ═══════════════════════════════
@@ -12499,6 +12519,200 @@ function mUpdateOnSiteCount(iso) {
 
 
 
+
+// ═══════════════════════════════════════════════════════════════════════
+// REGISTER CSV IMPORT
+// ═══════════════════════════════════════════════════════════════════════
+
+let regImportParsed = []; // [{action:'add'|'update', data:{...}, existing:{...}|null}]
+
+function openRegisterImport() {
+  document.getElementById('registerImportModal').style.display = 'flex';
+  document.getElementById('regImportPreview').style.display = 'none';
+  document.getElementById('regImportError').textContent = '';
+  document.getElementById('regImportApplyBtn').style.display = 'none';
+  document.getElementById('regImportFileInput').value = '';
+  regImportParsed = [];
+}
+
+function closeRegisterImport() {
+  document.getElementById('registerImportModal').style.display = 'none';
+}
+
+function handleRegisterImportFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => parseRegisterCSV(e.target.result);
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseRegisterCSV(text) {
+  // Robust CSV parser
+  const rows = [];
+  let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"' && text[i+1] === '"') { field += '"'; i++; }
+      else if (ch === '"') inQ = false;
+      else field += ch;
+    } else {
+      if (ch === '"') inQ = true;
+      else if (ch === ',') { row.push(field.trim()); field = ''; }
+      else if (ch === '\r') {}
+      else if (ch === '\n') { row.push(field.trim()); if (row.some(f=>f)) rows.push(row); row=[]; field=''; }
+      else field += ch;
+    }
+  }
+  if (field || row.length) { row.push(field.trim()); if (row.some(f=>f)) rows.push(row); }
+
+  const errEl = document.getElementById('regImportError');
+  if (rows.length < 2) { errEl.textContent = 'File appears empty or unreadable.'; return; }
+
+  const header = rows[0].map(h => h.toLowerCase().trim());
+
+  // Map CSV column headers to our field keys using REGISTER_CSV_COLS labels
+  const colMap = {}; // fieldKey → csvColIndex
+  REGISTER_CSV_COLS.forEach(col => {
+    const idx = header.indexOf(col.label.toLowerCase());
+    if (idx >= 0) colMap[col.key] = idx;
+  });
+
+  // Must have at least type and fullName
+  if (colMap.type === undefined) { errEl.textContent = 'Missing required column: "Type" (child or staff).'; return; }
+  if (colMap.fullName === undefined) { errEl.textContent = 'Missing required column: "Full Name".'; return; }
+
+  errEl.textContent = '';
+  regImportParsed = [];
+
+  rows.slice(1).forEach((row, ri) => {
+    const get = key => colMap[key] !== undefined ? (row[colMap[key]] || '') : '';
+    const typeRaw = get('type').toLowerCase().trim();
+    const type    = typeRaw === 'staff' ? 'staff' : 'child';
+    const fullName = get('fullName').trim();
+    if (!fullName) return; // skip blank rows
+
+    const data = { type };
+    REGISTER_CSV_COLS.forEach(col => {
+      if (col.key !== 'type') data[col.key] = get(col.key);
+    });
+
+    // Match by full name (case-insensitive)
+    const existing = regState.people.find(p =>
+      p.fullName && p.fullName.toLowerCase() === fullName.toLowerCase()
+    );
+
+    regImportParsed.push({
+      action: existing ? 'update' : 'add',
+      data,
+      existing: existing || null,
+    });
+  });
+
+  renderRegisterImportPreview();
+}
+
+function renderRegisterImportPreview() {
+  const preview = document.getElementById('regImportPreview');
+  const stats   = document.getElementById('regImportStats');
+  const list    = document.getElementById('regImportList');
+  const applyBtn = document.getElementById('regImportApplyBtn');
+
+  if (!regImportParsed.length) {
+    stats.textContent = 'No valid rows found.';
+    preview.style.display = 'block';
+    applyBtn.style.display = 'none';
+    return;
+  }
+
+  const adds    = regImportParsed.filter(r => r.action === 'add');
+  const updates = regImportParsed.filter(r => r.action === 'update');
+  stats.innerHTML =
+    '<strong>' + regImportParsed.length + '</strong> people found — ' +
+    '<span style="color:var(--moss);">✚ ' + adds.length + ' new</span>' +
+    (updates.length ? ' &nbsp;·&nbsp; <span style="color:var(--gold);">↻ ' + updates.length + ' updates</span>' : '');
+
+  // Build preview list
+  let html = '';
+  regImportParsed.forEach(r => {
+    const name    = escHtml(r.data.preferredName || r.data.fullName || '—');
+    const full    = escHtml(r.data.fullName || '');
+    const typeTag = r.data.type === 'staff'
+      ? '<span style="font-size:0.68rem;background:rgba(184,134,11,0.15);color:var(--gold);padding:0.1rem 0.4rem;border-radius:8px;font-family:Lora,serif;font-weight:700;text-transform:uppercase;">Staff</span>'
+      : '<span style="font-size:0.68rem;background:rgba(61,90,46,0.1);color:var(--moss);padding:0.1rem 0.4rem;border-radius:8px;font-family:Lora,serif;font-weight:700;text-transform:uppercase;">Child</span>';
+    const actionTag = r.action === 'add'
+      ? '<span style="font-size:0.72rem;color:var(--moss);font-family:Lora,serif;">✚ New</span>'
+      : '<span style="font-size:0.72rem;color:var(--gold);font-family:Lora,serif;">↻ Update</span>';
+
+    // Show key changed fields for updates
+    let changes = '';
+    if (r.action === 'update' && r.existing) {
+      const diffs = [];
+      REGISTER_CSV_COLS.forEach(col => {
+        if (col.key === 'type') return;
+        const newVal = r.data[col.key] || '';
+        const oldVal = r.existing[col.key] || '';
+        if (newVal && newVal !== oldVal) diffs.push(col.label);
+      });
+      if (diffs.length) {
+        changes = '<div style="font-size:0.75rem;color:var(--bark-light);font-family:EB Garamond,serif;margin-top:0.15rem;">Changes: ' + escHtml(diffs.join(', ')) + '</div>';
+      } else {
+        changes = '<div style="font-size:0.75rem;color:var(--bark-light);font-family:EB Garamond,serif;margin-top:0.15rem;font-style:italic;">No changes detected</div>';
+      }
+    }
+
+    html += '<div style="display:flex;align-items:flex-start;gap:0.6rem;padding:0.55rem 0.8rem;border-bottom:1px solid rgba(107,66,38,0.07);">' +
+      '<div style="flex:1;">' +
+        '<div style="display:flex;align-items:center;gap:0.4rem;font-family:Lora,serif;font-size:0.85rem;color:var(--bark);">' +
+          name + (full && full !== name ? ' <span style="color:var(--bark-light);font-size:0.78rem;">(' + full + ')</span>' : '') +
+          '&nbsp;' + typeTag +
+        '</div>' +
+        changes +
+      '</div>' +
+      actionTag +
+    '</div>';
+  });
+
+  list.innerHTML = html;
+  preview.style.display = 'block';
+  applyBtn.style.display = 'inline-block';
+}
+
+function applyRegisterImport() {
+  let added = 0, updated = 0;
+
+  regImportParsed.forEach(r => {
+    if (r.action === 'add') {
+      r.data.id = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+      regState.people.push(r.data);
+      added++;
+    } else if (r.action === 'update' && r.existing) {
+      const idx = regState.people.findIndex(p => p.id === r.existing.id);
+      if (idx >= 0) {
+        // Merge — only overwrite fields that have a value in the CSV
+        REGISTER_CSV_COLS.forEach(col => {
+          if (col.key === 'type') return;
+          if (r.data[col.key]) regState.people[idx][col.key] = r.data[col.key];
+        });
+        updated++;
+      }
+    }
+  });
+
+  saveRegister();
+  closeRegisterImport();
+  switchManageTab(manageActiveTab);
+  renderRegisterTable();
+
+  // Brief confirmation
+  const msg = '✓ Import complete — ' + added + ' added, ' + updated + ' updated.';
+  const flash = document.createElement('div');
+  flash.textContent = msg;
+  flash.style.cssText = 'position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--moss);color:#fff;font-family:Lora,serif;font-size:0.85rem;padding:0.6rem 1.2rem;border-radius:20px;z-index:9000;box-shadow:0 2px 12px rgba(0,0,0,0.2);';
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 3000);
+}
+
 // ─── INIT: load from cloud first, localStorage as fallback ───
 (async () => {
   const shell = document.querySelector('.app-shell');
@@ -12631,6 +12845,35 @@ function mUpdateOnSiteCount(iso) {
         <button class="btn-secondary" onclick="closeAlignModal()">Cancel</button>
         <button class="btn-primary" id="alignApplyBtn" onclick="applyAlignChoices()">Apply Changes</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── REGISTER IMPORT MODAL ─── -->
+<div id="registerImportModal" onclick="if(event.target===this)closeRegisterImport()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:650;align-items:center;justify-content:center;padding:1.5rem;">
+  <div style="background:var(--parchment);border-radius:16px;width:560px;max-width:100%;max-height:85vh;overflow-y:auto;padding:1.5rem;position:relative;">
+    <button onclick="closeRegisterImport()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--bark-light);">✕</button>
+    <div style="font-family:'Lora',serif;font-size:1.1rem;font-weight:700;color:var(--bark);margin-bottom:0.3rem;">⬆ Import People from CSV</div>
+    <div style="font-family:'EB Garamond',serif;font-size:0.88rem;color:var(--bark-light);margin-bottom:1rem;line-height:1.5;">
+      Upload a CSV to bulk-add or update people. Use <strong>Full Name</strong> to match existing records.
+      New people are added; existing ones are updated. Arrival times are not affected.
+    </div>
+    <div id="regImportDropZone" style="border:2px dashed rgba(61,90,46,0.3);border-radius:10px;padding:1.5rem;text-align:center;cursor:pointer;background:rgba(61,90,46,0.02);font-family:'EB Garamond',serif;font-size:0.92rem;color:#888;margin-bottom:1rem;"
+      onclick="document.getElementById('regImportFileInput').click()"
+      ondragover="event.preventDefault();this.style.borderColor='var(--moss)'"
+      ondragleave="this.style.borderColor='rgba(61,90,46,0.3)'"
+      ondrop="event.preventDefault();this.style.borderColor='rgba(61,90,46,0.3)';handleRegisterImportFile(event.dataTransfer.files[0])">
+      📄 Click or drag your CSV file here
+    </div>
+    <input type="file" id="regImportFileInput" accept=".csv" style="display:none" onchange="handleRegisterImportFile(this.files[0])">
+    <div id="regImportPreview" style="display:none;">
+      <div id="regImportStats" style="font-family:'Lora',serif;font-size:0.82rem;color:var(--bark);margin-bottom:0.8rem;padding:0.6rem 0.8rem;background:rgba(61,90,46,0.07);border-radius:8px;"></div>
+      <div id="regImportList" style="max-height:280px;overflow-y:auto;border:1px solid rgba(107,66,38,0.12);border-radius:8px;margin-bottom:1rem;"></div>
+    </div>
+    <div id="regImportError" style="font-family:'EB Garamond',serif;font-size:0.85rem;color:#c0392b;margin-bottom:0.5rem;"></div>
+    <div style="display:flex;gap:0.6rem;justify-content:flex-end;">
+      <button class="register-btn" onclick="closeRegisterImport()">Cancel</button>
+      <button class="register-btn primary" id="regImportApplyBtn" onclick="applyRegisterImport()" style="display:none;">Apply Import</button>
     </div>
   </div>
 </div>
