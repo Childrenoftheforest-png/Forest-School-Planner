@@ -3028,13 +3028,109 @@ body {
   .m-menu-top-bar .m-menu-search {
     flex: 1;
   }
+
+  /* LOGIN */
+  #loginScreen{display:none;position:fixed;inset:0;background:var(--parchment);z-index:9999;align-items:center;justify-content:center;flex-direction:column;}
+  #loginScreen.visible{display:flex;}
+  .login-box{background:#fff;border:1.5px solid rgba(61,90,46,0.2);border-radius:16px;padding:2rem;width:320px;max-width:90vw;text-align:center;}
+  .login-title{font-family:'Lora',serif;font-size:1.3rem;font-weight:700;color:var(--moss);margin-bottom:0.2rem;}
+  .login-sub{font-family:'EB Garamond',serif;font-size:0.88rem;color:var(--bark-light);font-style:italic;margin-bottom:1.4rem;}
+  .login-field{width:100%;font-family:'EB Garamond',serif;font-size:0.95rem;padding:0.55rem 0.8rem;border:1.5px solid rgba(107,66,38,0.25);border-radius:8px;background:#fff;color:var(--bark);box-sizing:border-box;margin-bottom:0.7rem;outline:none;}
+  .login-field:focus{border-color:var(--moss);}
+  .login-btn{width:100%;font-family:'Lora',serif;font-size:0.95rem;padding:0.65rem;background:var(--moss);color:#fff;border:none;border-radius:10px;cursor:pointer;}
+  .login-btn:hover{background:#2d4422;}
+  .login-error{font-family:'EB Garamond',serif;font-size:0.85rem;color:#c0392b;margin-top:0.6rem;min-height:1.2em;}
+  /* DESKTOP REGISTER */
+  #registerView{display:none;flex-direction:column;height:100%;overflow:hidden;}
+  #registerView.active{display:flex;}
+  .register-toolbar{display:flex;align-items:center;gap:0.7rem;padding:0.7rem 1rem;border-bottom:1px solid rgba(107,66,38,0.12);flex-shrink:0;background:var(--parchment-mid);flex-wrap:wrap;}
+  .register-toolbar-title{font-family:'Lora',serif;font-size:0.95rem;font-weight:700;color:var(--bark);margin-right:0.5rem;}
+  .register-btn{font-family:'Lora',serif;font-size:0.78rem;padding:0.3rem 0.75rem;border-radius:8px;border:1.5px solid rgba(107,66,38,0.25);background:#fff;color:var(--bark);cursor:pointer;}
+  .register-btn:hover{background:rgba(61,90,46,0.07);}
+  .register-btn.primary{background:var(--moss);color:#fff;border-color:var(--moss);}
+  .register-btn.danger{color:#c0392b;border-color:rgba(192,57,43,0.3);}
+  .register-scroll-area{flex:1;overflow:auto;padding:1rem;}
+  .register-table{border-collapse:collapse;min-width:100%;font-family:'EB Garamond',serif;font-size:0.88rem;}
+  .register-table th{font-family:'Lora',serif;font-size:0.72rem;font-weight:700;color:var(--bark-light);text-transform:uppercase;letter-spacing:0.04em;padding:0.4rem 0.6rem;border-bottom:2px solid rgba(107,66,38,0.15);white-space:nowrap;background:var(--parchment);position:sticky;top:0;z-index:2;}
+  .register-table th.name-col{text-align:left;min-width:160px;position:sticky;left:0;z-index:3;}
+  .register-table td{padding:0.3rem 0.5rem;border-bottom:1px solid rgba(107,66,38,0.08);text-align:center;min-width:80px;vertical-align:middle;}
+  .register-table td.name-cell{text-align:left;font-family:'Lora',serif;font-size:0.82rem;font-weight:600;color:var(--bark);white-space:nowrap;cursor:pointer;position:sticky;left:0;background:#fff;z-index:1;}
+  .register-table td.name-cell:hover{color:var(--moss);}
+  .register-table tr:hover td{background:rgba(61,90,46,0.03);}
+  .register-table tr:hover td.name-cell{background:rgba(61,90,46,0.05);}
+  .register-table .section-header td{font-family:'Lora',serif;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--bark-light);background:var(--parchment-mid);padding:0.5rem 0.6rem 0.2rem;text-align:left;}
+  .time-cell-input{width:62px;font-family:'EB Garamond',serif;font-size:0.82rem;text-align:center;border:1px solid transparent;border-radius:4px;background:transparent;color:var(--moss);padding:0.15rem 0.2rem;cursor:pointer;}
+  .time-cell-input:hover{border-color:rgba(107,66,38,0.2);background:#fff;}
+  .time-cell-input:focus{outline:none;border-color:var(--moss);background:#fff;}
+  /* MANAGE PANEL */
+  #manageRegisterPanel{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:600;align-items:flex-start;justify-content:center;padding:2rem 1rem;overflow-y:auto;}
+  #manageRegisterPanel.open{display:flex;}
+  .manage-register-box{background:var(--parchment);border-radius:16px;width:680px;max-width:100%;padding:1.5rem;}
+  .manage-register-title{font-family:'Lora',serif;font-size:1.1rem;font-weight:700;color:var(--bark);margin-bottom:1rem;}
+  .manage-tabs{display:flex;gap:0.5rem;margin-bottom:1rem;border-bottom:1px solid rgba(107,66,38,0.15);padding-bottom:0.5rem;}
+  .manage-tab{font-family:'Lora',serif;font-size:0.8rem;padding:0.3rem 0.8rem;border-radius:8px;border:1.5px solid transparent;cursor:pointer;background:none;color:var(--bark-light);}
+  .manage-tab.active{background:var(--moss);color:#fff;}
+  .manage-list{display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;}
+  .manage-person-row{display:flex;align-items:center;gap:0.6rem;background:#fff;border-radius:8px;padding:0.5rem 0.8rem;border:1px solid rgba(107,66,38,0.12);}
+  .manage-person-name{flex:1;font-family:'Lora',serif;font-size:0.85rem;color:var(--bark);}
+  .manage-person-sub{font-size:0.75rem;color:var(--bark-light);font-family:'EB Garamond',serif;}
+  /* PROFILE PANEL */
+  #personProfilePanel{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:700;align-items:center;justify-content:center;padding:1.5rem;}
+  #personProfilePanel.open{display:flex;}
+  .profile-box{background:var(--parchment);border-radius:16px;width:500px;max-width:100%;max-height:85vh;overflow-y:auto;padding:1.5rem;position:relative;}
+  .profile-close{position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--bark-light);}
+  .profile-name-header{font-family:'Lora',serif;font-size:1.2rem;font-weight:700;color:var(--bark);margin-bottom:0.2rem;}
+  .profile-role-badge{display:inline-block;font-size:0.7rem;font-family:'Lora',serif;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:0.1rem 0.5rem;border-radius:10px;margin-bottom:1rem;}
+  .profile-role-badge.child{background:rgba(61,90,46,0.12);color:var(--moss);}
+  .profile-role-badge.staff{background:rgba(184,134,11,0.15);color:var(--gold);}
+  .profile-fields{display:flex;flex-direction:column;gap:0.7rem;}
+  .profile-field-group label{display:block;font-family:'Lora',serif;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--bark-light);margin-bottom:0.2rem;}
+  .profile-field-input,.profile-field-textarea{width:100%;font-family:'EB Garamond',serif;font-size:0.92rem;padding:0.4rem 0.6rem;border:1.5px solid rgba(107,66,38,0.2);border-radius:8px;background:#fff;color:var(--bark);box-sizing:border-box;}
+  .profile-field-input:focus,.profile-field-textarea:focus{outline:none;border-color:var(--moss);}
+  .profile-field-textarea{resize:vertical;min-height:60px;}
+  .profile-actions{display:flex;gap:0.6rem;margin-top:1.2rem;padding-top:1rem;border-top:1px solid rgba(107,66,38,0.1);}
+  .profile-save-btn{flex:1;font-family:'Lora',serif;font-size:0.88rem;padding:0.6rem;background:var(--moss);color:#fff;border:none;border-radius:10px;cursor:pointer;}
+  .profile-delete-btn{font-family:'Lora',serif;font-size:0.88rem;padding:0.6rem 1rem;background:none;color:#c0392b;border:1.5px solid rgba(192,57,43,0.3);border-radius:10px;cursor:pointer;}
+  /* MOBILE REGISTER */
+  #mRegisterView{display:none;flex-direction:column;flex:1;overflow:hidden;background:var(--parchment);}
+  #mRegisterView.active{display:flex;}
+  .m-register-header{padding:0.8rem 1rem 0.5rem;border-bottom:1px solid rgba(107,66,38,0.1);background:var(--parchment-mid);flex-shrink:0;}
+  .m-register-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;}
+  .m-register-title{font-family:'Lora',serif;font-size:1rem;font-weight:700;color:var(--bark);}
+  .m-register-date{font-family:'EB Garamond',serif;font-size:0.85rem;color:var(--bark-light);font-style:italic;}
+  .m-register-count{font-family:'Lora',serif;font-size:0.8rem;color:var(--moss);font-weight:700;background:rgba(61,90,46,0.1);border-radius:20px;padding:0.2rem 0.7rem;}
+  .m-register-date-nav{display:flex;align-items:center;gap:0.5rem;margin-top:0.4rem;}
+  .m-register-date-btn{font-family:'Lora',serif;font-size:0.75rem;padding:0.2rem 0.6rem;border-radius:8px;border:1.5px solid rgba(107,66,38,0.2);background:#fff;color:var(--bark);cursor:pointer;}
+  .m-register-date-label{flex:1;text-align:center;font-family:'Lora',serif;font-size:0.85rem;font-weight:700;color:var(--bark);}
+  .m-register-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .m-register-section-title{font-family:'Lora',serif;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--bark-light);padding:0.7rem 1rem 0.3rem;background:var(--parchment-mid);}
+  .m-register-person-row{display:flex;align-items:center;padding:0.7rem 1rem;border-bottom:1px solid rgba(107,66,38,0.07);background:#fff;gap:0.8rem;}
+  .m-register-person-info{flex:1;cursor:pointer;}
+  .m-register-person-name{font-family:'Lora',serif;font-size:0.9rem;font-weight:600;color:var(--bark);}
+  .m-register-person-time{font-family:'EB Garamond',serif;font-size:0.8rem;color:var(--moss);font-style:italic;}
+  .m-register-arrive-btn{font-family:'Lora',serif;font-size:0.75rem;padding:0.35rem 0.8rem;border-radius:20px;border:1.5px solid rgba(61,90,46,0.3);background:rgba(61,90,46,0.06);color:var(--moss);cursor:pointer;white-space:nowrap;flex-shrink:0;}
+  .m-register-arrive-btn.arrived{background:var(--moss);color:#fff;border-color:var(--moss);}
 </style>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 </head>
 <body>
+
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="visible">
+  <div class="login-box">
+    <div class="login-title">CotF Planning</div>
+    <div class="login-sub">Sign in to continue</div>
+    <input class="login-field" id="loginEmail" type="email" placeholder="Email" value="childrenoftheforest@outlook.com" onkeydown="if(event.key==='Enter')doLogin()">
+    <input class="login-field" id="loginPassword" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
 
 <div class="app-shell">
 
@@ -3058,6 +3154,7 @@ body {
       <button class="header-tab" onclick="showView('menu')" data-view="menu">🌱 Activity Menu</button>
       <button class="header-tab" onclick="showView('calendar')" data-view="calendar">🗓 Calendar</button>
       <button class="header-tab" onclick="showView('upcoming')" data-view="upcoming">📆 This Week</button>
+      <button class="header-tab" onclick="showView('register')" data-view="register">📋 Register</button>
     </div>
   </header>
 
@@ -3273,6 +3370,72 @@ body {
   </div>
 </div>
 
+
+<!-- DESKTOP REGISTER VIEW -->
+<div id="registerView">
+  <div class="register-toolbar">
+    <span class="register-toolbar-title">📋 Register</span>
+    <select id="registerSheetSelect" class="register-btn" onchange="renderRegisterTable()" style="font-family:Lora,serif;font-size:0.78rem;padding:0.3rem 0.5rem;"></select>
+    <button class="register-btn primary" onclick="openManageRegister()">👥 Manage People</button>
+    <button class="register-btn" onclick="exportRegisterCSV()">⬇ Export CSV</button>
+  </div>
+  <div class="register-scroll-area">
+    <table class="register-table" id="registerTable">
+      <thead id="registerTableHead"></thead>
+      <tbody id="registerTableBody"></tbody>
+    </table>
+  </div>
+</div>
+<!-- MANAGE PANEL -->
+<div id="manageRegisterPanel" onclick="if(event.target===this)closeManageRegister()">
+  <div class="manage-register-box">
+    <div class="manage-register-title">Manage People</div>
+    <div class="manage-tabs">
+      <button class="manage-tab active" id="manageTabChildren" onclick="switchManageTab('children')">Children</button>
+      <button class="manage-tab" id="manageTabStaff" onclick="switchManageTab('staff')">Staff</button>
+    </div>
+    <div class="manage-list" id="manageList"></div>
+    <div style="display:flex;gap:0.6rem;">
+      <button class="register-btn primary" onclick="openNewPersonProfile()">Add Person</button>
+      <button class="register-btn" onclick="closeManageRegister()">Close</button>
+    </div>
+  </div>
+</div>
+<!-- PROFILE PANEL -->
+<div id="personProfilePanel" onclick="if(event.target===this)closePersonProfile()">
+  <div class="profile-box">
+    <button class="profile-close" onclick="closePersonProfile()">x</button>
+    <div class="profile-name-header" id="profileNameHeader">Person</div>
+    <span class="profile-role-badge child" id="profileRoleBadge">Child</span>
+    <div class="profile-fields" id="profileFields"></div>
+    <div class="profile-actions">
+      <button class="profile-delete-btn" id="profileDeleteBtn" onclick="deletePersonProfile()">Delete</button>
+      <button class="profile-save-btn" onclick="savePersonProfile()">Save Changes</button>
+    </div>
+  </div>
+</div>
+<!-- MOBILE REGISTER -->
+<div class="m-view" id="mRegisterView">
+  <div class="m-register-header">
+    <div class="m-register-header-top">
+      <div>
+        <div class="m-register-title">Register</div>
+        <div class="m-register-date" id="mRegisterDateLabel"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.3rem;">
+        <div class="m-register-count" id="mRegisterCount">0 on site</div>
+        <button class="m-home-btn" onclick="mShowView('welcome')">Home</button>
+      </div>
+    </div>
+    <div class="m-register-date-nav">
+      <button class="m-register-date-btn" onclick="mRegisterNavigate(-1)">Prev</button>
+      <div class="m-register-date-label" id="mRegisterNavLabel"></div>
+      <button class="m-register-date-btn" onclick="mRegisterNavigate(1)">Next</button>
+    </div>
+  </div>
+  <div class="m-register-list" id="mRegisterList"></div>
+</div>
+
   <!-- Bottom Nav -->
 
   <!-- Mobile Welcome Screen -->
@@ -3300,6 +3463,13 @@ body {
         <div class="m-welcome-card-text">
           <div class="m-welcome-card-title" style="color:var(--bark);">Shopping List</div>
           <div class="m-welcome-card-desc">This week's resources from session plans, plus your own items</div>
+        </div>
+      </button>
+      <button class="m-welcome-card" style="border-color:rgba(61,90,46,0.35);background:rgba(61,90,46,0.04);" onclick="mShowView('register')">
+        <span class="m-welcome-card-icon">📋</span>
+        <div class="m-welcome-card-text">
+          <div class="m-welcome-card-title" style="color:var(--moss);">Register</div>
+          <div class="m-welcome-card-desc">Record arrivals and view who is on site today</div>
         </div>
       </button>
     </div>
@@ -3665,7 +3835,8 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const db   = firebase.firestore();
+const auth = firebase.auth();
 const DOC_REF = db.collection('planner').doc('main');
 
 let saveDebounceTimer = null;
@@ -11852,8 +12023,388 @@ function mShopAddCustom() {
 
 
 
+
+// ═══════════════════════════════════ AUTH ═══════════════════════════════════
+
+function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pwd   = document.getElementById('loginPassword').value;
+  const err   = document.getElementById('loginError');
+  err.textContent = '';
+  auth.signInWithEmailAndPassword(email, pwd).catch(e => {
+    err.textContent = (e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found')
+      ? 'Incorrect email or password.' : e.message;
+  });
+}
+
+auth.onAuthStateChanged(user => {
+  const screen = document.getElementById('loginScreen');
+  const shell  = document.querySelector('.app-shell');
+  if (user) {
+    screen.classList.remove('visible');
+    if (shell) shell.style.display = '';
+  } else {
+    screen.classList.add('visible');
+    if (shell) shell.style.display = 'none';
+  }
+});
+
+// ═══════════════════════════════ REGISTER DATA ═══════════════════════════════
+
+let regState = { people: [], arrivals: {} };
+let manageActiveTab = 'children';
+let profileEditingId = null;
+let profileEditingType = 'child';
+let mRegisterDates = [];
+let mRegisterSheetId = null;
+let mRegisterDateIdx = 0;
+
+async function loadRegister() {
+  try {
+    const doc = await db.collection('planner').doc('register').get();
+    if (doc.exists) { const d = doc.data(); regState.people = d.people||[]; regState.arrivals = d.arrivals||{}; }
+  } catch(e) { console.warn('Register load failed', e); }
+}
+
+async function saveRegister() {
+  try { await db.collection('planner').doc('register').set(regState); }
+  catch(e) { console.warn('Register save failed', e); }
+}
+
+function ukTimeNow() {
+  const p = new Intl.DateTimeFormat('en-GB', {timeZone:'Europe/London',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
+  return p.find(x=>x.type==='hour').value + ':' + p.find(x=>x.type==='minute').value;
+}
+
+function ukDateNow() {
+  const p = new Intl.DateTimeFormat('en-GB', {timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+  return p.find(x=>x.type==='year').value+'-'+p.find(x=>x.type==='month').value+'-'+p.find(x=>x.type==='day').value;
+}
+
+function getRegisterSessionDates(sheetId) {
+  const sheet = state.sheets.find(s => s.id === sheetId);
+  if (!sheet) return [];
+  const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dates = [], seen = new Set();
+  if (sheet.type === 'holiday') {
+    Object.keys(sheet.sessions||{}).sort().forEach(k => { if (/^\d{4}-\d{2}-\d{2}$/.test(k)) dates.push(k); });
+  } else {
+    Object.keys(sheet.sessions||{}).forEach(k => {
+      const parts = k.split('-');
+      if (parts.length !== 2) return;
+      const day = parseInt(parts[0]), mon = MONS.indexOf(parts[1]);
+      if (isNaN(day)||mon<0) return;
+      const startMon = MONS.indexOf(sheet.startMonth);
+      const year = mon>=startMon ? sheet.startYear : sheet.endYear;
+      const iso = year+'-'+String(mon+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+      if (!seen.has(iso)) { seen.add(iso); dates.push(iso); }
+    });
+    dates.sort();
+  }
+  return dates;
+}
+
+function formatRegisterDate(iso) {
+  return new Date(iso+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+function formatRegisterDateShort(iso) {
+  return new Date(iso+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+}
+
+// ═══════════════════════════════ DESKTOP REGISTER ═══════════════════════════════
+
+function populateRegisterSheetSelect() {
+  const sel = document.getElementById('registerSheetSelect');
+  if (!sel) return;
+  sel.innerHTML = '';
+  state.sheets.filter(s => s.type !== 'holiday').forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id; opt.textContent = s.name; sel.appendChild(opt);
+  });
+}
+
+function renderRegisterTable() {
+  const sel = document.getElementById('registerSheetSelect');
+  const sheetId = sel ? sel.value : state.sheets[0]?.id;
+  if (!sheetId) return;
+  const dates    = getRegisterSessionDates(sheetId);
+  const children = regState.people.filter(p => p.type === 'child');
+  const staff    = regState.people.filter(p => p.type === 'staff');
+  const head = document.getElementById('registerTableHead');
+  const body = document.getElementById('registerTableBody');
+
+  head.innerHTML = '<tr><th class="name-col">Name</th>' +
+    dates.map(d => '<th>'+formatRegisterDateShort(d)+'</th>').join('') + '</tr>';
+
+  let bodyHtml = '';
+  const renderSection = (people, label) => {
+    if (!people.length) return;
+    bodyHtml += '<tr class="section-header"><td colspan="'+(dates.length+1)+'">'+label+'</td></tr>';
+    people.forEach(p => {
+      bodyHtml += '<tr><td class="name-cell" onclick="openPersonProfileById(\''+p.id+'\')">'+escHtml(p.preferredName||p.fullName||'—')+'</td>';
+      dates.forEach(d => {
+        const t = (regState.arrivals[d]||{})[p.id]||'';
+        bodyHtml += '<td><input class="time-cell-input" type="text" value="'+escHtml(t)+'" placeholder="—" maxlength="5"'+
+          ' onchange="setArrivalTime(\''+d+'\',\''+p.id+'\',this.value)" title="Click to edit time"></td>';
+      });
+      bodyHtml += '</tr>';
+    });
+  };
+  renderSection(children, '🧒 Children');
+  renderSection(staff,    '🌿 Staff');
+  if (!bodyHtml) bodyHtml = '<tr><td colspan="'+(dates.length+1)+'" style="padding:2rem;text-align:center;font-style:italic;color:var(--bark-light);">No people yet — click Manage People to get started.</td></tr>';
+  body.innerHTML = bodyHtml;
+}
+
+function setArrivalTime(iso, personId, val) {
+  if (!regState.arrivals[iso]) regState.arrivals[iso] = {};
+  const t = val.trim();
+  if (t) regState.arrivals[iso][personId] = t;
+  else delete regState.arrivals[iso][personId];
+  saveRegister();
+}
+
+function exportRegisterCSV() {
+  const sel = document.getElementById('registerSheetSelect');
+  const sheetId = sel ? sel.value : state.sheets[0]?.id;
+  const dates = getRegisterSessionDates(sheetId);
+  const esc = v => { const s=String(v||''); return (s.includes(',')||s.includes('"')||s.includes('\n'))?'"'+s.replace(/"/g,'""')+'"':s; };
+  const rows = [['Name','Type',...dates.map(d=>formatRegisterDateShort(d))].map(esc).join(',')];
+  regState.people.forEach(p => {
+    rows.push([p.preferredName||p.fullName||'',p.type,...dates.map(d=>(regState.arrivals[d]||{})[p.id]||'')].map(esc).join(','));
+  });
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(rows.join('\r\n'));
+  a.download = 'cotf-register.csv'; a.click();
+}
+
+// ═══════════════════════════════ MANAGE PEOPLE ═══════════════════════════════
+
+function openManageRegister() {
+  switchManageTab(manageActiveTab);
+  document.getElementById('manageRegisterPanel').classList.add('open');
+}
+function closeManageRegister() {
+  document.getElementById('manageRegisterPanel').classList.remove('open');
+  renderRegisterTable();
+}
+function switchManageTab(tab) {
+  manageActiveTab = tab;
+  profileEditingType = tab === 'children' ? 'child' : 'staff';
+  document.getElementById('manageTabChildren').classList.toggle('active', tab==='children');
+  document.getElementById('manageTabStaff').classList.toggle('active', tab==='staff');
+  const people = regState.people.filter(p => p.type === (tab==='children'?'child':'staff'));
+  const list = document.getElementById('manageList');
+  list.innerHTML = '';
+  if (!people.length) {
+    list.innerHTML = '<div style="font-family:EB Garamond,serif;font-style:italic;color:var(--bark-light);padding:0.5rem 0;">No '+tab+' added yet.</div>';
+    return;
+  }
+  people.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'manage-person-row';
+    row.innerHTML = '<div><div class="manage-person-name">'+escHtml(p.preferredName||p.fullName||'—')+'</div>'+
+      '<div class="manage-person-sub">'+escHtml(p.fullName||'')+(p.type==='staff'&&p.role?' · '+escHtml(p.role):'')+'</div></div>';
+    const btn = document.createElement('button');
+    btn.className = 'register-btn'; btn.textContent = 'Edit';
+    btn.onclick = () => openPersonProfileById(p.id);
+    row.appendChild(btn); list.appendChild(row);
+  });
+}
+
+// ═══════════════════════════════ PROFILE PANEL ═══════════════════════════════
+
+const CHILD_FIELDS = [
+  {key:'preferredName',label:'Preferred Name',type:'input'},
+  {key:'fullName',label:'Full Name',type:'input'},
+  {key:'dob',label:'Date of Birth',type:'input',ph:'DD/MM/YYYY'},
+  {key:'ec1Name',label:'Emergency Contact 1 — Name',type:'input'},
+  {key:'ec1Phone',label:'Emergency Contact 1 — Phone',type:'input'},
+  {key:'ec2Name',label:'Emergency Contact 2 — Name',type:'input'},
+  {key:'ec2Phone',label:'Emergency Contact 2 — Phone',type:'input'},
+  {key:'allergies',label:'Allergies',type:'textarea'},
+  {key:'dietary',label:'Dietary Requirements',type:'textarea'},
+  {key:'medical',label:'Medical Notes',type:'textarea'},
+  {key:'notes',label:'General Notes',type:'textarea'},
+];
+const STAFF_FIELDS = [
+  {key:'preferredName',label:'Preferred Name',type:'input'},
+  {key:'fullName',label:'Full Name',type:'input'},
+  {key:'role',label:'Role',type:'input',ph:'e.g. Lead, Assistant'},
+  {key:'phone',label:'Phone',type:'input'},
+  {key:'dbsNumber',label:'DBS Number',type:'input'},
+  {key:'medicalAllergies',label:'Medical / Allergies',type:'textarea'},
+  {key:'nextOfKin',label:'Next of Kin Contact Details',type:'textarea'},
+  {key:'notes',label:'Notes',type:'textarea'},
+];
+
+function openNewPersonProfile() {
+  profileEditingId = null;
+  renderProfileForm({}, profileEditingType);
+  document.getElementById('personProfilePanel').classList.add('open');
+}
+function openPersonProfileById(id) {
+  const p = regState.people.find(x => x.id === id);
+  if (!p) return;
+  profileEditingId = id; profileEditingType = p.type;
+  renderProfileForm(p, p.type);
+  document.getElementById('personProfilePanel').classList.add('open');
+}
+function renderProfileForm(p, type) {
+  const fields = type==='child' ? CHILD_FIELDS : STAFF_FIELDS;
+  document.getElementById('profileNameHeader').textContent = p.preferredName||p.fullName||'New Person';
+  const badge = document.getElementById('profileRoleBadge');
+  badge.textContent = type==='child'?'Child':'Staff';
+  badge.className = 'profile-role-badge '+(type==='child'?'child':'staff');
+  document.getElementById('profileDeleteBtn').style.display = profileEditingId?'':'none';
+  const container = document.getElementById('profileFields');
+  container.innerHTML = '';
+  fields.forEach(f => {
+    const grp = document.createElement('div'); grp.className = 'profile-field-group';
+    const lbl = document.createElement('label'); lbl.textContent = f.label; grp.appendChild(lbl);
+    const el = document.createElement(f.type==='textarea'?'textarea':'input');
+    el.className = f.type==='textarea'?'profile-field-textarea':'profile-field-input';
+    el.id = 'pf_'+f.key; el.value = p[f.key]||'';
+    if (f.ph) el.placeholder = f.ph;
+    if (f.type==='textarea') el.rows = 2;
+    grp.appendChild(el); container.appendChild(grp);
+  });
+}
+function savePersonProfile() {
+  const fields = profileEditingType==='child' ? CHILD_FIELDS : STAFF_FIELDS;
+  const data = { type: profileEditingType };
+  fields.forEach(f => { data[f.key] = document.getElementById('pf_'+f.key)?.value.trim()||''; });
+  if (!data.preferredName && !data.fullName) { alert('Please enter a name.'); return; }
+  if (profileEditingId) {
+    const idx = regState.people.findIndex(p => p.id===profileEditingId);
+    if (idx>=0) regState.people[idx] = {...regState.people[idx],...data};
+  } else {
+    data.id = 'p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+    regState.people.push(data);
+  }
+  saveRegister(); closePersonProfile(); switchManageTab(manageActiveTab);
+}
+function deletePersonProfile() {
+  if (!profileEditingId) return;
+  const name = regState.people.find(p=>p.id===profileEditingId)?.preferredName||'this person';
+  if (!confirm('Remove '+name+'? Arrival records will be kept.')) return;
+  regState.people = regState.people.filter(p => p.id!==profileEditingId);
+  saveRegister(); closePersonProfile(); switchManageTab(manageActiveTab);
+}
+function closePersonProfile() {
+  document.getElementById('personProfilePanel').classList.remove('open');
+  profileEditingId = null;
+}
+
+// ═══════════════════════════════ MOBILE REGISTER ═══════════════════════════════
+
+function mOpenRegister() {
+  const sheet = state.sheets.find(s => s.type!=='holiday') || state.sheets[0];
+  if (!sheet) return;
+  mRegisterSheetId = sheet.id;
+  mRegisterDates   = getRegisterSessionDates(sheet.id);
+  const today = ukDateNow();
+  mRegisterDateIdx = mRegisterDates.findIndex(d => d >= today);
+  if (mRegisterDateIdx < 0) mRegisterDateIdx = Math.max(0, mRegisterDates.length-1);
+  mRenderRegister();
+}
+
+function mRegisterNavigate(dir) {
+  mRegisterDateIdx = Math.max(0, Math.min(mRegisterDates.length-1, mRegisterDateIdx+dir));
+  mRenderRegister();
+}
+
+function mRenderRegister() {
+  const iso = mRegisterDates[mRegisterDateIdx];
+  if (!iso) { document.getElementById('mRegisterList').innerHTML = '<div style="padding:2rem;text-align:center;font-family:Lora,serif;font-style:italic;color:var(--bark-light);">No session dates found.</div>'; return; }
+  document.getElementById('mRegisterDateLabel').textContent = formatRegisterDate(iso);
+  document.getElementById('mRegisterNavLabel').textContent  = formatRegisterDateShort(iso);
+  const arrivals = regState.arrivals[iso]||{};
+  const onSite   = regState.people.filter(p => arrivals[p.id]).length;
+  document.getElementById('mRegisterCount').textContent = onSite+' on site';
+  const list = document.getElementById('mRegisterList');
+  list.innerHTML = '';
+  const children = regState.people.filter(p => p.type==='child');
+  const staff    = regState.people.filter(p => p.type==='staff');
+  if (!children.length && !staff.length) {
+    list.innerHTML = '<div style="padding:2rem 1rem;text-align:center;font-family:Lora,serif;font-style:italic;color:var(--bark-light);">No people added yet.<br><span style="font-size:0.8rem;">Add children and staff from the desktop Register view.</span></div>';
+    return;
+  }
+  const renderSection = (people, label) => {
+    if (!people.length) return;
+    const title = document.createElement('div');
+    title.className = 'm-register-section-title'; title.textContent = label; list.appendChild(title);
+    people.forEach(p => {
+      const row = document.createElement('div'); row.className = 'm-register-person-row';
+      const info = document.createElement('div'); info.className = 'm-register-person-info';
+      info.onclick = () => openPersonProfileById(p.id);
+      const nameEl = document.createElement('div'); nameEl.className = 'm-register-person-name';
+      nameEl.textContent = p.preferredName||p.fullName||'—'; info.appendChild(nameEl);
+      if (arrivals[p.id]) {
+        const t = document.createElement('div'); t.className = 'm-register-person-time';
+        t.textContent = 'Arrived '+arrivals[p.id]; info.appendChild(t);
+      }
+      const btn = document.createElement('button');
+      btn.className = 'm-register-arrive-btn'+(arrivals[p.id]?' arrived':'');
+      btn.textContent = arrivals[p.id] ? 'On site' : 'Arrived';
+      btn.onclick = () => mRecordArrival(iso, p.id, btn, info);
+      row.appendChild(info); row.appendChild(btn); list.appendChild(row);
+    });
+  };
+  renderSection(children,'Children');
+  renderSection(staff,'Staff');
+}
+
+function mRecordArrival(iso, personId, btn, info) {
+  const time = ukTimeNow();
+  if (!regState.arrivals[iso]) regState.arrivals[iso] = {};
+  regState.arrivals[iso][personId] = time;
+  saveRegister();
+  btn.textContent = 'On site'; btn.classList.add('arrived');
+  let t = info.querySelector('.m-register-person-time');
+  if (!t) { t = document.createElement('div'); t.className = 'm-register-person-time'; info.appendChild(t); }
+  t.textContent = 'Arrived '+time;
+  const arr = regState.arrivals[iso]||{};
+  document.getElementById('mRegisterCount').textContent = regState.people.filter(p=>arr[p.id]).length+' on site';
+}
+
+// ═══════════════════════════════ VIEW ROUTING ═══════════════════════════════
+
+const _mShowView_reg = mShowView;
+function mShowView(view) {
+  if (view === 'register') {
+    document.querySelectorAll('.m-view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.m-nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById('mRegisterView').classList.add('active');
+    const nav = document.querySelector('.m-bottom-nav');
+    if (nav) nav.style.display = 'flex';
+    mOpenRegister();
+  } else {
+    _mShowView_reg(view);
+  }
+}
+
+const _showView_reg = showView;
+function showView(view) {
+  if (view === 'register') {
+    document.querySelectorAll('.main-view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.header-tab[data-view]').forEach(b => b.classList.remove('active'));
+    document.getElementById('registerView').classList.add('active');
+    const btn = document.querySelector('.header-tab[data-view="register"]');
+    if (btn) btn.classList.add('active');
+    populateRegisterSheetSelect();
+    renderRegisterTable();
+  } else {
+    document.getElementById('registerView').classList.remove('active');
+    _showView_reg(view);
+  }
+}
+
 // ─── INIT: load from cloud first, localStorage as fallback ───
 (async () => {
+  const shell = document.querySelector('.app-shell');
+  if (shell) shell.style.display = 'none';
+  await loadRegister();
   // Show loading state
   const main = document.getElementById('plannerContent');
   if (main) main.innerHTML = '<div style="padding:3rem;text-align:center;font-family:Lora,serif;font-style:italic;color:var(--bark-light);">🌿 Loading your planner…</div>';
