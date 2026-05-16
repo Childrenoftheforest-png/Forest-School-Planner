@@ -3388,34 +3388,7 @@ body {
 
 
 
-<!-- MANAGE PANEL -->
-<div id="manageRegisterPanel" onclick="if(event.target===this)closeManageRegister()">
-  <div class="manage-register-box">
-    <div class="manage-register-title">Manage People</div>
-    <div class="manage-tabs">
-      <button class="manage-tab active" id="manageTabChildren" onclick="switchManageTab('children')">Children</button>
-      <button class="manage-tab" id="manageTabStaff" onclick="switchManageTab('staff')">Staff</button>
-    </div>
-    <div class="manage-list" id="manageList"></div>
-    <div style="display:flex;gap:0.6rem;">
-      <button class="register-btn primary" onclick="openNewPersonProfile()">Add Person</button>
-      <button class="register-btn" onclick="closeManageRegister()">Close</button>
-    </div>
-  </div>
-</div>
-<!-- PROFILE PANEL -->
-<div id="personProfilePanel" onclick="if(event.target===this)closePersonProfile()">
-  <div class="profile-box">
-    <button class="profile-close" onclick="closePersonProfile()">x</button>
-    <div class="profile-name-header" id="profileNameHeader">Person</div>
-    <span class="profile-role-badge child" id="profileRoleBadge">Child</span>
-    <div class="profile-fields" id="profileFields"></div>
-    <div class="profile-actions">
-      <button class="profile-delete-btn" id="profileDeleteBtn" onclick="deletePersonProfile()">Delete</button>
-      <button class="profile-save-btn" onclick="savePersonProfile()">Save Changes</button>
-    </div>
-  </div>
-</div>
+
 <!-- MOBILE REGISTER -->
 <div class="m-view" id="mRegisterView">
   <div class="m-register-header">
@@ -12531,6 +12504,36 @@ function mRecordArrival(iso, personId, btn, info) {
         <button class="btn-secondary" onclick="closeAlignModal()">Cancel</button>
         <button class="btn-primary" id="alignApplyBtn" onclick="applyAlignChoices()">Apply Changes</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── REGISTER MANAGE PANEL ─── -->
+<div id="manageRegisterPanel" onclick="if(event.target===this)closeManageRegister()">
+  <div class="manage-register-box">
+    <div class="manage-register-title">👥 Manage People</div>
+    <div class="manage-tabs">
+      <button class="manage-tab active" id="manageTabChildren" onclick="switchManageTab('children')">🧒 Children</button>
+      <button class="manage-tab" id="manageTabStaff" onclick="switchManageTab('staff')">🌿 Staff</button>
+    </div>
+    <div class="manage-list" id="manageList"></div>
+    <div style="display:flex;gap:0.6rem;">
+      <button class="register-btn primary" onclick="openNewPersonProfile()">＋ Add Person</button>
+      <button class="register-btn" onclick="closeManageRegister()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── PERSON PROFILE PANEL ─── -->
+<div id="personProfilePanel" onclick="if(event.target===this)closePersonProfile()">
+  <div class="profile-box">
+    <button class="profile-close" onclick="closePersonProfile()">✕</button>
+    <div class="profile-name-header" id="profileNameHeader">Person</div>
+    <span class="profile-role-badge child" id="profileRoleBadge">Child</span>
+    <div class="profile-fields" id="profileFields"></div>
+    <div class="profile-actions">
+      <button class="profile-delete-btn" id="profileDeleteBtn" onclick="deletePersonProfile()">Delete</button>
+      <button class="profile-save-btn" onclick="savePersonProfile()">Save Changes</button>
     </div>
   </div>
 </div>
