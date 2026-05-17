@@ -3126,7 +3126,7 @@ body {
   .m-register-remove-btn.visible{display:flex;}
 
   /* ══ CATEGORY MANAGER ══ */
-  #catManagerModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:650;align-items:flex-start;justify-content:center;padding:2rem 1rem;overflow-y:auto;}
+  #catManagerModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:800;align-items:flex-start;justify-content:center;padding:2rem 1rem;overflow-y:auto;}
   #catManagerModal.open{display:flex;}
   .cat-manager-box{background:var(--parchment);border-radius:16px;width:620px;max-width:100%;padding:1.5rem;position:relative;}
   .cat-manager-title{font-family:'Lora',serif;font-size:1.1rem;font-weight:700;color:var(--bark);margin-bottom:1rem;}
@@ -5270,8 +5270,7 @@ function renderMenu() {
     if (catF !== 'all' && catF !== cat.id) continue;
     let items = state.menuItems.filter(item => item.cat === cat.id && !item.hidden);
     if (q) items = items.filter(item => item && item.name && (item.name.toLowerCase().includes(q) || (item.notes||'').toLowerCase().includes(q)));
-    if (items.length === 0) continue;
-
+    // Show empty categories (so new ones are visible and can have items added)
     const card = document.createElement('div');
     card.className = 'menu-card';
     card.style.cssText = `background:${cat.bg};border-color:${cat.accent}22;`;
@@ -12908,7 +12907,15 @@ function renderCatManagerList() {
 
 function openCatManager() {
   renderCatManagerList();
-  document.getElementById('catManagerModal').classList.add('open');
+  const modal = document.getElementById('catManagerModal');
+  if (modal) {
+    modal.classList.add('open');
+    modal.style.display = 'flex'; // belt-and-braces in case CSS class doesn't fire
+  }
+}
+function closeCatManagerFixed() {
+  const modal = document.getElementById('catManagerModal');
+  if (modal) { modal.classList.remove('open'); modal.style.display = ''; }
 }
 function closeCatManager() {
   document.getElementById('catManagerModal').classList.remove('open');
@@ -13350,7 +13357,7 @@ function renderPairList(pairIds) {
 </div>
 
 <!-- ─── CATEGORY MANAGER ─── -->
-<div id="catManagerModal" onclick="if(event.target===this)closeCatManager()">
+<div id="catManagerModal" onclick="if(event.target===this){document.getElementById('catManagerModal').classList.remove('open');document.getElementById('catManagerModal').style.display='';}">
   <div class="cat-manager-box">
     <div class="cat-manager-title">⚙ Manage Categories</div>
     <div class="cat-manager-list" id="catManagerList"></div>
@@ -13361,7 +13368,7 @@ function renderPairList(pairIds) {
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <button class="register-btn" onclick="runMorningCircleMigration()" title="Import Morning Circle questions from session plans into the menu">↻ Import Morning Circle questions</button>
-      <button class="register-btn" onclick="closeCatManager()">Done</button>
+      <button class="register-btn" onclick="document.getElementById('catManagerModal').classList.remove('open');document.getElementById('catManagerModal').style.display='';">Done</button>
     </div>
   </div>
 </div>
