@@ -3124,6 +3124,43 @@ body {
   .m-register-arrive-btn.arrived{background:var(--moss);color:#fff;border-color:var(--moss);}
   .m-register-remove-btn{display:none;background:none;border:1.5px solid rgba(192,57,43,0.35);border-radius:50%;color:#c0392b;font-size:0.7rem;width:22px;height:22px;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-left:0.3rem;}
   .m-register-remove-btn.visible{display:flex;}
+
+  /* ══ CATEGORY MANAGER ══ */
+  #catManagerModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:650;align-items:flex-start;justify-content:center;padding:2rem 1rem;overflow-y:auto;}
+  #catManagerModal.open{display:flex;}
+  .cat-manager-box{background:var(--parchment);border-radius:16px;width:620px;max-width:100%;padding:1.5rem;position:relative;}
+  .cat-manager-title{font-family:'Lora',serif;font-size:1.1rem;font-weight:700;color:var(--bark);margin-bottom:1rem;}
+  .cat-manager-list{display:flex;flex-direction:column;gap:0.4rem;margin-bottom:1rem;max-height:50vh;overflow-y:auto;}
+  .cat-manager-row{display:flex;align-items:center;gap:0.6rem;background:#fff;border-radius:8px;padding:0.5rem 0.8rem;border:1px solid rgba(107,66,38,0.12);}
+  .cat-manager-emoji{font-size:1.1rem;width:1.5rem;text-align:center;flex-shrink:0;}
+  .cat-manager-name{flex:1;font-family:'Lora',serif;font-size:0.85rem;color:var(--bark);}
+  .cat-manager-base-tag{font-size:0.65rem;color:var(--bark-light);font-family:'Lora',serif;text-transform:uppercase;letter-spacing:0.05em;border:1px solid rgba(107,66,38,0.2);border-radius:8px;padding:0.1rem 0.4rem;}
+  .cat-add-form{display:flex;gap:0.5rem;align-items:center;background:#fff;border:1.5px solid rgba(61,90,46,0.2);border-radius:10px;padding:0.7rem 0.9rem;margin-bottom:1rem;}
+  .cat-add-emoji{width:42px;font-size:1.1rem;text-align:center;border:1.5px solid rgba(107,66,38,0.2);border-radius:6px;padding:0.3rem;font-family:inherit;}
+  .cat-add-name{flex:1;font-family:'EB Garamond',serif;font-size:0.92rem;border:1.5px solid rgba(107,66,38,0.2);border-radius:6px;padding:0.35rem 0.5rem;background:#fff;color:var(--bark);}
+  .cat-add-name:focus,.cat-add-emoji:focus{outline:none;border-color:var(--moss);}
+  .cat-edit-btn{font-family:'Lora',serif;font-size:0.72rem;padding:0.2rem 0.55rem;border-radius:6px;border:1.5px solid rgba(107,66,38,0.2);background:#fff;color:var(--bark);cursor:pointer;}
+  .cat-edit-btn:hover{background:rgba(61,90,46,0.07);}
+  .cat-del-btn{font-family:'Lora',serif;font-size:0.72rem;padding:0.2rem 0.55rem;border-radius:6px;border:1.5px solid rgba(192,57,43,0.25);background:#fff;color:#c0392b;cursor:pointer;}
+
+  /* ══ RANDOM PAIRING ══ */
+  #mPairView{display:none;flex-direction:column;flex:1;overflow:hidden;background:var(--parchment);}
+  #mPairView.active{display:flex;}
+  .m-pair-header{padding:0.9rem 1rem 0.6rem;border-bottom:1px solid rgba(107,66,38,0.1);background:var(--parchment-mid);flex-shrink:0;}
+  .m-pair-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.3rem;}
+  .m-pair-title{font-family:'Lora',serif;font-size:1rem;font-weight:700;color:var(--bark);}
+  .m-pair-date{font-family:'EB Garamond',serif;font-size:0.85rem;color:var(--bark-light);font-style:italic;}
+  .m-pair-date-nav{display:flex;align-items:center;gap:0.5rem;margin-top:0.4rem;}
+  .m-pair-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0.8rem 1rem;}
+  .m-pair-card{background:#fff;border-radius:12px;border:1.5px solid rgba(61,90,46,0.15);padding:0.8rem 1rem;margin-bottom:0.7rem;display:flex;align-items:center;gap:0.8rem;}
+  .m-pair-number{font-family:'Lora',serif;font-size:0.75rem;font-weight:700;color:var(--moss);background:rgba(61,90,46,0.1);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .m-pair-names{flex:1;}
+  .m-pair-name{font-family:'Lora',serif;font-size:0.88rem;font-weight:600;color:var(--bark);line-height:1.4;}
+  .m-pair-name+.m-pair-name{color:var(--bark-light);}
+  .m-pair-trio-badge{font-size:0.65rem;font-family:'Lora',serif;background:rgba(184,134,11,0.15);color:var(--gold);border-radius:8px;padding:0.1rem 0.4rem;margin-left:0.4rem;}
+  .m-pair-actions{display:flex;gap:0.6rem;padding:0.8rem 1rem;border-top:1px solid rgba(107,66,38,0.1);background:var(--parchment-mid);flex-shrink:0;}
+  .m-pair-regen-btn{flex:1;font-family:'Lora',serif;font-size:0.88rem;padding:0.6rem;background:var(--moss);color:#fff;border:none;border-radius:10px;cursor:pointer;}
+  .m-pair-empty{padding:2rem 1rem;text-align:center;font-family:'Lora',serif;font-style:italic;color:var(--bark-light);font-size:0.9rem;line-height:1.6;}
 </style>
 
   <!-- Firebase SDK -->
@@ -3204,6 +3241,7 @@ body {
         <button class="menu-csv-btn import" onclick="openCsvImportModal()" title="Import activities from CSV spreadsheet">⬆ Import CSV</button>
         <button class="menu-csv-btn" onclick="exportMenuCsv()" title="Export all activities as CSV spreadsheet">⬇ Export CSV</button>
         <button class="menu-csv-btn import" onclick="openBulkReclassifyModal()" title="Fix category of multiple activities at once">✏ Fix Categories</button>
+        <button class="menu-csv-btn import" onclick="openCatManager()" title="Add, rename or remove activity categories">⚙ Categories</button>
         <button class="add-idea-btn" onclick="openAddIdeaModal()">＋ Add New Idea</button>
       </div>
       <div class="backfill-result-banner" id="backfillOfferBanner" style="display:none;margin-bottom:0.8rem;"></div>
@@ -3436,6 +3474,29 @@ body {
   <div class="m-register-list" id="mRegisterList"></div>
 </div>
 
+
+<!-- MOBILE PAIRING VIEW -->
+<div class="m-view" id="mPairView">
+  <div class="m-pair-header">
+    <div class="m-pair-header-top">
+      <div>
+        <div class="m-pair-title">👥 Pairs for the Day</div>
+        <div class="m-pair-date" id="mPairDateLabel"></div>
+      </div>
+      <button class="m-home-btn" onclick="mShowView('welcome')">🏠 Home</button>
+    </div>
+    <div class="m-pair-date-nav">
+      <button class="m-register-date-btn" onclick="mPairNavigate(-1)">← Prev</button>
+      <div class="m-register-date-label" id="mPairNavLabel"></div>
+      <button class="m-register-date-btn" onclick="mPairNavigate(1)">Next →</button>
+    </div>
+  </div>
+  <div class="m-pair-list" id="mPairList"></div>
+  <div class="m-pair-actions">
+    <button class="m-pair-regen-btn" onclick="mGeneratePairs(true)">🔀 Regenerate Pairs</button>
+  </div>
+</div>
+
   <!-- Bottom Nav -->
 
   <!-- Mobile Welcome Screen -->
@@ -3470,6 +3531,13 @@ body {
         <div class="m-welcome-card-text">
           <div class="m-welcome-card-title" style="color:var(--moss);">Register</div>
           <div class="m-welcome-card-desc">Record arrivals and view who is on site today</div>
+        </div>
+      </button>
+      <button class="m-welcome-card" style="border-color:rgba(107,66,38,0.3);background:rgba(107,66,38,0.03);" onclick="mShowView('pairs')">
+        <span class="m-welcome-card-icon">👥</span>
+        <div class="m-welcome-card-text">
+          <div class="m-welcome-card-title" style="color:var(--bark);">Pairs</div>
+          <div class="m-welcome-card-desc">Randomly pair children and staff for the day</div>
         </div>
       </button>
     </div>
@@ -3900,18 +3968,34 @@ const ROW_DEFS = [
   {key:"_notes", label:"Session Notes", icon:"📝"},
 ];
 
-const CATEGORIES = [
-  {id:"games",     label:"Wide Games",           emoji:"🦊", color:"#5c3d2e", bg:"#fdf3e7", accent:"#c0703a"},
-  {id:"general",   label:"Games",                emoji:"🎮", color:"#1a2a4a", bg:"#eef0fa", accent:"#3a5aaa"},
-  {id:"bushcraft", label:"Bushcraft & Skills",   emoji:"🔥", color:"#3b2a1a", bg:"#fef8ef", accent:"#8b4513"},
-  {id:"crafts",    label:"Craft Projects",        emoji:"🌿", color:"#2d4a22", bg:"#f1f8ee", accent:"#4a7c3f"},
-  {id:"recipes",   label:"Recipes & Cooking",     emoji:"🍞", color:"#3d2b00", bg:"#fdf7ed", accent:"#b8860b"},
-  {id:"foraging",  label:"Foraging",              emoji:"🌱", color:"#1a3a1a", bg:"#eef6ee", accent:"#3a6b3a"},
-  {id:"stories",   label:"Stories",               emoji:"📖", color:"#2a1a3a", bg:"#f5f0fa", accent:"#6a4a8a"},
-  {id:"songs",     label:"Songs",                 emoji:"🎶", color:"#1a2a3a", bg:"#eef3fa", accent:"#3a5a8a"},
-  {id:"seasonal",  label:"Seasonal & Spiritual",  emoji:"🌙", color:"#2a2a1a", bg:"#f8f8ee", accent:"#8a7a2a"},
-  {id:"woodland",  label:"Woodland Tasks",         emoji:"🌳", color:"#1a3028", bg:"#eef6f4", accent:"#2a6a58"},
-  {id:"tea",       label:"Afternoon Tea Club",    emoji:"🍵", color:"#3a2a1a", bg:"#fdf5ee", accent:"#a07040"},
+// BASE_CATEGORIES are the built-in ones — locked from deletion but renameable
+const BASE_CATEGORIES = [
+  {id:"games",     label:"Wide Games",           emoji:"🦊", color:"#5c3d2e", bg:"#fdf3e7", accent:"#c0703a", base:true},
+  {id:"general",   label:"Games",                emoji:"🎮", color:"#1a2a4a", bg:"#eef0fa", accent:"#3a5aaa", base:true},
+  {id:"bushcraft", label:"Bushcraft & Skills",   emoji:"🔥", color:"#3b2a1a", bg:"#fef8ef", accent:"#8b4513", base:true},
+  {id:"crafts",    label:"Craft Projects",        emoji:"🌿", color:"#2d4a22", bg:"#f1f8ee", accent:"#4a7c3f", base:true},
+  {id:"recipes",   label:"Recipes & Cooking",     emoji:"🍞", color:"#3d2b00", bg:"#fdf7ed", accent:"#b8860b", base:true},
+  {id:"foraging",  label:"Foraging",              emoji:"🌱", color:"#1a3a1a", bg:"#eef6ee", accent:"#3a6b3a", base:true},
+  {id:"stories",   label:"Stories",               emoji:"📖", color:"#2a1a3a", bg:"#f5f0fa", accent:"#6a4a8a", base:true},
+  {id:"songs",     label:"Songs",                 emoji:"🎶", color:"#1a2a3a", bg:"#eef3fa", accent:"#3a5a8a", base:true},
+  {id:"seasonal",  label:"Seasonal & Spiritual",  emoji:"🌙", color:"#2a2a1a", bg:"#f8f8ee", accent:"#8a7a2a", base:true},
+  {id:"woodland",  label:"Woodland Tasks",         emoji:"🌳", color:"#1a3028", bg:"#eef6f4", accent:"#2a6a58", base:true},
+  {id:"tea",       label:"Afternoon Tea Club",    emoji:"🍵", color:"#3a2a1a", bg:"#fdf5ee", accent:"#a07040", base:true},
+  {id:"morning",   label:"Morning Circle",        emoji:"💬", color:"#2a3a1a", bg:"#f0f6ee", accent:"#4a7a3a", base:true},
+  {id:"chat",      label:"Chat Topics",           emoji:"🗣️", color:"#1a2a3a", bg:"#eef3fa", accent:"#3a6a9a", base:true},
+  {id:"journaling",label:"Nature Journaling",     emoji:"📓", color:"#2a1a3a", bg:"#f5f0fa", accent:"#7a4a8a", base:true},
+];
+
+// CATEGORIES is the live array — merged from base + user-created, loaded at startup
+let CATEGORIES = [...BASE_CATEGORIES];
+
+// Default colours for user-created categories
+const USER_CAT_COLORS = [
+  {color:"#1a3a2a", bg:"#eef6f2", accent:"#3a7a5a"},
+  {color:"#2a1a3a", bg:"#f5f0fa", accent:"#6a4a8a"},
+  {color:"#3a2a1a", bg:"#fdf5ee", accent:"#9a6a3a"},
+  {color:"#1a2a4a", bg:"#eef0fa", accent:"#3a5aaa"},
+  {color:"#3a1a1a", bg:"#fdf0ee", accent:"#aa4a3a"},
 ];
 
 const MENU_ITEMS_BASE = [
@@ -9737,6 +9821,9 @@ function mShowView(view) {
   } else if (view === 'register') {
     document.getElementById('mRegisterView').classList.add('active');
     mOpenRegister();
+  } else if (view === 'pairs') {
+    document.getElementById('mPairView').classList.add('active');
+    mOpenPairs();
   }
 }
 
@@ -10438,7 +10525,8 @@ function openHolidayResourcesPanel(isoDate, sheet) {
 
 
 // Map CSV category strings (both labels and IDs) to internal category IDs
-function resolveCsvCategory(raw) {
+function resolveCsvCategory(raw) { return resolveCsvCategoryDynamic(raw); }
+function resolveCsvCategory_old_unused(raw) {
   if (!raw) return null;
   const s = raw.trim().toLowerCase();
   // Label match FIRST (case-insensitive) — "Games" must map to 🎮 Games (id:general),
@@ -12713,11 +12801,364 @@ function applyRegisterImport() {
   setTimeout(() => flash.remove(), 3000);
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// DYNAMIC CATEGORY SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+// User-created categories stored in Firestore under planner/categories
+async function loadUserCategories() {
+  try {
+    const doc = await db.collection('planner').doc('categories').get();
+    if (doc.exists && doc.data().userCats) {
+      const userCats = doc.data().userCats;
+      // Merge with base, preserving any label/emoji overrides stored for base cats
+      const overrides = doc.data().baseOverrides || {};
+      CATEGORIES = BASE_CATEGORIES.map(c => ({
+        ...c,
+        label: overrides[c.id]?.label || c.label,
+        emoji: overrides[c.id]?.emoji || c.emoji,
+      }));
+      userCats.forEach(uc => {
+        if (!CATEGORIES.find(c => c.id === uc.id)) {
+          const colorSet = USER_CAT_COLORS[CATEGORIES.length % USER_CAT_COLORS.length];
+          CATEGORIES.push({ ...colorSet, ...uc, base: false });
+        }
+      });
+    }
+  } catch(e) { console.warn('Category load failed', e); }
+}
+
+async function saveUserCategories() {
+  const userCats = CATEGORIES.filter(c => !c.base);
+  const baseOverrides = {};
+  CATEGORIES.filter(c => c.base).forEach(c => {
+    const orig = BASE_CATEGORIES.find(b => b.id === c.id);
+    if (orig && (orig.label !== c.label || orig.emoji !== c.emoji)) {
+      baseOverrides[c.id] = { label: c.label, emoji: c.emoji };
+    }
+  });
+  try {
+    await db.collection('planner').doc('categories').set({ userCats, baseOverrides });
+  } catch(e) { console.warn('Category save failed', e); }
+}
+
+function addUserCategory() {
+  const emoji = document.getElementById('catAddEmoji').value.trim() || '📌';
+  const name  = document.getElementById('catAddName').value.trim();
+  if (!name) { alert('Please enter a category name.'); return; }
+  // Generate stable ID from name
+  const id = 'user_' + name.toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 20) + '_' + Date.now().toString(36);
+  const colorSet = USER_CAT_COLORS[CATEGORIES.length % USER_CAT_COLORS.length];
+  CATEGORIES.push({ id, label: name, emoji, base: false, ...colorSet });
+  saveUserCategories();
+  renderCatManagerList();
+  renderCatFilter();
+  renderMenu();
+  document.getElementById('catAddEmoji').value = '';
+  document.getElementById('catAddName').value = '';
+}
+
+function deleteUserCategory(id) {
+  const cat = CATEGORIES.find(c => c.id === id);
+  if (!cat || cat.base) return;
+  const inUse = state.menuItems.filter(i => i && i.cat === id).length;
+  if (inUse > 0) {
+    if (!confirm(`"${cat.label}" is used by ${inUse} activit${inUse===1?'y':'ies'}. Delete anyway? Those activities will need reassigning.`)) return;
+  } else {
+    if (!confirm(`Delete category "${cat.label}"?`)) return;
+  }
+  CATEGORIES = CATEGORIES.filter(c => c.id !== id);
+  saveUserCategories();
+  renderCatManagerList();
+  renderCatFilter();
+  renderMenu();
+}
+
+function saveCatEdit(id) {
+  const cat = CATEGORIES.find(c => c.id === id);
+  if (!cat) return;
+  const label = document.getElementById('catEditName_' + id)?.value.trim();
+  const emoji = document.getElementById('catEditEmoji_' + id)?.value.trim();
+  if (label) cat.label = label;
+  if (emoji) cat.emoji = emoji;
+  saveUserCategories();
+  renderCatManagerList();
+  renderCatFilter();
+  renderMenu();
+}
+
+function renderCatManagerList() {
+  const list = document.getElementById('catManagerList');
+  if (!list) return;
+  list.innerHTML = '';
+  CATEGORIES.forEach(cat => {
+    const row = document.createElement('div');
+    row.className = 'cat-manager-row';
+    row.innerHTML = `
+      <input id="catEditEmoji_${cat.id}" class="cat-add-emoji" value="${cat.emoji}" style="width:36px;font-size:1rem;" maxlength="4">
+      <input id="catEditName_${cat.id}" class="cat-add-name" value="${cat.label}" style="flex:1;">
+      ${cat.base ? '<span class="cat-manager-base-tag">built-in</span>' : ''}
+      <button class="cat-edit-btn" onclick="saveCatEdit('${cat.id}')">Save</button>
+      ${!cat.base ? `<button class="cat-del-btn" onclick="deleteUserCategory('${cat.id}')">Delete</button>` : ''}
+    `;
+    list.appendChild(row);
+  });
+}
+
+function openCatManager() {
+  renderCatManagerList();
+  document.getElementById('catManagerModal').classList.add('open');
+}
+function closeCatManager() {
+  document.getElementById('catManagerModal').classList.remove('open');
+}
+
+// ── Update resolveCsvCategory to use dynamic CATEGORIES ──
+function resolveCsvCategoryDynamic(raw) {
+  if (!raw) return null;
+  const s = raw.trim().toLowerCase();
+  // Label match first
+  const byLabel = CATEGORIES.find(c => c.label.toLowerCase() === s);
+  if (byLabel) return byLabel.id;
+  // Alias table
+  const aliases = {
+    'wide games':'games','wide game':'games',
+    'games':'general','game':'general',
+    'bushcraft':'bushcraft','bush craft':'bushcraft',
+    'craft':'crafts','crafts':'crafts',
+    'cooking':'recipes','recipes':'recipes','recipe':'recipes',
+    'foraging':'foraging',
+    'stories':'stories','story':'stories',
+    'songs':'songs','song':'songs','singing':'songs',
+    'seasonal':'seasonal','spiritual':'seasonal',
+    'woodland':'woodland','woodland tasks':'woodland',
+    'tea':'tea','afternoon tea':'tea',
+    'morning circle':'morning','chat topics':'chat','chat':'chat',
+    'nature journaling':'journaling','journaling':'journaling','journal':'journaling',
+  };
+  if (aliases[s]) return aliases[s];
+  // ID match fallback
+  const byId = CATEGORIES.find(c => c.id === s);
+  if (byId) return byId.id;
+  // Partial label match
+  const partial = CATEGORIES.find(c => c.label.toLowerCase().includes(s) || s.includes(c.label.toLowerCase()));
+  if (partial) return partial.id;
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MORNING CIRCLE MIGRATION
+// Reads existing Morning Circle free-text from all session cells
+// and creates activity cards in the 'morning' category
+// ═══════════════════════════════════════════════════════════════
+
+function migrateMorningCircle() {
+  const morningRowKeys = [
+    'Morning Circle Question',
+    'morning_circle',
+    'morningCircle',
+  ];
+  const existing = new Set(
+    state.menuItems.filter(i => i && i.cat === 'morning').map(i => i.name.toLowerCase().trim())
+  );
+  const toAdd = [];
+  const seen  = new Set();
+
+  state.sheets.forEach(sheet => {
+    if (!sheet.sessions) return;
+    const morningKey = (sheet.rowDefs || []).find(r =>
+      morningRowKeys.includes(r.key) || r.label === 'Morning Circle'
+    )?.key || 'Morning Circle Question';
+
+    Object.entries(sheet.sessions).forEach(([date, sessionData]) => {
+      const acts = sessionData[morningKey] || [];
+      acts.forEach(act => {
+        const text = (act.text || act).trim();
+        if (!text || text.length < 3) return;
+        const key = text.toLowerCase();
+        if (existing.has(key) || seen.has(key)) return;
+        seen.add(key);
+        // Guess month from session date
+        let month = 'all';
+        const parts = date.split('-');
+        if (parts.length === 3 && parts[0].length === 4) {
+          const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          month = MONS[parseInt(parts[1], 10) - 1] || 'all';
+        } else if (parts.length === 2) {
+          month = parts[1] || 'all';
+        }
+        toAdd.push({
+          name: text,
+          cat: 'morning',
+          month,
+          resources: '', equipment: '', consumables: '',
+          notes: '', link: '',
+          userAdded: true,
+        });
+      });
+    });
+  });
+
+  if (toAdd.length === 0) return 0;
+  toAdd.forEach(item => {
+    item.id = 'mc_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    state.menuItems.push(item);
+  });
+  saveState();
+  return toAdd.length;
+}
+
+function runMorningCircleMigration() {
+  if (!confirm('This will read all Morning Circle questions from your session plans and add them to the Morning Circle activity menu. Continue?')) return;
+  const count = migrateMorningCircle();
+  if (count === 0) {
+    alert('No new Morning Circle questions found (they may already be in the menu).');
+  } else {
+    alert(`✓ Added ${count} Morning Circle question${count===1?'':'s'} to the menu.`);
+    renderMenu();
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// MOBILE RANDOM PAIRING
+// ═══════════════════════════════════════════════════════════════
+
+let mPairDateIdx  = 0;
+let mPairDates    = [];
+let mPairSheetId  = null;
+
+function mOpenPairs() {
+  const sheet = state.sheets.find(s => s.type !== 'holiday') || state.sheets[0];
+  if (!sheet) return;
+  mPairSheetId = sheet.id;
+  mPairDates   = getRegisterSessionDates(sheet.id);
+  const today  = ukDateNow();
+  mPairDateIdx = mPairDates.findIndex(d => d >= today);
+  if (mPairDateIdx < 0) mPairDateIdx = Math.max(0, mPairDates.length - 1);
+  mRenderPairView();
+}
+
+function mPairNavigate(dir) {
+  mPairDateIdx = Math.max(0, Math.min(mPairDates.length - 1, mPairDateIdx + dir));
+  mRenderPairView();
+}
+
+function mRenderPairView() {
+  const iso = mPairDates[mPairDateIdx];
+  if (!iso) {
+    document.getElementById('mPairList').innerHTML =
+      '<div class="m-pair-empty">No session dates found.</div>';
+    return;
+  }
+  document.getElementById('mPairDateLabel').textContent = formatRegisterDate(iso);
+  document.getElementById('mPairNavLabel').textContent  = formatRegisterDateShort(iso);
+
+  // Check for saved pairs for this date
+  const saved = (regState.pairs || {})[iso];
+  if (saved && saved.length > 0) {
+    renderPairList(saved);
+  } else {
+    // Auto-generate on first open
+    mGeneratePairs(false);
+  }
+}
+
+function mGeneratePairs(force) {
+  const iso = mPairDates[mPairDateIdx];
+  if (!iso) return;
+
+  // Get people on site — arrived ones first, then everyone if none arrived
+  const arrivals = regState.arrivals[iso] || {};
+  let pool = regState.people.filter(p => arrivals[p.id]);
+  if (pool.length < 2) {
+    // Fall back to full list if register not taken yet
+    pool = [...regState.people];
+  }
+
+  if (pool.length < 2) {
+    document.getElementById('mPairList').innerHTML =
+      '<div class="m-pair-empty">Add people to the register first, then come back to generate pairs.</div>';
+    return;
+  }
+
+  // Fisher-Yates shuffle
+  const shuffled = [...pool];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  // Build pairs — odd person out joins last pair to make a trio
+  const pairs = [];
+  for (let i = 0; i < shuffled.length; i += 2) {
+    if (i + 1 < shuffled.length) {
+      pairs.push([shuffled[i], shuffled[i + 1]]);
+    } else {
+      // Odd person — add to last pair
+      pairs[pairs.length - 1].push(shuffled[i]);
+    }
+  }
+
+  // Save to regState
+  if (!regState.pairs) regState.pairs = {};
+  regState.pairs[iso] = pairs.map(pair => pair.map(p => p.id));
+  saveRegister();
+
+  renderPairList(pairs.map(pair => pair.map(p => p.id)));
+}
+
+function renderPairList(pairIds) {
+  const list = document.getElementById('mPairList');
+  if (!pairIds || pairIds.length === 0) {
+    list.innerHTML = '<div class="m-pair-empty">No pairs generated yet. Tap Regenerate to create pairs.</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  pairIds.forEach((ids, i) => {
+    const people = ids.map(id => regState.people.find(p => p.id === id)).filter(Boolean);
+    if (!people.length) return;
+
+    const card = document.createElement('div');
+    card.className = 'm-pair-card';
+
+    const num = document.createElement('div');
+    num.className = 'm-pair-number';
+    num.textContent = i + 1;
+
+    const names = document.createElement('div');
+    names.className = 'm-pair-names';
+    people.forEach((p, pi) => {
+      const nameEl = document.createElement('div');
+      nameEl.className = 'm-pair-name';
+      nameEl.textContent = p.preferredName || p.fullName || '—';
+      if (pi > 0) {
+        nameEl.style.color = pi === 1 ? 'var(--bark-light)' : 'var(--gold)';
+      }
+      names.appendChild(nameEl);
+    });
+
+    if (people.length > 2) {
+      const trio = document.createElement('span');
+      trio.className = 'm-pair-trio-badge';
+      trio.textContent = 'trio';
+      names.appendChild(trio);
+    }
+
+    card.appendChild(num);
+    card.appendChild(names);
+    list.appendChild(card);
+  });
+}
+
 // ─── INIT: load from cloud first, localStorage as fallback ───
 (async () => {
   const shell = document.querySelector('.app-shell');
   if (shell) shell.style.display = 'none';
   await loadRegister();
+  await loadUserCategories();
   // Show loading state
   const main = document.getElementById('plannerContent');
   if (main) main.innerHTML = '<div style="padding:3rem;text-align:center;font-family:Lora,serif;font-style:italic;color:var(--bark-light);">🌿 Loading your planner…</div>';
@@ -12904,6 +13345,23 @@ function applyRegisterImport() {
     <div class="profile-actions">
       <button class="profile-delete-btn" id="profileDeleteBtn" onclick="deletePersonProfile()">Delete</button>
       <button class="profile-save-btn" onclick="savePersonProfile()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── CATEGORY MANAGER ─── -->
+<div id="catManagerModal" onclick="if(event.target===this)closeCatManager()">
+  <div class="cat-manager-box">
+    <div class="cat-manager-title">⚙ Manage Categories</div>
+    <div class="cat-manager-list" id="catManagerList"></div>
+    <div class="cat-add-form">
+      <input class="cat-add-emoji" id="catAddEmoji" maxlength="4" placeholder="🌟">
+      <input class="cat-add-name" id="catAddName" placeholder="New category name…" onkeydown="if(event.key==='Enter')addUserCategory()">
+      <button class="register-btn primary" onclick="addUserCategory()">＋ Add</button>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <button class="register-btn" onclick="runMorningCircleMigration()" title="Import Morning Circle questions from session plans into the menu">↻ Import Morning Circle questions</button>
+      <button class="register-btn" onclick="closeCatManager()">Done</button>
     </div>
   </div>
 </div>
