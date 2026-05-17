@@ -5514,18 +5514,18 @@ function deleteActivityFromPanel() {
   if (idx < 0) return;
   const item = state.menuItems[idx];
   if (!item) return;
-  if (!confirm(`Remove "${item.name}" from the Activity Menu?`)) return;
-  if (item.userAdded || item.userEdited) {
-    // User-created or edited item — remove entirely
-    state.menuItems.splice(idx, 1);
-  } else {
-    // Base item — mark as hidden so it won't appear in menu or picker
-    state.menuItems[idx] = { ...item, hidden: true, userEdited: true };
-  }
-  saveState();
-  renderCatFilters();
-  if (document.getElementById('menuView').classList.contains('visible')) renderMenu();
-  closeDetailPanel();
+
+  confirmCascadeDelete(item.name, () => {
+    if (item.userAdded || item.userEdited) {
+      state.menuItems.splice(idx, 1);
+    } else {
+      state.menuItems[idx] = { ...item, hidden: true, userEdited: true };
+    }
+    saveState();
+    renderCatFilters();
+    if (document.getElementById('menuView').classList.contains('visible')) renderMenu();
+    closeDetailPanel();
+  });
 }
 
 // Close modals on overlay click
@@ -11744,14 +11744,16 @@ function mSaveEdits() {
 
 function mDeleteActivity() {
   const name = mPanelCurrentName;
-  if (!confirm(`Delete "${name}" from the menu?`)) return;
-  const idx = state.menuItems.findIndex(i => i && i.name === name);
-  if (idx >= 0) {
-    state.menuItems[idx].hidden = true;
-  }
-  saveState();
-  mFilterMenu();
-  mClosePanel();
+
+  confirmCascadeDelete(name, () => {
+    const idx = state.menuItems.findIndex(i => i && i.name === name);
+    if (idx >= 0) {
+      state.menuItems[idx].hidden = true;
+    }
+    saveState();
+    mFilterMenu();
+    mClosePanel();
+  });
 }
 
 
@@ -13322,6 +13324,60 @@ function syncRegisterBirthdays() {
   });
 
   saveState();
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// CASCADE DELETE — remove activity from session plans
+// ═══════════════════════════════════════════════════════════════
+
+function cascadeRemoveFromSessions(activityName) {
+  let removedCount = 0;
+  state.sheets.forEach(sheet => {
+    if (!sheet.sessions) return;
+    Object.values(sheet.sessions).forEach(sessionData => {
+      Object.keys(sessionData).forEach(rowKey => {
+        const acts = sessionData[rowKey];
+        if (!Array.isArray(acts)) return;
+        const before = acts.length;
+        sessionData[rowKey] = acts.filter(a => {
+          const text = (a && (a.text || a)) || '';
+          return text !== activityName;
+        });
+        removedCount += before - sessionData[rowKey].length;
+      });
+    });
+  });
+  return removedCount;
+}
+
+function confirmCascadeDelete(itemName, onDeleteMenu) {
+  // Step 1: confirm deletion from menu
+  if (!confirm('Remove "' + itemName + '" from the Activity Menu?')) return;
+
+  // Step 2: ask about sessions
+  const cascadeChoice = confirm(
+    'Also remove "' + itemName + '" from all session plans?\n\n' +
+    'OK = Yes, remove from sessions too\n' +
+    'Cancel = No, keep it in existing sessions'
+  );
+
+  // Run menu deletion
+  onDeleteMenu();
+
+  // Optionally cascade to sessions
+  if (cascadeChoice) {
+    const count = cascadeRemoveFromSessions(itemName);
+    saveState();
+    renderPlanner();
+    if (count > 0) {
+      const flash = document.createElement('div');
+      flash.textContent = '✓ Removed from ' + count + ' session cell' + (count === 1 ? '' : 's');
+      flash.style.cssText = 'position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--moss);color:#fff;font-family:Lora,serif;font-size:0.85rem;padding:0.6rem 1.2rem;border-radius:20px;z-index:9000;box-shadow:0 2px 12px rgba(0,0,0,0.2);';
+      document.body.appendChild(flash);
+      setTimeout(() => flash.remove(), 3000);
+    }
+  }
 }
 
 // ─── INIT: load from cloud first, localStorage as fallback ───
