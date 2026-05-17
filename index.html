@@ -9281,12 +9281,9 @@ function mRenderSession() {
     const activities = sessionData[row.key] || [];
     const rowDiv = document.createElement('div');
     rowDiv.className = 'm-activity-row';
+    rowDiv.dataset.rowKey = row.key;
     rowDiv.onclick = () => {
-      if (activities.length === 1) {
-        mOpenActivityPanel(activities[0].text);
-      } else if (activities.length > 1) {
-        mOpenActivityPanel(activities[0].text);
-      }
+      if (activities.length >= 1) mOpenActivityPanel(activities[0].text);
     };
 
     const lbl = document.createElement('div');
@@ -9330,11 +9327,11 @@ function mRenderSession() {
     rowsEl.appendChild(notesDiv);
   }
 
-  // Add edit (✎) button to each activity row
-  const editableRows = (sheet.rowDefs || []).filter(r => r.type !== 'divider' && r.key !== '_notes');
-  document.querySelectorAll('#mSessionRows .m-activity-row').forEach((rowDiv, i) => {
-    const row = editableRows[i];
-    if (!row) return;
+  // Edit (✎) buttons are added directly during row render using data-row-key attribute
+  document.querySelectorAll('#mSessionRows .m-activity-row[data-row-key]').forEach(rowDiv => {
+    const rowKey   = rowDiv.dataset.rowKey;
+    const row      = (sheet.rowDefs || []).find(r => r.key === rowKey);
+    if (!row || row.type === 'divider') return;
     const editBtn = document.createElement('button');
     editBtn.textContent = '✎';
     editBtn.style.cssText = 'background:none;border:none;color:var(--bark-light);font-size:1rem;padding:0.2rem 0.5rem;cursor:pointer;flex-shrink:0;margin-left:auto;';
@@ -9343,7 +9340,7 @@ function mRenderSession() {
       mOpenCellEdit(key, row.key, row.label, row.icon || '', sheet);
     };
     rowDiv.appendChild(editBtn);
-    rowDiv.onclick = null; // disable tap-to-view, use explicit taps on activity names
+    rowDiv.onclick = null;
   });
 }
 
@@ -9531,7 +9528,11 @@ function mOpenActivityPanel(name) {
   const doneBtn = document.getElementById('mPanelDoneBtn');
   if (doneBtn) doneBtn.textContent = 'Done';
 
-  const item = state.menuItems.find(i => i && i.name === name);
+  let item = state.menuItems.find(i => i && i.name === name);
+  // Fall back to base items if not in user's menu
+  if (!item && typeof MENU_ITEMS_BASE !== 'undefined') {
+    item = MENU_ITEMS_BASE.find(i => i && i.name === name) || null;
+  }
 
   document.getElementById('mPanelTitle').textContent = name;
 
@@ -9618,7 +9619,7 @@ function mOpenActivityPanel(name) {
       body.appendChild(sec);
     }
 
-    if (!res && !notes && !item.link) {
+    if (!eq && !cons && !notes && !item.link) {
       body.innerHTML = '<div style="font-family:Lora,serif;font-style:italic;color:var(--bark-light);padding:1rem 0;">No additional information for this activity.</div>';
     }
   } else {
