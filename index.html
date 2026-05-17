@@ -12381,7 +12381,9 @@ function openManageRegister() {
 }
 function closeManageRegister() {
   document.getElementById('manageRegisterPanel').classList.remove('open');
+  syncRegisterBirthdays();
   renderRegisterTable();
+  renderPlanner(); // refresh session flags
 }
 function switchManageTab(tab) {
   manageActiveTab = tab;
@@ -12456,7 +12458,32 @@ function renderProfileForm(p, type) {
   container.innerHTML = '';
   fields.forEach(f => {
     const grp = document.createElement('div'); grp.className = 'profile-field-group';
-    const lbl = document.createElement('label'); lbl.textContent = f.label; grp.appendChild(lbl);
+    const lbl = document.createElement('label');
+    // Show current age next to DOB label
+    if (f.key === 'dob' && p.dob) {
+      const dob = parseDOB(p.dob);
+      if (dob) {
+        const now = new Date();
+        const age = ageOn(dob, now.getFullYear(), now.getMonth(), now.getDate());
+        const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const dobMonIdx = SHORT_MONTHS.indexOf(dob.month);
+        // Check if birthday is today or upcoming within 14 days
+        const today = new Date(); today.setHours(0,0,0,0);
+        const bday  = new Date(today.getFullYear(), dobMonIdx, dob.day);
+        if (bday < today) bday.setFullYear(bday.getFullYear() + 1);
+        const daysUntil = Math.round((bday - today) / 86400000);
+        let ageStr = f.label + ' · age ' + age;
+        if (daysUntil === 0) ageStr += ' 🎉 Birthday today!';
+        else if (daysUntil <= 14) ageStr += ' 🎂 in ' + daysUntil + ' days';
+        lbl.textContent = ageStr;
+        lbl.style.color = daysUntil <= 14 ? 'var(--gold)' : '';
+      } else {
+        lbl.textContent = f.label;
+      }
+    } else {
+      lbl.textContent = f.label;
+    }
+    grp.appendChild(lbl);
     const el = document.createElement(f.type==='textarea'?'textarea':'input');
     el.className = f.type==='textarea'?'profile-field-textarea':'profile-field-input';
     el.id = 'pf_'+f.key; el.value = p[f.key]||'';
@@ -12477,7 +12504,9 @@ function savePersonProfile() {
     data.id = 'p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
     regState.people.push(data);
   }
-  saveRegister(); closePersonProfile(); switchManageTab(manageActiveTab);
+  saveRegister();
+  syncRegisterBirthdays();
+  closePersonProfile(); switchManageTab(manageActiveTab);
 }
 function deletePersonProfile() {
   if (!profileEditingId) return;
@@ -13191,6 +13220,110 @@ function migrateMorningCircleRowCat() {
   if (changed) saveState();
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// REGISTER-BASED BIRTHDAY SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+// Parse a DOB string in common formats → {day, month (short), year}
+function parseDOB(dob) {
+  if (!dob || !dob.trim()) return null;
+  const s = dob.trim();
+  const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // Try DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+  let m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+  if (m) {
+    const day = parseInt(m[1]), monIdx = parseInt(m[2]) - 1, year = parseInt(m[3]);
+    if (monIdx >= 0 && monIdx < 12) return { day, month: SHORT_MONTHS[monIdx], year };
+  }
+
+  // Try YYYY-MM-DD
+  m = s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
+  if (m) {
+    const year = parseInt(m[1]), monIdx = parseInt(m[2]) - 1, day = parseInt(m[3]);
+    if (monIdx >= 0 && monIdx < 12) return { day, month: SHORT_MONTHS[monIdx], year };
+  }
+
+  // Try "12 March 2018" or "12 Mar 2018"
+  m = s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+  if (m) {
+    const day = parseInt(m[1]), year = parseInt(m[3]);
+    const monName = m[2].slice(0,3);
+    const monIdx = SHORT_MONTHS.findIndex(mo => mo.toLowerCase() === monName.toLowerCase());
+    if (monIdx >= 0) return { day, month: SHORT_MONTHS[monIdx], year };
+  }
+
+  return null;
+}
+
+// Calculate age on a given date
+function ageOn(dob, refYear, refMonIdx, refDay) {
+  if (!dob) return null;
+  let age = refYear - dob.year;
+  const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dobMonIdx = SHORT_MONTHS.indexOf(dob.month);
+  if (refMonIdx < dobMonIdx || (refMonIdx === dobMonIdx && refDay < dob.day)) age--;
+  return age;
+}
+
+// Sync register birthdays into state.importantDates
+// - removes previously auto-generated birthday entries
+// - adds fresh ones from regState.people
+function syncRegisterBirthdays() {
+  const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  // Academic year months only (Sep–Jul, exclude Aug)
+  const ACADEMIC_MONTHS = new Set(['Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul']);
+
+  // Remove old auto-generated entries
+  state.importantDates = state.importantDates.filter(d => !d.autoRegister);
+
+  // Get active sheet for year reference
+  const sheet = getActiveSheet();
+  const startYear = sheet?.startYear || new Date().getFullYear();
+  const endYear   = sheet?.endYear   || startYear + 1;
+
+  regState.people.forEach(person => {
+    const nameField = person.type === 'child' ? 'dob' : 'dob';
+    const dobRaw    = person.dob || person.dateOfBirth || '';
+    const dob       = parseDOB(dobRaw);
+    if (!dob) return;
+
+    const name = person.preferredName || person.fullName || '';
+    if (!name) return;
+
+    const dobMonIdx = SHORT_MONTHS.indexOf(dob.month);
+
+    // Determine which academic year this birthday falls in
+    // Birthday in Sep-Dec → use startYear; Jan-Jul → use endYear
+    let bYear;
+    if (dobMonIdx >= 8) { // Sep=8, Oct=9, Nov=10, Dec=11
+      bYear = startYear;
+    } else {
+      bYear = endYear;
+    }
+
+    // Skip if not in academic months
+    if (!ACADEMIC_MONTHS.has(dob.month)) return;
+
+    // Calculate age they'll be turning
+    const turningAge = bYear - dob.year;
+    if (turningAge <= 0 || turningAge > 120) return;
+
+    state.importantDates.push({
+      id: 'bday_reg_' + (person.id || name.replace(/\s/g,'_')),
+      name: name + ' turns ' + turningAge,
+      day:   String(dob.day),
+      month: dob.month,
+      type:  'birthday',
+      notes: '',
+      autoRegister: true, // mark as auto-generated so we can remove/re-sync
+    });
+  });
+
+  saveState();
+}
+
 // ─── INIT: load from cloud first, localStorage as fallback ───
 (async () => {
   const shell = document.querySelector('.app-shell');
@@ -13221,8 +13354,10 @@ function migrateMorningCircleRowCat() {
   loadState();
   mergeResourcesIntoMenuItems();
   migrateMorningCircleRowCat();
+  syncRegisterBirthdays();
   renderSheetTabs();
   renderHolidayDropdown();
+  syncRegisterBirthdays();
   renderPlanner();
   renderCatFilters();
   document.getElementById('monthList').style.display = '';
