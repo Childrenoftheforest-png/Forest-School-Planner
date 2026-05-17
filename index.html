@@ -123,6 +123,11 @@ body {
   align-items: center;
   gap: 0.4rem;
 }
+.month-btn.active {
+  background: var(--moss);
+  color: #fff;
+  border-color: var(--moss);
+}
 .month-btn:hover { background: rgba(107,66,38,0.1); }
 .month-btn.active { background: var(--moss); color: var(--parchment); font-weight: 600; }
 .month-btn .session-count {
@@ -3161,6 +3166,12 @@ body {
   .m-pair-actions{display:flex;gap:0.6rem;padding:0.8rem 1rem;border-top:1px solid rgba(107,66,38,0.1);background:var(--parchment-mid);flex-shrink:0;}
   .m-pair-regen-btn{flex:1;font-family:'Lora',serif;font-size:0.88rem;padding:0.6rem;background:var(--moss);color:#fff;border:none;border-radius:10px;cursor:pointer;}
   .m-pair-empty{padding:2rem 1rem;text-align:center;font-family:'Lora',serif;font-style:italic;color:var(--bark-light);font-size:0.9rem;line-height:1.6;}
+
+  /* ── Planner month nav bar ── */
+  #plannerMonthNav{display:flex;align-items:center;gap:0.4rem;padding:0.45rem 0;flex-wrap:wrap;border-bottom:1px solid rgba(107,66,38,0.1);margin-bottom:0.8rem;}
+  #plannerMonthNav .register-month-btn{font-size:0.77rem;}
+  .planner-month-arrows{display:flex;align-items:center;gap:0.35rem;margin-left:auto;}
+  .planner-month-label{font-family:'Lora',serif;font-size:0.88rem;font-weight:700;color:var(--bark);white-space:nowrap;padding:0 0.4rem;}
 </style>
 
   <!-- Firebase SDK -->
@@ -3231,6 +3242,7 @@ body {
         <button class="toolbar-btn" id="editRowsBtn" onclick="toggleEditMode()">⚙️ Edit Rows</button>
         <button class="toolbar-btn populate" onclick="openPopulateModal()">✨ Populate Empty</button>
       </div>
+      <div id="plannerMonthNav"></div>
       <div id="plannerContent"></div>
     </div>
 
@@ -4530,6 +4542,8 @@ const SESSION_DATA_BASE = {"3-Sep": {"Morning Circle Question": [{text: "What do
 const DEFAULT_SHEET_ID = 'homeed';
 const DEFAULT_ROW_DEFS_COPY = () => ROW_DEFS.map(r => ({...r}));
 
+let plannerActiveMonth = null; // currently displayed month pill
+
 let state = {
   sheets: [],          // [{id, name, rowDefs, sessions, days, startMonth, startYear, endMonth, endYear}]
   activeSheetId: DEFAULT_SHEET_ID,
@@ -4767,9 +4781,10 @@ function toggleEditMode() {
 
 function renderPlanner() {
   const sheet = getActiveSheet();
-  if (!sheet) { document.getElementById('plannerContent').innerHTML = '<p style="padding:2rem;font-family:Lora,serif;color:var(--bark-light)">No planning sheet found. Click ＋ to create one.</p>'; return; }
-
-  // Holiday clubs have their own renderer
+  if (!sheet) {
+    document.getElementById('plannerContent').innerHTML = '<p style="padding:2rem;font-family:Lora,serif;color:var(--bark-light)">No planning sheet found. Click ＋ to create one.</p>';
+    return;
+  }
   if (sheet.type === 'holiday') {
     if (!sheet.rowDefs || sheet.rowDefs.length === 0) sheet.rowDefs = HOLIDAY_DEFAULT_ROWS.map(r => ({...r}));
     renderHolidayPlanner(sheet);
@@ -4778,249 +4793,148 @@ function renderPlanner() {
 
   if (!sheet.rowDefs || sheet.rowDefs.length === 0) sheet.rowDefs = DEFAULT_ROW_DEFS_COPY();
   if (!sheet.sessions) sheet.sessions = {};
-  const groups = groupByMonth(sheet.sessions);
-  const monthOrder = ['Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
-  const container = document.getElementById('plannerContent');
 
-  // Build sidebar month list
+  // Reset active month when sheet changes
+  const months = getPlannerMonths();
+  if (!plannerActiveMonth || !months.includes(plannerActiveMonth)) {
+    const now = new Date();
+    const SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const curMon = SHORT[now.getMonth()];
+    plannerActiveMonth = months.includes(curMon) ? curMon : months[0] || null;
+  }
+
+  // Update sidebar month list (keep for click-to-jump — now just sets active month)
   const monthList = document.getElementById('monthList');
-  monthList.innerHTML = '';
-  for (const mon of monthOrder) {
-    if (!groups[mon]) continue;
-    const meta = MONTH_META[mon] || {label:mon,icon:'🌿'};
-    const btn = document.createElement('button');
-    btn.className = 'month-btn';
-    btn.innerHTML = `<span>${meta.icon}</span> ${meta.label} <span class="session-count">${groups[mon].length}</span>`;
-    btn.onclick = () => {
-      document.getElementById('month-group-'+mon).scrollIntoView({behavior:'smooth', block:'start'});
-    };
-    monthList.appendChild(btn);
-  }
-
-  container.innerHTML = '';
-  for (const mon of monthOrder) {
-    if (!groups[mon]) continue;
-    const meta = MONTH_META[mon] || {label:mon,icon:'🌿'};
-    const dates = groups[mon].sort((a,b) => {
-      const dayA = parseInt(a.split('-')[0]);
-      const dayB = parseInt(b.split('-')[0]);
-      return dayA - dayB;
-    });
-
-    const section = document.createElement('div');
-    section.className = 'month-group';
-    section.id = 'month-group-'+mon;
-
-    const heading = document.createElement('div');
-    heading.className = 'month-heading';
-    heading.innerHTML = `<span class="month-heading-icon">${meta.icon}</span> ${meta.label}`;
-    section.appendChild(heading);
-
-    const wrap = document.createElement('div');
-    wrap.className = 'planner-table-wrap';
-
-    const table = document.createElement('table');
-    table.className = 'planner-table';
-
-    // Header row: date columns
-    const thead = document.createElement('thead');
-
-    // Ribbon row — important dates nearest to each session
-    const ribbonRow = document.createElement('tr');
-    ribbonRow.className = 'ribbon-row';
-    const ribbonCorner = document.createElement('th');
-    ribbonCorner.className = 'ribbon-corner date-col';
-    ribbonCorner.textContent = '★ Events';
-    ribbonRow.appendChild(ribbonCorner);
-
-    // For each date column, find important dates whose nearest session is this date
-    const monthDates = dates; // array of date strings like "12-Mar"
-    const MONTH_ORDER = ['Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
-
-    for (const date of dates) {
-      const ribbonTh = document.createElement('th');
-      ribbonTh.className = 'ribbon-cell';
-      // Find important dates assigned to this session
-      const assigned = getImportantDatesForSession(date, monthDates, mon, MONTH_ORDER);
-      assigned.forEach(d => {
-        const tag = document.createElement('span');
-        tag.className = `ribbon-tag ${d.type}`;
-        tag.title = d.name + ' — ' + d.day + ' ' + d.month + (d.notes ? '\n' + d.notes : '');
-        tag.textContent = `${typeIcon(d.type)} ${d.name}`;
-        tag.onclick = () => openCalEditPanel(d.id);
-        ribbonTh.appendChild(tag);
-      });
-      ribbonRow.appendChild(ribbonTh);
-    }
-    // Only show ribbon row if there are any important dates in this month
-    const anyRibbons = state.importantDates.some(d => d.month === mon);
-    if (anyRibbons || state.importantDates.length > 0) {
-      thead.appendChild(ribbonRow);
-    }
-
-    const headRow = document.createElement('tr');
-    const cornerTh = document.createElement('th');
-    cornerTh.className = 'date-col';
-    cornerTh.textContent = 'Activity';
-    headRow.appendChild(cornerTh);
-    for (const date of dates) {
-      const th = document.createElement('th');
-      const [day, m] = date.split('-');
-      th.textContent = `${day} ${m}`;
-      headRow.appendChild(th);
-    }
-    thead.appendChild(headRow);
-    table.appendChild(thead);
-
-    const tbody = document.createElement('tbody');
-    const sheetRows = sheet.rowDefs || ROW_DEFS;
-    let dragSrcRowKey = null;
-
-    for (const rowDef of sheetRows) {
-      const isDivider = rowDef.type === 'divider';
-      const tr = document.createElement('tr');
-      tr.dataset.rowKey = rowDef.key;
-      if (isDivider) tr.className = 'planner-divider-row';
-
-      const labelTd = document.createElement('td');
-      labelTd.className = 'row-label date-col draggable';
-      labelTd.draggable = true;
-      labelTd.dataset.rowKey = rowDef.key;
-      labelTd.innerHTML = `
-        <span class="drag-handle" title="Drag to reorder">⠿</span>
-        <span class="row-icon">${rowDef.icon}</span>${rowDef.label}
-        <div class="row-edit-controls">
-          <button class="row-edit-btn" onclick="renameRow(event,'${rowDef.key}')" title="Rename">✏️</button>
-          <button class="row-edit-btn del" onclick="deleteRow(event,'${rowDef.key}')" title="Remove row">✕</button>
-        </div>`;
-
-      // Drag-to-reorder events
-      labelTd.addEventListener('dragstart', (e) => {
-        dragSrcRowKey = rowDef.key;
-        labelTd.classList.add('dragging');
-        e.dataTransfer.effectAllowed = 'move';
-      });
-      labelTd.addEventListener('dragend', () => { labelTd.classList.remove('dragging','drag-over'); });
-      labelTd.addEventListener('dragover', (e) => { e.preventDefault(); labelTd.classList.add('drag-over'); });
-      labelTd.addEventListener('dragleave', () => { labelTd.classList.remove('drag-over'); });
-      labelTd.addEventListener('drop', (e) => {
-        e.preventDefault();
-        labelTd.classList.remove('drag-over');
-        if (dragSrcRowKey && dragSrcRowKey !== rowDef.key) {
-          reorderRow(dragSrcRowKey, rowDef.key);
-        }
-      });
-
-      tr.appendChild(labelTd);
-
-      // Divider rows: single spanning cell, no activity cells
-      if (isDivider) {
-        const spanTd = document.createElement('td');
-        spanTd.colSpan = dates.length;
-        spanTd.className = 'divider-cell';
-        tr.appendChild(spanTd);
-        tbody.appendChild(tr);
-        continue;
-      }
-
-      for (const date of dates) {
-        const session = sheet.sessions[date] || {};
-        if (rowDef.key === '_notes') {
-          const td = document.createElement('td');
-          td.className = 'notes-cell';
-          const ta = document.createElement('textarea');
-          ta.className = 'notes-textarea';
-          ta.placeholder = 'Session notes…';
-          ta.value = session['_notes'] || '';
-          ta.dataset.date = date;
-          ta.dataset.sheetId = sheet.id;
-          ta.addEventListener('change', function() {
-            const s = getActiveSheet();
-            if (!s.sessions[this.dataset.date]) s.sessions[this.dataset.date] = {};
-            s.sessions[this.dataset.date]['_notes'] = this.value;
-            saveState();
-          });
-          td.appendChild(ta);
-          tr.appendChild(td);
-        } else {
-          const activities = session[rowDef.key] || [];
-          const td = document.createElement('td');
-          td.className = 'plan-cell';
-          td.dataset.date = date;
-          td.dataset.rowKey = rowDef.key;
-          td.dataset.rowLabel = rowDef.label;
-          td.dataset.rowIcon = rowDef.icon;
-          td.innerHTML = renderCellActivities(activities);
-          td.addEventListener('click', (e) => {
-            if (e.target.classList.contains('remove-activity') || e.target.classList.contains('cell-activity-name')) return;
-            openCellModal(date, rowDef.key, rowDef.label, rowDef.icon);
-          });
-          td.addEventListener('click', (e) => {
-            if (e.target.classList.contains('remove-activity')) {
-              const idx = parseInt(e.target.dataset.idx);
-              removeActivityFromCell(date, rowDef.key, idx);
-            }
-          });
-          tr.appendChild(td);
-        }
-      }
-      tbody.appendChild(tr);
-    }
-
-    // Add Row bar (shown in edit mode)
-    const addRowTr = document.createElement('tr');
-    addRowTr.innerHTML = `<td colspan="${dates.length+1}" style="padding:0.4rem 0.6rem;">
-      <div class="add-row-bar" id="addRowBar_${mon}">
-        <div class="add-row-type-toggle">
-          <button class="add-row-type-btn active" id="addRowTypeActivity_${mon}" onclick="setAddRowType(\'${mon}\',\'activity\')" title="Normal activity row">📌 Activity row</button>
-          <button class="add-row-type-btn" id="addRowTypeDivider_${mon}" onclick="setAddRowType(\'${mon}\',\'divider\')" title="Break / lunch divider">— Divider</button>
-        </div>
-        <div id="addRowActivityOptions_${mon}" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;flex:1;">
-          <select class="add-row-input" id="addRowCat_${mon}" style="flex:none;width:auto;min-width:160px;font-size:0.82rem;padding:0.3rem 0.5rem;">
-          ${CATEGORIES.filter(c=>c.id!=='general').map(c=>`<option value="${c.id}">${c.emoji} ${c.label}</option>`).join('')}
-          <option value="general">🎮 Games</option>
-          <option value="any">✨ Any (seasonal mix)</option>
-          </select>
-          <input class="add-row-input" id="addRowLabel_${mon}" placeholder="Row label e.g. Wide Game (PM)…" style="flex:1;min-width:140px;">
-        </div>
-        <div id="addRowDividerOptions_${mon}" style="display:none;align-items:center;gap:0.5rem;flex:1;">
-          <input class="add-row-icon-input" id="addRowIcon_${mon}" placeholder="☀️" maxlength="4">
-          <input class="add-row-input" id="addRowDividerLabel_${mon}" placeholder="e.g. Lunch, Break, Travel…" style="flex:1;">
-        </div>
-        <button class="toolbar-btn" onclick="addRow(\'${mon}\')" style="padding:0.3rem 0.65rem;font-size:0.76rem;">＋ Add Row</button>
-      </div>
-    </td>`;
-    tbody.appendChild(addRowTr);
-    // Tfoot — Resources List button per date column
-    const tfoot = document.createElement('tfoot');
-    const tfootRow = document.createElement('tr');
-    tfootRow.className = 'tfoot-row';
-    const tfootCorner = document.createElement('td');
-    tfootCorner.className = 'date-col tfoot-corner';
-    tfootCorner.textContent = '📋 Resources';
-    tfootRow.appendChild(tfootCorner);
-    for (const date of dates) {
-      const td = document.createElement('td');
+  if (monthList) {
+    monthList.innerHTML = '';
+    const monthOrder = ['Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
+    const groups = groupByMonth(sheet.sessions);
+    for (const mon of monthOrder) {
+      if (!groups[mon]) continue;
+      const meta = MONTH_META[mon] || {label:mon, icon:'🌿'};
       const btn = document.createElement('button');
-      btn.className = 'resources-btn';
-      btn.textContent = '📋 Day list';
-      btn.onclick = () => openResourcesPanel(date, sheet);
-      td.appendChild(btn);
-      const printBtn = document.createElement('button');
-      printBtn.className = 'print-btn';
-      printBtn.textContent = '🖨 Print Day';
-      printBtn.onclick = () => printDay(date, sheet);
-      td.appendChild(printBtn);
-      tfootRow.appendChild(td);
+      btn.className = 'month-btn' + (mon === plannerActiveMonth ? ' active' : '');
+      btn.innerHTML = '<span>' + meta.icon + '</span> ' + meta.label + ' <span class="session-count">' + groups[mon].length + '</span>';
+      btn.onclick = () => plannerSetMonth(mon);
+      monthList.appendChild(btn);
     }
-    tfoot.appendChild(tfootRow);
-    table.appendChild(tbody);
-    table.appendChild(tfoot);
-    wrap.appendChild(table);
-    section.appendChild(wrap);
-    container.appendChild(section);
   }
+
+  renderPlannerMonthNav();
+  renderPlannerCurrentMonth();
 }
+
+function buildPlannerTbody(sheet, dates, mon) {
+  const tbody = document.createElement('tbody');
+  const sheetRows = sheet.rowDefs || ROW_DEFS;
+  let dragSrcRowKey = null;
+
+  for (const rowDef of sheetRows) {
+    const isDivider = rowDef.type === 'divider';
+    const tr = document.createElement('tr');
+    tr.dataset.rowKey = rowDef.key;
+    if (isDivider) tr.className = 'planner-divider-row';
+
+    const labelTd = document.createElement('td');
+    labelTd.className = 'row-label date-col draggable';
+    labelTd.draggable = true;
+    labelTd.dataset.rowKey = rowDef.key;
+    labelTd.innerHTML = `
+      <span class="drag-handle" title="Drag to reorder">⠿</span>
+      <span class="row-icon">${rowDef.icon}</span>${rowDef.label}
+      <div class="row-edit-controls">
+        <button class="row-edit-btn" onclick="renameRow(event,'${rowDef.key}')" title="Rename">✏️</button>
+        <button class="row-edit-btn del" onclick="deleteRow(event,'${rowDef.key}')" title="Remove row">✕</button>
+      </div>`;
+
+    labelTd.addEventListener('dragstart', (e) => { dragSrcRowKey = rowDef.key; labelTd.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+    labelTd.addEventListener('dragend', () => { labelTd.classList.remove('dragging','drag-over'); });
+    labelTd.addEventListener('dragover', (e) => { e.preventDefault(); labelTd.classList.add('drag-over'); });
+    labelTd.addEventListener('dragleave', () => { labelTd.classList.remove('drag-over'); });
+    labelTd.addEventListener('drop', (e) => { e.preventDefault(); labelTd.classList.remove('drag-over'); if (dragSrcRowKey && dragSrcRowKey !== rowDef.key) reorderRow(dragSrcRowKey, rowDef.key); });
+    tr.appendChild(labelTd);
+
+    if (isDivider) {
+      const spanTd = document.createElement('td');
+      spanTd.colSpan = dates.length;
+      spanTd.className = 'divider-cell';
+      tr.appendChild(spanTd);
+      tbody.appendChild(tr);
+      continue;
+    }
+
+    for (const date of dates) {
+      const session = sheet.sessions[date] || {};
+      if (rowDef.key === '_notes') {
+        const td = document.createElement('td');
+        td.className = 'notes-cell';
+        const ta = document.createElement('textarea');
+        ta.className = 'notes-textarea';
+        ta.placeholder = 'Session notes…';
+        ta.value = session['_notes'] || '';
+        ta.dataset.date = date;
+        ta.dataset.sheetId = sheet.id;
+        ta.addEventListener('change', function() {
+          const s = getActiveSheet();
+          if (!s.sessions[this.dataset.date]) s.sessions[this.dataset.date] = {};
+          s.sessions[this.dataset.date]['_notes'] = this.value;
+          saveState();
+        });
+        td.appendChild(ta);
+        tr.appendChild(td);
+      } else {
+        const activities = session[rowDef.key] || [];
+        const td = document.createElement('td');
+        td.className = 'plan-cell';
+        td.dataset.date = date;
+        td.dataset.rowKey = rowDef.key;
+        td.dataset.rowLabel = rowDef.label;
+        td.dataset.rowIcon = rowDef.icon;
+        td.innerHTML = renderCellActivities(activities);
+        td.addEventListener('click', (e) => {
+          if (e.target.classList.contains('remove-activity') || e.target.classList.contains('cell-activity-name')) return;
+          openCellModal(date, rowDef.key, rowDef.label, rowDef.icon);
+        });
+        td.addEventListener('click', (e) => {
+          if (e.target.classList.contains('remove-activity')) {
+            const idx = parseInt(e.target.dataset.idx);
+            removeActivityFromCell(date, rowDef.key, idx);
+          }
+        });
+        tr.appendChild(td);
+      }
+    }
+    tbody.appendChild(tr);
+  }
+  return tbody;
+}
+
+function buildAddRowBar(mon, dateCount) {
+  const addRowTr = document.createElement('tr');
+  addRowTr.innerHTML = `<td colspan="${dateCount+1}" style="padding:0.4rem 0.6rem;">
+    <div class="add-row-bar" id="addRowBar_${mon}">
+      <div class="add-row-type-toggle">
+        <button class="add-row-type-btn active" id="addRowTypeActivity_${mon}" onclick="setAddRowType('${mon}','activity')" title="Normal activity row">📌 Activity row</button>
+        <button class="add-row-type-btn" id="addRowTypeDivider_${mon}" onclick="setAddRowType('${mon}','divider')" title="Break / lunch divider">— Divider</button>
+      </div>
+      <div id="addRowActivityOptions_${mon}" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;flex:1;">
+        <select class="add-row-input" id="addRowCat_${mon}" style="flex:none;width:auto;min-width:160px;font-size:0.82rem;padding:0.3rem 0.5rem;">
+        ${CATEGORIES.filter(c=>c.id!=='general').map(c=>`<option value="${c.id}">${c.emoji} ${c.label}</option>`).join('')}
+        <option value="general">🎮 Games</option>
+        <option value="any">✨ Any (seasonal mix)</option>
+        </select>
+        <input class="add-row-input" id="addRowLabel_${mon}" placeholder="Row label e.g. Wide Game (PM)…" style="flex:1;min-width:140px;">
+      </div>
+      <div id="addRowDividerOptions_${mon}" style="display:none;align-items:center;gap:0.5rem;flex:1;">
+        <input class="add-row-icon-input" id="addRowIcon_${mon}" placeholder="☀️" maxlength="4">
+        <input class="add-row-input" id="addRowDividerLabel_${mon}" placeholder="e.g. Lunch, Break, Travel…" style="flex:1;">
+      </div>
+      <button class="toolbar-btn" onclick="addRow('${mon}')" style="padding:0.3rem 0.65rem;font-size:0.76rem;">＋ Add Row</button>
+    </div>
+  </td>`;
+  return addRowTr;
+}
+
 
 function renderCellActivities(activities) {
   if (!activities || activities.length === 0) {
@@ -11994,23 +11908,63 @@ function mGetWeekRange() {
   return { mon, sun };
 }
 
-function mBuildShoppingList() {
-  const { mon, sun } = mGetWeekRange();
+function mGetWeekKey() {
+  const { mon } = mGetWeekRange();
+  const d = new Date(Date.UTC(mon.getFullYear(), mon.getMonth(), mon.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return d.getUTCFullYear() + '-W' + String(week).padStart(2, '0');
+}
 
-  // Update week label
+let mShopChecked = {};
+let mShopDeleted = {};
+let mShopCustom  = [];
+let mShopWeekKey = '';
+
+async function mLoadShopState() {
+  const weekKey = mGetWeekKey();
+  try {
+    const doc = await db.collection('planner').doc('shopping').get();
+    if (doc.exists && doc.data().weekKey === weekKey) {
+      mShopWeekKey = weekKey;
+      mShopChecked = doc.data().checked || {};
+      mShopDeleted = doc.data().deleted || {};
+      mShopCustom  = doc.data().custom  || [];
+      return;
+    }
+  } catch(e) { console.warn('Shop load failed', e); }
+  mShopWeekKey = weekKey;
+  mShopChecked = {};
+  mShopDeleted = {};
+  mShopCustom  = [];
+}
+
+async function mSaveShopState() {
+  try {
+    await db.collection('planner').doc('shopping').set({
+      weekKey: mShopWeekKey,
+      checked: mShopChecked,
+      deleted: mShopDeleted,
+      custom:  mShopCustom,
+    });
+  } catch(e) { console.warn('Shop save failed', e); }
+}
+
+async function mBuildShoppingList() {
+  await mLoadShopState();
+  const { mon, sun } = mGetWeekRange();
   const fmt = d => d.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
-  document.getElementById('mShopWeekLabel').textContent =
-    'Week of ' + fmt(mon) + ' – ' + fmt(sun);
+  document.getElementById('mShopWeekLabel').textContent = 'Week of ' + fmt(mon) + ' – ' + fmt(sun);
 
   const CAL_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const seen = new Set();
-  const sessionItems = []; // {text, source}
+  mShopItems = [];
 
-  // Scan ALL sheets for this week's sessions
   state.sheets.forEach(sheet => {
     if (!sheet.sessions) return;
     Object.keys(sheet.sessions).forEach(key => {
-      // Parse date
       let jsDate;
       const parts = key.split('-');
       if (parts.length === 3 && parts[0].length === 4) {
@@ -12022,39 +11976,36 @@ function mBuildShoppingList() {
         const year = monIdx >= startMonIdx ? sheet.startYear : sheet.endYear;
         jsDate = new Date(year, monIdx, parseInt(parts[0]));
       } else return;
-
       if (jsDate < mon || jsDate > sun) return;
-
-      // This session is this week
       const sessionData = sheet.sessions[key];
-      const rows = sheet.rowDefs || [];
-      rows.forEach(row => {
+      (sheet.rowDefs || []).forEach(row => {
         if (row.type === 'divider' || row.key === '_notes') return;
-        const acts = sessionData[row.key] || [];
-        acts.forEach(act => {
+        (sessionData[row.key] || []).forEach(act => {
           const menuItem = state.menuItems.find(m => m && m.name === act.text);
           if (!menuItem) return;
-          // Only pull from dedicated consumables field — not equipment/resources
           const consumables = menuItem.consumables
             ? menuItem.consumables.replace(/\\n/g,'\n').split(/[\n•·]+/).map(s=>s.replace(/^[\s\-*]+/,'').trim()).filter(s=>s.length>1)
             : [];
           consumables.forEach(c => {
-            const key2 = c.toLowerCase();
-            if (!seen.has(key2)) {
-              seen.add(key2);
-              sessionItems.push({ text: c, source: act.text, checked: false, custom: false });
-            }
+            const itemKey = c.toLowerCase().trim();
+            if (seen.has(itemKey) || mShopDeleted[itemKey]) return;
+            seen.add(itemKey);
+            mShopItems.push({ text:c, source:act.text, checked:!!mShopChecked[itemKey], custom:false, key:itemKey });
           });
         });
       });
     });
   });
 
-  // Preserve custom items, reset session items
-  const customItems = mShopItems.filter(i => i.custom);
-  mShopItems = [...sessionItems, ...customItems];
+  mShopCustom.forEach(c => {
+    const itemKey = 'custom__' + c.toLowerCase().trim();
+    if (mShopDeleted[itemKey]) return;
+    mShopItems.push({ text:c, source:null, checked:!!mShopChecked[itemKey], custom:true, key:itemKey });
+  });
+
   mShopRender();
 }
+
 
 function mShopRender() {
   const list = document.getElementById('mShopList');
@@ -12070,15 +12021,14 @@ function mShopRender() {
     title.textContent = label;
     list.appendChild(title);
 
-    items.forEach((item, globalIdx) => {
-      const idx = mShopItems.indexOf(item);
+    items.forEach((item) => {
       const div = document.createElement('div');
       div.className = 'm-shop-item' + (item.checked ? ' checked' : '');
 
       const checkbox = document.createElement('div');
       checkbox.className = 'm-shop-checkbox';
       checkbox.innerHTML = '<span class="m-shop-checkbox-tick">✓</span>';
-      checkbox.onclick = () => mShopToggle(idx);
+      checkbox.onclick = () => mShopToggle(item.key);
 
       const textWrap = document.createElement('div');
       textWrap.style.flex = '1';
@@ -12096,7 +12046,7 @@ function mShopRender() {
       const del = document.createElement('button');
       del.className = 'm-shop-item-del';
       del.textContent = '✕';
-      del.onclick = () => mShopDelete(idx);
+      del.onclick = () => mShopDelete(item.key);
 
       div.appendChild(checkbox);
       div.appendChild(textWrap);
@@ -12113,13 +12063,24 @@ function mShopRender() {
   }
 }
 
-function mShopToggle(idx) {
-  if (mShopItems[idx]) mShopItems[idx].checked = !mShopItems[idx].checked;
+function mShopToggle(itemKey) {
+  const item = mShopItems.find(i => i.key === itemKey);
+  if (!item) return;
+  item.checked = !item.checked;
+  if (item.checked) mShopChecked[itemKey] = true;
+  else delete mShopChecked[itemKey];
+  mSaveShopState();
   mShopRender();
 }
 
-function mShopDelete(idx) {
-  mShopItems.splice(idx, 1);
+function mShopDelete(itemKey) {
+  mShopDeleted[itemKey] = true;
+  const item = mShopItems.find(i => i.key === itemKey);
+  if (item && item.custom) {
+    mShopCustom = mShopCustom.filter(c => 'custom__' + c.toLowerCase().trim() !== itemKey);
+  }
+  mShopItems = mShopItems.filter(i => i.key !== itemKey);
+  mSaveShopState();
   mShopRender();
 }
 
@@ -12127,8 +12088,12 @@ function mShopAddCustom() {
   const input = document.getElementById('mShopAddInput');
   const text = input.value.trim();
   if (!text) return;
-  mShopItems.push({ text, source: null, checked: false, custom: true });
+  const itemKey = 'custom__' + text.toLowerCase().trim();
+  if (mShopItems.find(i => i.key === itemKey)) { input.value = ''; return; }
+  mShopCustom.push(text);
+  mShopItems.push({ text, source:null, checked:false, custom:true, key:itemKey });
   input.value = '';
+  mSaveShopState();
   mShopRender();
 }
 
@@ -13378,6 +13343,189 @@ function confirmCascadeDelete(itemName, onDeleteMenu) {
       setTimeout(() => flash.remove(), 3000);
     }
   }
+}
+
+
+// ── Planner month navigation ──
+const MONTH_ORDER_ACADEMIC = ['Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
+
+function getPlannerMonths() {
+  const sheet = getActiveSheet();
+  if (!sheet || sheet.type === 'holiday') return [];
+  const groups = groupByMonth(sheet.sessions || {});
+  return MONTH_ORDER_ACADEMIC.filter(m => groups[m] && groups[m].length > 0);
+}
+
+function plannerSetMonth(mon) {
+  plannerActiveMonth = mon;
+  renderPlannerMonthNav();
+  renderPlannerCurrentMonth();
+}
+
+function plannerNavMonth(dir) {
+  const months = getPlannerMonths();
+  if (!months.length) return;
+  const idx = months.indexOf(plannerActiveMonth);
+  const newIdx = Math.max(0, Math.min(months.length - 1, idx + dir));
+  plannerSetMonth(months[newIdx]);
+}
+
+function renderPlannerMonthNav() {
+  const nav = document.getElementById('plannerMonthNav');
+  if (!nav) return;
+  nav.innerHTML = '';
+  const months = getPlannerMonths();
+  if (!months.length) return;
+
+  // Ensure active month is valid
+  if (!plannerActiveMonth || !months.includes(plannerActiveMonth)) {
+    // Default to current calendar month or first month
+    const now = new Date();
+    const SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const curMon = SHORT[now.getMonth()];
+    plannerActiveMonth = months.includes(curMon) ? curMon : months[0];
+  }
+
+  // Prev arrow
+  const prev = document.createElement('button');
+  prev.className = 'register-btn';
+  prev.style.cssText = 'padding:0.2rem 0.55rem;font-size:0.8rem;';
+  prev.textContent = '←';
+  prev.onclick = () => plannerNavMonth(-1);
+  nav.appendChild(prev);
+
+  // Month pills
+  months.forEach(mon => {
+    const meta = MONTH_META[mon] || {label:mon, icon:'🌿'};
+    const btn = document.createElement('button');
+    btn.className = 'register-month-btn' + (mon === plannerActiveMonth ? ' active' : '');
+    btn.textContent = meta.icon + ' ' + meta.label;
+    btn.onclick = () => plannerSetMonth(mon);
+    nav.appendChild(btn);
+  });
+
+  // Next arrow
+  const next = document.createElement('button');
+  next.className = 'register-btn';
+  next.style.cssText = 'padding:0.2rem 0.55rem;font-size:0.8rem;margin-left:0.1rem;';
+  next.textContent = '→';
+  next.onclick = () => plannerNavMonth(1);
+  nav.appendChild(next);
+}
+
+function renderPlannerCurrentMonth() {
+  const sheet = getActiveSheet();
+  if (!sheet || sheet.type === 'holiday') return;
+  const mon = plannerActiveMonth;
+  if (!mon) return;
+
+  const container = document.getElementById('plannerContent');
+  container.innerHTML = '';
+
+  if (!sheet.rowDefs || sheet.rowDefs.length === 0) sheet.rowDefs = DEFAULT_ROW_DEFS_COPY();
+  if (!sheet.sessions) sheet.sessions = {};
+
+  const groups = groupByMonth(sheet.sessions);
+  const dates = (groups[mon] || []).sort((a,b) => parseInt(a.split('-')[0]) - parseInt(b.split('-')[0]));
+
+  if (!dates.length) {
+    container.innerHTML = '<p style="padding:2rem;font-family:Lora,serif;color:var(--bark-light);font-style:italic;">No sessions in this month.</p>';
+    return;
+  }
+
+  const meta = MONTH_META[mon] || {label:mon, icon:'🌿'};
+  const MONTH_ORDER = ['Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
+
+  const section = document.createElement('div');
+  section.className = 'month-group';
+  section.id = 'month-group-' + mon;
+
+  const heading = document.createElement('div');
+  heading.className = 'month-heading';
+  heading.innerHTML = '<span class="month-heading-icon">' + meta.icon + '</span> ' + meta.label;
+  section.appendChild(heading);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'planner-table-wrap';
+
+  const table = document.createElement('table');
+  table.className = 'planner-table';
+
+  // Ribbon row
+  const thead = document.createElement('thead');
+  const ribbonRow = document.createElement('tr');
+  ribbonRow.className = 'ribbon-row';
+  const ribbonCorner = document.createElement('th');
+  ribbonCorner.className = 'ribbon-corner date-col';
+  ribbonCorner.textContent = '★ Events';
+  ribbonRow.appendChild(ribbonCorner);
+  dates.forEach(date => {
+    const ribbonTh = document.createElement('th');
+    ribbonTh.className = 'ribbon-cell';
+    const assigned = getImportantDatesForSession(date, dates, mon, MONTH_ORDER);
+    assigned.forEach(d => {
+      const tag = document.createElement('span');
+      tag.className = 'ribbon-tag ' + d.type;
+      tag.title = d.name + ' — ' + d.day + ' ' + d.month + (d.notes ? '\n' + d.notes : '');
+      tag.textContent = typeIcon(d.type) + ' ' + d.name;
+      tag.onclick = () => openCalEditPanel(d.id);
+      ribbonTh.appendChild(tag);
+    });
+    ribbonRow.appendChild(ribbonTh);
+  });
+  if (state.importantDates.length > 0) thead.appendChild(ribbonRow);
+
+  // Date header row
+  const headRow = document.createElement('tr');
+  const cornerTh = document.createElement('th');
+  cornerTh.className = 'date-col';
+  cornerTh.textContent = 'Activity';
+  headRow.appendChild(cornerTh);
+  dates.forEach(date => {
+    const th = document.createElement('th');
+    const [day, m] = date.split('-');
+    th.textContent = day + ' ' + m;
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+
+  // Body — reuse existing row rendering logic by calling a shared helper
+  const tbody = buildPlannerTbody(sheet, dates, mon);
+  table.appendChild(tbody);
+
+  // Tfoot
+  const tfoot = document.createElement('tfoot');
+  const tfootRow = document.createElement('tr');
+  tfootRow.className = 'tfoot-row';
+  const tfootCorner = document.createElement('td');
+  tfootCorner.className = 'date-col tfoot-corner';
+  tfootCorner.textContent = '📋 Resources';
+  tfootRow.appendChild(tfootCorner);
+  dates.forEach(date => {
+    const td = document.createElement('td');
+    const btn = document.createElement('button');
+    btn.className = 'resources-btn';
+    btn.textContent = '📋 Day list';
+    btn.onclick = () => openResourcesPanel(date, sheet);
+    td.appendChild(btn);
+    const printBtn = document.createElement('button');
+    printBtn.className = 'print-btn';
+    printBtn.textContent = '🖨 Print Day';
+    printBtn.onclick = () => printDay(date, sheet);
+    td.appendChild(printBtn);
+    tfootRow.appendChild(td);
+  });
+  tfoot.appendChild(tfootRow);
+  table.appendChild(tfoot);
+  wrap.appendChild(table);
+  section.appendChild(wrap);
+  container.appendChild(section);
+
+  // Add Row bar
+  const addRowTr = buildAddRowBar(mon, dates.length);
+  const tbodyEl = table.querySelector('tbody');
+  if (tbodyEl) tbodyEl.appendChild(addRowTr);
 }
 
 // ─── INIT: load from cloud first, localStorage as fallback ───
