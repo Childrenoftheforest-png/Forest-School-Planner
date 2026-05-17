@@ -5349,7 +5349,10 @@ function openAddIdeaModal() {
   document.getElementById('ideaName').value = '';
   document.getElementById('ideaLink').value = '';
   document.getElementById('ideaNotes').value = '';
-  document.getElementById('ideaResources').value = '';
+  const eq = document.getElementById('ideaEquipment');
+  const co = document.getElementById('ideaConsumables');
+  if (eq) eq.value = '';
+  if (co) co.value = '';
   document.getElementById('addIdeaModal').classList.add('open');
   document.getElementById('ideaName').focus();
 }
