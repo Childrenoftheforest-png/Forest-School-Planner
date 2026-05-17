@@ -3954,7 +3954,9 @@ const MONTH_META = {
 };
 
 const ROW_DEFS = [
-  {key:"Morning Circle Question", label:"Morning Circle", icon:"💬"},
+  {key:"Morning Circle Question", label:"Morning Circle", icon:"💬", cat:"morning"},
+  {key:"Chat Topics",             label:"Chat Topics",    icon:"🗣️", cat:"chat"},
+  {key:"Nature Journaling",       label:"Nature Journaling", icon:"📓", cat:"journaling"},
   {key:"Wide Game", label:"Wide Game (AM)", icon:"🦊"},
   {key:"Active Bushcraft Activity / Role Playing Activity", label:"Bushcraft / Roleplay", icon:"🔥"},
   {key:"Low Energy Craft", label:"Craft", icon:"🌿"},
@@ -4975,16 +4977,7 @@ function renderPlanner() {
         </div>
         <div id="addRowActivityOptions_${mon}" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;flex:1;">
           <select class="add-row-input" id="addRowCat_${mon}" style="flex:none;width:auto;min-width:160px;font-size:0.82rem;padding:0.3rem 0.5rem;">
-          <option value="games">🦊 Wide Games</option>
-          <option value="bushcraft">🔥 Bushcraft &amp; Skills</option>
-          <option value="crafts">🌿 Craft Projects</option>
-          <option value="recipes">🍞 Recipes &amp; Cooking</option>
-          <option value="foraging">🌱 Foraging</option>
-          <option value="stories">📖 Stories</option>
-          <option value="songs">🎶 Songs</option>
-          <option value="seasonal">🌙 Seasonal &amp; Spiritual</option>
-          <option value="woodland">🌳 Woodland Tasks</option>
-          <option value="tea">🍵 Afternoon Tea</option>
+          ${CATEGORIES.filter(c=>c.id!=='general').map(c=>`<option value="${c.id}">${c.emoji} ${c.label}</option>`).join('')}
           <option value="general">🎮 Games</option>
           <option value="any">✨ Any (seasonal mix)</option>
           </select>
@@ -5729,6 +5722,9 @@ function pickActivityForCell(rowKey, mon) {
     if (rowKeyLower.includes('forag') || rowKeyLower.includes('nature') || rowKeyLower.includes('woodland')) return item.cat === 'foraging';
     if (rowKeyLower.includes('craft') || rowKeyLower.includes('art')) return item.cat === 'crafts';
     if (rowKeyLower.includes('tea')) return item.cat === 'tea';
+    if (rowKeyLower.includes('morning') || rowKeyLower.includes('circle')) return item.cat === 'morning';
+    if (rowKeyLower.includes('chat') || rowKeyLower.includes('topic')) return item.cat === 'chat';
+    if (rowKeyLower.includes('journal')) return item.cat === 'journaling';
     if (rowKeyLower.includes('story') || rowKeyLower.includes('song') || rowKeyLower.includes('sing') || rowKeyLower.includes('plan')) return item.cat === 'songs';
     return true;
   });
@@ -13163,6 +13159,38 @@ function renderPairList(pairIds) {
   });
 }
 
+
+// ── Migrate existing sheet rowDefs to add cat:'morning' to Morning Circle ──
+function migrateMorningCircleRowCat() {
+  let changed = false;
+  state.sheets.forEach(sheet => {
+    if (!sheet.rowDefs) return;
+    sheet.rowDefs.forEach(row => {
+      if ((row.key === 'Morning Circle Question' || row.label === 'Morning Circle') && !row.cat) {
+        row.cat = 'morning';
+        changed = true;
+      }
+    });
+  });
+  if (changed) saveState();
+}
+
+
+// ── Migrate existing sheet rowDefs to add cat:'morning' to Morning Circle ──
+function migrateMorningCircleRowCat() {
+  let changed = false;
+  state.sheets.forEach(sheet => {
+    if (!sheet.rowDefs) return;
+    sheet.rowDefs.forEach(row => {
+      if ((row.key === 'Morning Circle Question' || row.label === 'Morning Circle') && !row.cat) {
+        row.cat = 'morning';
+        changed = true;
+      }
+    });
+  });
+  if (changed) saveState();
+}
+
 // ─── INIT: load from cloud first, localStorage as fallback ───
 (async () => {
   const shell = document.querySelector('.app-shell');
@@ -13192,6 +13220,7 @@ function renderPairList(pairIds) {
   // Run the normal loadState logic (handles defaults, merges base data etc.)
   loadState();
   mergeResourcesIntoMenuItems();
+  migrateMorningCircleRowCat();
   renderSheetTabs();
   renderHolidayDropdown();
   renderPlanner();
