@@ -5150,7 +5150,11 @@ function assignCampTask(taskId) {
 
   saveState();
   closeCampTaskPicker();
-  renderPlanner();
+  if (IS_MOBILE()) {
+    mRenderSession();
+  } else {
+    renderPlanner();
+  }
 }
 
 // Mobile camp tasks panel
