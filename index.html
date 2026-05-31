@@ -994,6 +994,44 @@ body {
 .toolbar-btn.bulk-clear-btn { background: rgba(140,30,30,0.07); border-color: rgba(140,30,30,0.25); color: #7a2020; }
 .toolbar-btn.bulk-clear-btn:hover { background: #7a2020; color: #fff; border-color: #7a2020; }
 
+/* ─── CAMP IMPROVEMENT TASKS ─── */
+.camp-tasks-card { border: 1.5px solid rgba(139,90,43,0.3) !important; background: #fdf6ed !important; }
+.camp-tasks-add { display: flex; gap: 8px; margin-bottom: 0.75rem; }
+.camp-tasks-add input { flex: 1; font-family: 'Lora', serif; font-size: 0.8rem; padding: 6px 10px; border: 1.5px solid rgba(107,66,38,0.25); border-radius: 8px; background: var(--parchment); color: var(--bark); }
+.camp-tasks-add button { font-family: 'Lora', serif; font-size: 0.78rem; padding: 6px 12px; border-radius: 8px; border: 1.5px solid rgba(107,66,38,0.3); background: var(--bark); color: var(--parchment); cursor: pointer; white-space: nowrap; }
+.camp-task-list { display: flex; flex-direction: column; gap: 6px; }
+.camp-task-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px; border: 1.5px solid transparent; background: rgba(255,255,255,0.7); font-size: 0.8rem; }
+.camp-task-item.status-todo     { border-color: rgba(180,40,40,0.25);  background: rgba(255,235,235,0.7); }
+.camp-task-item.status-inprogress { border-color: rgba(180,130,0,0.3); background: rgba(255,248,220,0.7); }
+.camp-task-item.status-done     { border-color: rgba(50,120,50,0.2);   background: rgba(230,248,230,0.6); opacity: 0.65; }
+.camp-task-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.status-todo     .camp-task-dot { background: #c0392b; }
+.status-inprogress .camp-task-dot { background: #d4a017; }
+.status-done     .camp-task-dot { background: #27ae60; }
+.camp-task-title { flex: 1; color: var(--bark); font-family: 'Lora', serif; }
+.status-done .camp-task-title { text-decoration: line-through; color: var(--bark-light); }
+.camp-task-count { font-size: 0.7rem; color: var(--bark-light); white-space: nowrap; }
+.camp-task-actions { display: flex; gap: 4px; }
+.ct-btn { font-size: 0.72rem; padding: 2px 7px; border-radius: 6px; border: 1px solid rgba(107,66,38,0.2); background: transparent; cursor: pointer; color: var(--bark-light); }
+.ct-btn:hover { background: rgba(107,66,38,0.08); }
+.ct-done  { color: #27ae60; border-color: rgba(39,174,96,0.3); }
+.ct-reopen { color: #d4a017; border-color: rgba(212,160,23,0.3); }
+.ct-del   { color: #c0392b; border-color: rgba(192,57,43,0.2); }
+.ct-empty { font-size: 0.78rem; color: var(--bark-light); font-style: italic; padding: 0.5rem 0; }
+
+/* Camp task picker modal items */
+.ctp-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-bottom: 6px; font-size: 0.85rem; font-family: 'Lora', serif; border: 1.5px solid transparent; }
+.ctp-item:hover { filter: brightness(0.96); }
+.ctp-item.status-todo       { background: rgba(255,235,235,0.8); border-color: rgba(180,40,40,0.2); }
+.ctp-item.status-inprogress { background: rgba(255,248,220,0.8); border-color: rgba(180,130,0,0.25); }
+
+/* Mobile camp tasks panel */
+.mobile-panel { position: fixed; inset: 0; background: var(--parchment); z-index: 3000; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.28s ease; }
+.mobile-panel.open { transform: translateY(0); }
+.mobile-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.2rem 0.75rem; font-family: 'Lora', serif; font-size: 1rem; font-weight: 700; color: var(--bark); border-bottom: 1px solid rgba(107,66,38,0.15); }
+.mobile-panel-close { background: transparent; border: none; font-size: 1.1rem; color: var(--bark-light); cursor: pointer; padding: 4px 8px; }
+.mobile-panel-body { flex: 1; overflow-y: auto; padding: 1rem 1.2rem; }
+
 /* ─── VIEW TOGGLE (month / half-term) ─── */
 .toolbar-sep { width: 1px; height: 22px; background: rgba(107,66,38,0.2); margin: 0 4px; align-self: center; }
 .view-toggle-group { display: flex; border: 1.5px solid rgba(107,66,38,0.25); border-radius: 8px; overflow: hidden; }
@@ -3742,11 +3780,15 @@ body {
           <div class="m-welcome-card-title" style="color:var(--bark);">Pairs</div>
           <div class="m-welcome-card-desc">Randomly pair children and staff for the day</div>
         </div>
+      <button class="m-welcome-card" style="border-color:rgba(107,66,38,0.3);background:rgba(107,66,38,0.03);" onclick="openMobileCampTasks()">
+        <span class="m-welcome-card-icon">🔧</span>
+        <div class="m-welcome-card-text">
+          <div class="m-welcome-card-title" style="color:var(--bark);">Camp Tasks</div>
+          <div class="m-welcome-card-desc">Log and track camp improvement jobs as you notice them</div>
+        </div>
       </button>
     </div>
   </div>
-
-  <div class="m-bottom-nav">
     <button class="m-nav-item active" id="mNavToday" onclick="mShowView('session')">
       <span class="m-nav-icon">📅</span>
       <span class="m-nav-label">Today</span>
@@ -3961,6 +4003,30 @@ body {
 </div>
 
 
+<!-- ─── CAMP TASK PICKER MODAL ─── -->
+<div class="modal-overlay" id="campTaskPickerModal">
+  <div class="modal" style="max-width:420px;">
+    <button class="modal-close" onclick="closeCampTaskPicker()">✕</button>
+    <h2 style="font-family:'Lora',serif;font-size:1rem;margin-bottom:1rem;">🔧 Choose a camp task</h2>
+    <div id="campTaskPickerList"></div>
+  </div>
+</div>
+
+<!-- ─── MOBILE CAMP TASKS PANEL ─── -->
+<div class="mobile-panel" id="mCampTasksPanel">
+  <div class="mobile-panel-header">
+    <span>🔧 Camp Tasks</span>
+    <button class="mobile-panel-close" onclick="closeMobileCampTasks()">✕</button>
+  </div>
+  <div class="mobile-panel-body">
+    <div class="camp-tasks-add" style="margin-bottom:1rem;">
+      <input type="text" id="mCampTaskInput" placeholder="Add a new task…" onkeydown="if(event.key==='Enter')addCampTaskMobile()" />
+      <button onclick="addCampTaskMobile()">＋ Add</button>
+    </div>
+    <div id="mCampTasksList"></div>
+  </div>
+</div>
+
 <!-- ─── POPULATE MODAL ─── -->
 <div class="modal-overlay" id="populateModal">
   <div class="modal">
@@ -4165,10 +4231,10 @@ const ROW_DEFS = [
   {key:"Low Energy Craft",        label:"Craft",                 icon:"🌿", cat:"crafts"},
   {key:"Nature-Based Activity / Woodland Management Task",  label:"Nature / Woodland Task", icon:"🌳", cat:"woodland"},
   {key:"Cooking Activity",        label:"Cooking",               icon:"🍞", cat:"recipes"},
-  {key:"Long Term Project",       label:"Long Term Project",     icon:"🏗️", cat:"any"},
+  {key:"Long Term Project",       label:"Long Term Project",     icon:"🏗️", cat:"projects"},
   {key:"Camp Improvement / Decoration Activity", label:"Camp Improvement", icon:"🎨", cat:"crafts"},
   {key:"Afternoon Tea Club",      label:"Afternoon Tea",         icon:"🍵", cat:"tea"},
-  {key:"Afternoon Activity",      label:"Afternoon Activity",    icon:"🎯", cat:"seasonal"},
+  {key:"Afternoon Activity",      label:"Seasonal & Spiritual",  icon:"🌙", cat:"seasonal"},
   {key:"Planning & Singing",      label:"Planning & Singing",    icon:"🎶", cat:"songs"},
   {key:"_notes",                  label:"Session Notes",         icon:"📝", cat:"_skip"},
 ];
@@ -4189,6 +4255,7 @@ const BASE_CATEGORIES = [
   {id:"morning",   label:"Morning Circle",        emoji:"💬", color:"#2a3a1a", bg:"#f0f6ee", accent:"#4a7a3a", base:true},
   {id:"chat",      label:"Chat Topics",           emoji:"🗣️", color:"#1a2a3a", bg:"#eef3fa", accent:"#3a6a9a", base:true},
   {id:"journaling",label:"Nature Journaling",     emoji:"📓", color:"#2a1a3a", bg:"#f5f0fa", accent:"#7a4a8a", base:true},
+  {id:"projects",  label:"Long Term Projects",    emoji:"🏗️", color:"#2a1a0a", bg:"#f8f4ec", accent:"#7a5a2a", base:true},
 ];
 
 // CATEGORIES is the live array — merged from base + user-created, loaded at startup
@@ -4742,6 +4809,7 @@ let state = {
   menuItems: [],
   importantDates: [],  // [{id, name, day, month, type, notes}]
   termDates: [],       // [{label, start, end}] shared across all sheets
+  campTasks: [],       // [{id, title, status: 'todo'|'inprogress'|'done', sessionCount}]
   catFilter: 'all',
   menuSearch: '',
   calFilter: 'all',
@@ -4762,6 +4830,7 @@ function loadState() {
       state.menuItems = (parsed.menuItems || []).filter(i => i && i.name);
       state.importantDates = parsed.importantDates || [];
       state.termDates = parsed.termDates || [];
+      state.campTasks = parsed.campTasks || [];
     }
   } catch(e) {}
 
@@ -4829,6 +4898,7 @@ function saveState() {
     menuItems: state.menuItems.filter(i=>i.userAdded || i.userEdited),
     importantDates: state.importantDates,
     termDates: state.termDates,
+    campTasks: state.campTasks,
   };
   // Always save to localStorage as instant offline backup
   localStorage.setItem('forestSchoolPlanner_v2', JSON.stringify(toSave));
@@ -4983,6 +5053,135 @@ function toggleEditMode() {
   btn.classList.toggle('active', editModeActive);
   btn.textContent = editModeActive ? '✓ Done Editing' : '⚙️ Edit Rows';
   document.getElementById('plannerContent').classList.toggle('edit-mode', editModeActive);
+}
+
+// ═══════════════════════════════════════════════════════
+// CAMP IMPROVEMENT TASKS
+// ═══════════════════════════════════════════════════════
+
+function addCampTask() {
+  const input = document.getElementById('campTaskInput');
+  if (!input) return;
+  const title = input.value.trim();
+  if (!title) return;
+  if (!state.campTasks) state.campTasks = [];
+  state.campTasks.push({ id: 'ct_' + Date.now(), title, status: 'todo', sessionCount: 0 });
+  input.value = '';
+  saveState();
+  renderMenu();
+}
+
+function addCampTaskMobile() {
+  const input = document.getElementById('mCampTaskInput');
+  if (!input) return;
+  const title = input.value.trim();
+  if (!title) return;
+  if (!state.campTasks) state.campTasks = [];
+  state.campTasks.push({ id: 'ct_' + Date.now(), title, status: 'todo', sessionCount: 0 });
+  input.value = '';
+  saveState();
+  renderMobileCampTasks();
+}
+
+function setCampTaskStatus(id, status) {
+  const task = (state.campTasks || []).find(t => t.id === id);
+  if (!task) return;
+  task.status = status;
+  saveState();
+  renderMenu();
+  // Re-render mobile if open
+  const mPanel = document.getElementById('mCampTasksPanel');
+  if (mPanel && mPanel.classList.contains('open')) renderMobileCampTasks();
+}
+
+function deleteCampTask(id) {
+  state.campTasks = (state.campTasks || []).filter(t => t.id !== id);
+  saveState();
+  renderMenu();
+  const mPanel = document.getElementById('mCampTasksPanel');
+  if (mPanel && mPanel.classList.contains('open')) renderMobileCampTasks();
+}
+
+function openCampTaskPicker(date, rowKey) {
+  const tasks = (state.campTasks || []).filter(t => t.status !== 'done');
+  const modal = document.getElementById('campTaskPickerModal');
+  const list  = document.getElementById('campTaskPickerList');
+  if (!modal || !list) return;
+
+  modal.dataset.date   = date;
+  modal.dataset.rowKey = rowKey;
+
+  if (!tasks.length) {
+    list.innerHTML = '<p class="ct-empty">No active tasks — add some in the Activity Menu first.</p>';
+  } else {
+    list.innerHTML = tasks.map(t => `
+      <div class="ctp-item status-${t.status}" onclick="assignCampTask('${t.id}')">
+        <span class="camp-task-dot"></span>
+        <span>${escHtml(t.title)}</span>
+        <span class="camp-task-count">${t.sessionCount > 0 ? t.sessionCount + '× scheduled' : 'not yet scheduled'}</span>
+      </div>
+    `).join('');
+  }
+  modal.classList.add('open');
+}
+
+function closeCampTaskPicker() {
+  document.getElementById('campTaskPickerModal').classList.remove('open');
+}
+
+function assignCampTask(taskId) {
+  const modal   = document.getElementById('campTaskPickerModal');
+  const date    = modal.dataset.date;
+  const rowKey  = modal.dataset.rowKey;
+  const task    = (state.campTasks || []).find(t => t.id === taskId);
+  if (!task || !date || !rowKey) return;
+
+  const sheet = getActiveSheet();
+  if (!sheet.sessions[date]) sheet.sessions[date] = {};
+  if (!sheet.sessions[date][rowKey]) sheet.sessions[date][rowKey] = [];
+  sheet.sessions[date][rowKey].push({ text: task.title, link: '', campTaskId: taskId });
+
+  // Move to in progress, increment count
+  if (task.status === 'todo') task.status = 'inprogress';
+  task.sessionCount = (task.sessionCount || 0) + 1;
+
+  saveState();
+  closeCampTaskPicker();
+  renderPlanner();
+}
+
+// Mobile camp tasks panel
+function openMobileCampTasks() {
+  const panel = document.getElementById('mCampTasksPanel');
+  if (panel) { panel.classList.add('open'); renderMobileCampTasks(); }
+}
+
+function closeMobileCampTasks() {
+  const panel = document.getElementById('mCampTasksPanel');
+  if (panel) panel.classList.remove('open');
+}
+
+function renderMobileCampTasks() {
+  const list = document.getElementById('mCampTasksList');
+  if (!list) return;
+  const tasks = state.campTasks || [];
+  const todo   = tasks.filter(t => t.status === 'todo');
+  const inprog = tasks.filter(t => t.status === 'inprogress');
+  const done   = tasks.filter(t => t.status === 'done');
+  const all    = [...todo, ...inprog, ...done];
+
+  list.innerHTML = all.length ? all.map(t => `
+    <div class="camp-task-item status-${t.status}">
+      <span class="camp-task-dot"></span>
+      <span class="camp-task-title">${escHtml(t.title)}</span>
+      <span class="camp-task-count">${t.sessionCount > 0 ? t.sessionCount + '× scheduled' : ''}</span>
+      <div class="camp-task-actions">
+        ${t.status !== 'done' ? `<button class="ct-btn ct-done" onclick="setCampTaskStatus('${t.id}','done')">✓</button>` : ''}
+        ${t.status === 'done' ? `<button class="ct-btn ct-reopen" onclick="setCampTaskStatus('${t.id}','todo')">↩</button>` : ''}
+        <button class="ct-btn ct-del" onclick="deleteCampTask('${t.id}')">✕</button>
+      </div>
+    </div>
+  `).join('') : '<p class="ct-empty">No tasks yet.</p>';
 }
 
 // ═══════════════════════════════════════════════════════
@@ -5401,6 +5600,11 @@ function escHtml(s) {
 let cellModalState = { date: null, rowKey: null };
 
 function openCellModal(date, rowKey, rowLabel, rowIcon) {
+  // Camp Improvement row → open task picker instead
+  if (rowKey === 'Camp Improvement / Decoration Activity') {
+    openCampTaskPicker(date, rowKey);
+    return;
+  }
   cellModalState = { date, rowKey };
   document.getElementById('cellModalTitle').textContent = `${rowIcon} ${rowLabel}`;
   document.getElementById('cellModalDate').textContent = date;
@@ -5477,16 +5681,19 @@ function saveCellModal() {
 
 // Map row keys to their default menu category
 const ROW_TO_CAT = {
+  'Morning Circle Question': 'morning',
+  'Chat Topics': 'chat',
+  'Nature Journaling': 'journaling',
   'Wide Game': 'games',
   'Active Bushcraft Activity / Role Playing Activity': 'bushcraft',
   'Low Energy Craft': 'crafts',
   'Nature-Based Activity / Woodland Management Task': 'woodland',
   'Cooking Activity': 'recipes',
+  'Long Term Project': 'projects',
+  'Camp Improvement / Decoration Activity': 'crafts',
   'Afternoon Tea Club': 'tea',
+  'Afternoon Activity': 'seasonal',
   'Planning & Singing': 'songs',
-  'Long Term Project': 'crafts',
-  'Camp Improvement / Decoration Activity': 'woodland',
-  'Afternoon Activity': 'games',
 };
 
 let pickerActiveCat = null; // null = use row default
@@ -5642,6 +5849,44 @@ function renderMenu() {
     }
 
     grid.appendChild(card);
+  }
+
+  // ── Camp Improvement Tasks ──────────────────────────────
+  if (catF === 'all' || catF === '_camptasks') {
+    const tasks = state.campTasks || [];
+    const taskCard = document.createElement('div');
+    taskCard.className = 'menu-card camp-tasks-card';
+    const todo   = tasks.filter(t => t.status === 'todo');
+    const inprog = tasks.filter(t => t.status === 'inprogress');
+    const visibleTasks = [...todo, ...inprog, ...tasks.filter(t => t.status === 'done')]
+      .filter(t => !q || t.title.toLowerCase().includes(q));
+
+    taskCard.innerHTML = `
+      <div class="menu-card-header">
+        <span class="menu-card-emoji">🔧</span>
+        <span class="menu-card-title" style="color:#5a3a1a;">Camp Improvement Tasks</span>
+        <span class="menu-card-count">${todo.length + inprog.length} active</span>
+      </div>
+      <div class="camp-tasks-add">
+        <input type="text" id="campTaskInput" placeholder="Add a new task…" onkeydown="if(event.key==='Enter')addCampTask()" />
+        <button onclick="addCampTask()">＋ Add</button>
+      </div>
+      <div class="camp-task-list">
+        ${visibleTasks.map(t => `
+          <div class="camp-task-item status-${t.status}">
+            <span class="camp-task-dot"></span>
+            <span class="camp-task-title">${escHtml(t.title)}</span>
+            <span class="camp-task-count">${t.sessionCount > 0 ? t.sessionCount + '× scheduled' : ''}</span>
+            <div class="camp-task-actions">
+              ${t.status !== 'done' ? `<button class="ct-btn ct-done" onclick="setCampTaskStatus('${t.id}','done')" title="Mark done">✓</button>` : ''}
+              ${t.status === 'done' ? `<button class="ct-btn ct-reopen" onclick="setCampTaskStatus('${t.id}','todo')" title="Reopen">↩</button>` : ''}
+              <button class="ct-btn ct-del" onclick="deleteCampTask('${t.id}')" title="Delete">✕</button>
+            </div>
+          </div>
+        `).join('') || '<p class="ct-empty">No tasks yet — add one above.</p>'}
+      </div>
+    `;
+    grid.appendChild(taskCard);
   }
 }
 
@@ -6102,7 +6347,7 @@ function runPopulate() {
     filled++;
   };
 
-  const rows = sheet.rowDefs.filter(r => r.key !== '_notes' && r.type !== 'divider');
+  const rows = sheet.rowDefs.filter(r => r.key !== '_notes' && r.type !== 'divider' && r.key !== 'Camp Improvement / Decoration Activity');
   const allDates = Object.keys(sheet.sessions);
 
   if (populateScope === 'all') {
@@ -10198,7 +10443,7 @@ const HOLIDAY_DEFAULT_ROWS = [
   {key:'Low Energy Craft', label:'Craft', icon:'🌿', cat:'crafts'},
   {key:'divider_lunch_default', label:'Lunch', icon:'🥪', type:'divider'},
   {key:'Nature-Based Activity / Woodland Management Task', label:'Nature / Woodland Task', icon:'🌳', cat:'woodland'},
-  {key:'Afternoon Activity', label:'Afternoon Activity', icon:'🎯', cat:'seasonal'},
+  {key:'Afternoon Activity', label:'Seasonal & Spiritual', icon:'🌙', cat:'seasonal'},
   {key:'Planning & Singing', label:'Planning & Singing', icon:'🎶', cat:'songs'},
   {key:'_notes', label:'Session Notes', icon:'📝'},
 ];
