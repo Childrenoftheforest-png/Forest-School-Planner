@@ -4230,12 +4230,13 @@ const ROW_DEFS = [
   {key:"Chat Topics",             label:"Chat Topics",           icon:"🗣️", cat:"chat"},
   {key:"Nature Journaling",       label:"Nature Journaling",     icon:"📓", cat:"journaling"},
   {key:"Wide Game",               label:"Wide Game (AM)",        icon:"🦊", cat:"games"},
-  {key:"Active Bushcraft Activity / Role Playing Activity", label:"Bushcraft / Roleplay", icon:"🔥", cat:"bushcraft"},
+  {key:"Active Bushcraft Activity / Role Playing Activity", label:"Bushcraft", icon:"🔥", cat:"bushcraft"},
+  {key:"Bushcraft & Skills",      label:"Bushcraft",             icon:"🔥", cat:"bushcraft"},
   {key:"Low Energy Craft",        label:"Craft",                 icon:"🌿", cat:"crafts"},
   {key:"Nature-Based Activity / Woodland Management Task",  label:"Nature / Woodland Task", icon:"🌳", cat:"woodland"},
   {key:"Cooking Activity",        label:"Cooking",               icon:"🍞", cat:"recipes"},
   {key:"Long Term Project",       label:"Long Term Project",     icon:"🏗️", cat:"projects"},
-  {key:"Camp Improvement / Decoration Activity", label:"Camp Improvement", icon:"🎨", cat:"crafts"},
+  {key:"Camp Improvement / Decoration Activity", label:"Camp Improvement", icon:"🎨", cat:"_camptasks"},
   {key:"Afternoon Tea Club",      label:"Afternoon Tea",         icon:"🍵", cat:"tea"},
   {key:"Afternoon Activity",      label:"Seasonal & Spiritual",  icon:"🌙", cat:"seasonal"},
   {key:"Planning & Singing",      label:"Planning & Singing",    icon:"🎶", cat:"songs"},
@@ -4837,13 +4838,16 @@ function loadState() {
     }
   } catch(e) {}
 
-  // Migrate: ensure all rowDefs on loaded sheets have correct cat values from ROW_DEFS master list
-  const ROW_DEFS_CAT_MAP = {};
-  ROW_DEFS.forEach(r => { if (r.cat) ROW_DEFS_CAT_MAP[r.key] = r.cat; });
+  // Migrate: ensure all rowDefs on loaded sheets have correct cat, label, icon from ROW_DEFS master list
+  const ROW_DEFS_MAP = {};
+  ROW_DEFS.forEach(r => { ROW_DEFS_MAP[r.key] = r; });
   (state.sheets || []).forEach(sheet => {
     (sheet.rowDefs || []).forEach(row => {
-      if (ROW_DEFS_CAT_MAP[row.key] && (!row.cat || row.cat !== ROW_DEFS_CAT_MAP[row.key])) {
-        row.cat = ROW_DEFS_CAT_MAP[row.key];
+      const master = ROW_DEFS_MAP[row.key];
+      if (master) {
+        if (master.cat)   row.cat   = master.cat;
+        if (master.label) row.label = master.label;
+        if (master.icon)  row.icon  = master.icon;
       }
     });
   });
@@ -5693,11 +5697,12 @@ const ROW_TO_CAT = {
   'Nature Journaling': 'journaling',
   'Wide Game': 'games',
   'Active Bushcraft Activity / Role Playing Activity': 'bushcraft',
+  'Bushcraft & Skills': 'bushcraft',
   'Low Energy Craft': 'crafts',
   'Nature-Based Activity / Woodland Management Task': 'woodland',
   'Cooking Activity': 'recipes',
   'Long Term Project': 'projects',
-  'Camp Improvement / Decoration Activity': 'crafts',
+  'Camp Improvement / Decoration Activity': null,
   'Afternoon Tea Club': 'tea',
   'Afternoon Activity': 'seasonal',
   'Planning & Singing': 'songs',
@@ -6302,7 +6307,7 @@ function pickActivityForCell(rowKey, mon) {
     const rowKeyLower = rowKey.toLowerCase();
     if (rowKeyLower.includes('wide')) effectiveCat = 'games';
     else if (rowKeyLower.includes('game')) effectiveCat = 'general';
-    else if (rowKeyLower.includes('bush')) effectiveCat = 'bushcraft';
+    else if (rowKeyLower.includes('bush') || rowKeyLower.includes('skill')) effectiveCat = 'bushcraft';
     else if (rowKeyLower.includes('cook') || rowKeyLower.includes('recipe')) effectiveCat = 'recipes';
     else if (rowKeyLower.includes('woodland')) effectiveCat = 'woodland';
     else if (rowKeyLower.includes('nature') || rowKeyLower.includes('forag')) effectiveCat = 'woodland';
