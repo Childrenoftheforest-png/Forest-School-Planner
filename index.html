@@ -4007,7 +4007,7 @@ body {
 
 
 <!-- ─── CAMP TASK PICKER MODAL ─── -->
-<div class="modal-overlay" id="campTaskPickerModal">
+<div class="modal-overlay" id="campTaskPickerModal" style="z-index:1000;">
   <div class="modal" style="max-width:420px;">
     <button class="modal-close" onclick="closeCampTaskPicker()">✕</button>
     <h2 style="font-family:'Lora',serif;font-size:1rem;margin-bottom:1rem;">🔧 Choose a camp task</h2>
@@ -10011,7 +10011,11 @@ function mRenderSession() {
     editBtn.style.cssText = 'background:none;border:none;color:var(--bark-light);font-size:1rem;padding:0.2rem 0.5rem;cursor:pointer;flex-shrink:0;margin-left:auto;';
     editBtn.onclick = (e) => {
       e.stopPropagation();
-      mOpenCellEdit(key, row.key, row.label, row.icon || '', sheet);
+      if (row.key === 'Camp Improvement / Decoration Activity') {
+        openCampTaskPicker(key, row.key);
+      } else {
+        mOpenCellEdit(key, row.key, row.label, row.icon || '', sheet);
+      }
     };
     rowDiv.appendChild(editBtn);
     rowDiv.onclick = null;
