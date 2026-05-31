@@ -991,6 +991,8 @@ body {
 .toolbar-btn.active { background: var(--bark); color: var(--parchment); border-color: var(--bark); }
 .toolbar-btn.populate { background: rgba(61,90,46,0.1); border-color: var(--moss); color: var(--moss); }
 .toolbar-btn.populate:hover { background: var(--moss); color: var(--parchment); }
+.toolbar-btn.bulk-clear-btn { background: rgba(140,30,30,0.07); border-color: rgba(140,30,30,0.25); color: #7a2020; }
+.toolbar-btn.bulk-clear-btn:hover { background: #7a2020; color: #fff; border-color: #7a2020; }
 
 /* ─── ROW EDIT MODE ─── */
 .row-label.draggable { cursor: grab; user-select: none; }
@@ -2471,6 +2473,161 @@ body {
 }
 #bulkReclassifyModal.open { display: flex; }
 
+/* ─── BULK CLEAR MODAL ─── */
+#bulkClearModal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(30,45,20,0.55);
+  z-index: 600;
+  align-items: center;
+  justify-content: center;
+}
+#bulkClearModal.open { display: flex; }
+.bulk-clear-box {
+  background: var(--parchment);
+  border-radius: 14px;
+  padding: 1.5rem 1.7rem 1.3rem;
+  max-width: 560px;
+  width: 94vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.22);
+  overflow: hidden;
+}
+.bulk-clear-title {
+  font-family: 'Lora', serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #7a2020;
+  margin-bottom: 0.15rem;
+}
+.bulk-clear-sub {
+  font-size: 0.8rem;
+  color: var(--bark-light);
+  margin-bottom: 1.1rem;
+}
+.bulk-clear-section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--bark);
+  margin-bottom: 0.5rem;
+}
+.bulk-clear-months {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.1rem;
+}
+.bulk-clear-month-pill {
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  border: 1.5px solid rgba(107,66,38,0.25);
+  background: #fff;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--bark);
+  transition: all 0.15s;
+  user-select: none;
+}
+.bulk-clear-month-pill:hover { border-color: #7a2020; color: #7a2020; }
+.bulk-clear-month-pill.selected { background: #7a2020; color: #fff; border-color: #7a2020; }
+.bulk-clear-scope {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+.bulk-clear-scope-btn {
+  flex: 1;
+  padding: 0.45rem 0.5rem;
+  border-radius: 8px;
+  border: 1.5px solid rgba(107,66,38,0.25);
+  background: #fff;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--bark);
+  transition: all 0.15s;
+  text-align: center;
+}
+.bulk-clear-scope-btn:hover { border-color: var(--bark); }
+.bulk-clear-scope-btn.active { background: var(--bark); color: #fff; border-color: var(--bark); }
+.bulk-clear-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 0.3rem;
+}
+.bulk-clear-row-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.84rem;
+  color: var(--bark);
+  transition: background 0.1s;
+}
+.bulk-clear-row-item:hover { background: rgba(107,66,38,0.06); }
+.bulk-clear-row-item input[type=checkbox] { accent-color: #7a2020; width: 15px; height: 15px; cursor: pointer; }
+.bulk-clear-row-item label { cursor: pointer; flex: 1; }
+.bulk-clear-preview {
+  padding: 0.6rem 0.8rem;
+  background: rgba(122,32,32,0.07);
+  border-radius: 8px;
+  font-size: 0.84rem;
+  color: #7a2020;
+  margin-bottom: 1rem;
+  min-height: 2.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.bulk-clear-preview.safe { background: rgba(61,90,46,0.07); color: var(--moss); }
+.bulk-clear-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+.bulk-clear-cancel {
+  padding: 0.5rem 1.1rem;
+  border-radius: 8px;
+  border: 1.5px solid rgba(107,66,38,0.25);
+  background: none;
+  color: var(--bark);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.bulk-clear-cancel:hover { background: rgba(107,66,38,0.06); }
+.bulk-clear-confirm {
+  padding: 0.5rem 1.3rem;
+  border-radius: 8px;
+  border: none;
+  background: #7a2020;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.bulk-clear-confirm:hover { background: #5c1616; }
+.bulk-clear-confirm:disabled { background: rgba(107,66,38,0.2); color: rgba(107,66,38,0.4); cursor: not-allowed; }
+.bulk-clear-selall {
+  font-size: 0.75rem;
+  color: var(--bark-light);
+  cursor: pointer;
+  text-decoration: underline;
+  margin-bottom: 0.5rem;
+  display: inline-block;
+}
+.bulk-clear-selall:hover { color: var(--bark); }
+
 /* ─── CSV ALIGN REVIEW ─── */
 .align-modal-box {
   background: #fff;
@@ -3241,6 +3398,7 @@ body {
       <div class="planner-toolbar" id="plannerToolbar">
         <button class="toolbar-btn" id="editRowsBtn" onclick="toggleEditMode()">⚙️ Edit Rows</button>
         <button class="toolbar-btn populate" onclick="openPopulateModal()">✨ Populate Empty</button>
+        <button class="toolbar-btn bulk-clear-btn" onclick="openBulkClearModal()" title="Clear planning across a date range">🗑 Bulk Clear</button>
       </div>
       <div id="plannerMonthNav"></div>
       <div id="plannerContent"></div>
@@ -10974,6 +11132,37 @@ function buildPrintHtml(dateLabel, sheetName, rows, sessionData, logoSrc) {
   </div>
   <table>${rowsHtml}</table>
   ${resourcesHtml}
+<!-- ─── BULK CLEAR MODAL ─── -->
+<div id="bulkClearModal" onclick="if(event.target===this)closeBulkClearModal()">
+  <div class="bulk-clear-box">
+    <div class="bulk-clear-title">🗑 Bulk Clear Planning</div>
+    <div class="bulk-clear-sub">Select months and which rows to clear, then confirm. This cannot be undone.</div>
+
+    <div class="bulk-clear-section-label">1 · Choose months</div>
+    <div class="bulk-clear-months" id="bulkClearMonths"></div>
+
+    <div class="bulk-clear-section-label">2 · What to clear</div>
+    <div class="bulk-clear-scope">
+      <div class="bulk-clear-scope-btn active" id="bcsAll" onclick="setBulkClearScope('all')">Everything in those sessions</div>
+      <div class="bulk-clear-scope-btn" id="bcsRows" onclick="setBulkClearScope('rows')">Specific rows only</div>
+    </div>
+
+    <div id="bulkClearRowsSection" style="display:none">
+      <span class="bulk-clear-selall" onclick="bulkClearToggleAllRows(true)">Select all</span>
+      &nbsp;·&nbsp;
+      <span class="bulk-clear-selall" onclick="bulkClearToggleAllRows(false)">Deselect all</span>
+      <div class="bulk-clear-rows" id="bulkClearRowList"></div>
+    </div>
+
+    <div class="bulk-clear-preview" id="bulkClearPreview">Select at least one month to see a preview.</div>
+
+    <div class="bulk-clear-actions">
+      <button class="bulk-clear-cancel" onclick="closeBulkClearModal()">Cancel</button>
+      <button class="bulk-clear-confirm" id="bulkClearConfirmBtn" onclick="doBulkClear()" disabled>Clear</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>`;
 }
@@ -11296,6 +11485,195 @@ function openBulkReclassifyModal() {
 
 function closeBulkReclassify() {
   document.getElementById('bulkReclassifyModal').classList.remove('open');
+}
+
+// ─── BULK CLEAR PLANNING ────────────────────────────────────────────────────
+
+const MONTH_ORDER = ['Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
+
+let _bulkClearScope = 'all'; // 'all' | 'rows'
+
+function openBulkClearModal() {
+  _bulkClearScope = 'all';
+  document.getElementById('bcsAll').classList.add('active');
+  document.getElementById('bcsRows').classList.remove('active');
+  document.getElementById('bulkClearRowsSection').style.display = 'none';
+
+  // Build month pills — only months that have at least one session in the active sheet
+  const sheet = getActiveSheet();
+  if (!sheet) return;
+
+  const monthsPresent = new Set();
+  Object.keys(sheet.sessions || {}).forEach(dateKey => {
+    const parts = dateKey.split('-');
+    if (parts.length >= 2) monthsPresent.add(parts[parts.length - 1]);
+  });
+  // Also check SESSION_DATA_BASE
+  if (typeof SESSION_DATA_BASE !== 'undefined') {
+    Object.keys(SESSION_DATA_BASE).forEach(dateKey => {
+      const parts = dateKey.split('-');
+      if (parts.length >= 2) monthsPresent.add(parts[parts.length - 1]);
+    });
+  }
+
+  const container = document.getElementById('bulkClearMonths');
+  container.innerHTML = '';
+  MONTH_ORDER.filter(m => monthsPresent.has(m)).forEach(mon => {
+    const pill = document.createElement('div');
+    pill.className = 'bulk-clear-month-pill';
+    pill.textContent = mon;
+    pill.dataset.month = mon;
+    pill.onclick = () => {
+      pill.classList.toggle('selected');
+      updateBulkClearPreview();
+    };
+    container.appendChild(pill);
+  });
+
+  // Build row checkboxes (all checked by default)
+  const rowList = document.getElementById('bulkClearRowList');
+  rowList.innerHTML = '';
+  const sheetRows = sheet.rowDefs || ROW_DEFS;
+  sheetRows.filter(r => r.key !== '_notes').forEach(row => {
+    const item = document.createElement('div');
+    item.className = 'bulk-clear-row-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.id = 'bcr_' + row.key.replace(/\W/g,'_');
+    cb.dataset.rowKey = row.key;
+    cb.checked = true;
+    cb.onchange = updateBulkClearPreview;
+    const lbl = document.createElement('label');
+    lbl.htmlFor = cb.id;
+    lbl.textContent = (row.icon ? row.icon + ' ' : '') + row.label;
+    item.appendChild(cb);
+    item.appendChild(lbl);
+    rowList.appendChild(item);
+  });
+
+  updateBulkClearPreview();
+  document.getElementById('bulkClearModal').classList.add('open');
+}
+
+function closeBulkClearModal() {
+  document.getElementById('bulkClearModal').classList.remove('open');
+}
+
+function setBulkClearScope(mode) {
+  _bulkClearScope = mode;
+  document.getElementById('bcsAll').classList.toggle('active', mode === 'all');
+  document.getElementById('bcsRows').classList.toggle('active', mode === 'rows');
+  document.getElementById('bulkClearRowsSection').style.display = mode === 'rows' ? 'block' : 'none';
+  updateBulkClearPreview();
+}
+
+function bulkClearToggleAllRows(checked) {
+  document.querySelectorAll('#bulkClearRowList input[type=checkbox]').forEach(cb => cb.checked = checked);
+  updateBulkClearPreview();
+}
+
+function _getBulkClearTargets() {
+  // Returns { sessionCount, cellCount, dates[], rowKeys[] }
+  const selectedMonths = new Set(
+    [...document.querySelectorAll('.bulk-clear-month-pill.selected')].map(p => p.dataset.month)
+  );
+  if (selectedMonths.size === 0) return { sessionCount: 0, cellCount: 0, dates: [], rowKeys: [] };
+
+  const sheet = getActiveSheet();
+  if (!sheet) return { sessionCount: 0, cellCount: 0, dates: [], rowKeys: [] };
+
+  // Collect dates from both state sessions and SESSION_DATA_BASE
+  const allDates = new Set([
+    ...Object.keys(sheet.sessions || {}),
+    ...(typeof SESSION_DATA_BASE !== 'undefined' ? Object.keys(SESSION_DATA_BASE) : [])
+  ]);
+
+  const targetDates = [...allDates].filter(d => {
+    const parts = d.split('-');
+    return selectedMonths.has(parts[parts.length - 1]);
+  });
+
+  // Determine row keys to clear
+  let rowKeys;
+  if (_bulkClearScope === 'all') {
+    const sheetRows = sheet.rowDefs || ROW_DEFS;
+    rowKeys = sheetRows.filter(r => r.key !== '_notes').map(r => r.key);
+  } else {
+    rowKeys = [...document.querySelectorAll('#bulkClearRowList input[type=checkbox]:checked')]
+      .map(cb => cb.dataset.rowKey);
+  }
+
+  // Count cells that actually have content
+  let cellCount = 0;
+  targetDates.forEach(date => {
+    const sess = (sheet.sessions || {})[date] || (typeof SESSION_DATA_BASE !== 'undefined' ? SESSION_DATA_BASE[date] : null) || {};
+    rowKeys.forEach(rk => {
+      const acts = sess[rk];
+      if (acts && acts.length > 0) cellCount++;
+    });
+  });
+
+  return { sessionCount: targetDates.length, cellCount, dates: targetDates, rowKeys };
+}
+
+function updateBulkClearPreview() {
+  const { sessionCount, cellCount, rowKeys } = _getBulkClearTargets();
+  const prev = document.getElementById('bulkClearPreview');
+  const btn = document.getElementById('bulkClearConfirmBtn');
+
+  if (sessionCount === 0) {
+    prev.className = 'bulk-clear-preview';
+    prev.textContent = 'Select at least one month to see a preview.';
+    btn.disabled = true;
+    btn.textContent = 'Clear';
+    return;
+  }
+
+  if (rowKeys.length === 0) {
+    prev.className = 'bulk-clear-preview';
+    prev.textContent = 'Select at least one row type to clear.';
+    btn.disabled = true;
+    btn.textContent = 'Clear';
+    return;
+  }
+
+  if (cellCount === 0) {
+    prev.className = 'bulk-clear-preview safe';
+    prev.textContent = `✓ ${sessionCount} session${sessionCount !== 1 ? 's' : ''} selected — all chosen rows are already empty.`;
+    btn.disabled = false;
+    btn.textContent = 'Clear (nothing to remove)';
+    return;
+  }
+
+  prev.className = 'bulk-clear-preview';
+  prev.innerHTML = `⚠ This will remove <strong>${cellCount} filled cell${cellCount !== 1 ? 's' : ''}</strong> across <strong>${sessionCount} session${sessionCount !== 1 ? 's' : ''}</strong>. This cannot be undone.`;
+  btn.disabled = false;
+  btn.textContent = `Clear ${cellCount} cell${cellCount !== 1 ? 's' : ''}`;
+}
+
+function doBulkClear() {
+  const { sessionCount, cellCount, dates, rowKeys } = _getBulkClearTargets();
+  if (sessionCount === 0 || rowKeys.length === 0) return;
+
+  const sheet = getActiveSheet();
+  if (!sheet) return;
+
+  dates.forEach(date => {
+    if (!sheet.sessions[date]) sheet.sessions[date] = {};
+    rowKeys.forEach(rk => {
+      sheet.sessions[date][rk] = [];
+    });
+  });
+
+  saveState();
+  renderPlanner();
+  closeBulkClearModal();
+
+  const flash = document.createElement('div');
+  flash.textContent = '🗑 Cleared ' + cellCount + ' cell' + (cellCount !== 1 ? 's' : '') + ' across ' + sessionCount + ' session' + (sessionCount !== 1 ? 's' : '');
+  flash.style.cssText = 'position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#7a2020;color:#fff;font-family:Lora,serif;font-size:0.85rem;padding:0.6rem 1.2rem;border-radius:20px;z-index:9000;box-shadow:0 2px 12px rgba(0,0,0,0.2);';
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 3000);
 }
 
 function previewReclassify() {
