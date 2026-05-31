@@ -11132,37 +11132,6 @@ function buildPrintHtml(dateLabel, sheetName, rows, sessionData, logoSrc) {
   </div>
   <table>${rowsHtml}</table>
   ${resourcesHtml}
-<!-- ─── BULK CLEAR MODAL ─── -->
-<div id="bulkClearModal" onclick="if(event.target===this)closeBulkClearModal()">
-  <div class="bulk-clear-box">
-    <div class="bulk-clear-title">🗑 Bulk Clear Planning</div>
-    <div class="bulk-clear-sub">Select months and which rows to clear, then confirm. This cannot be undone.</div>
-
-    <div class="bulk-clear-section-label">1 · Choose months</div>
-    <div class="bulk-clear-months" id="bulkClearMonths"></div>
-
-    <div class="bulk-clear-section-label">2 · What to clear</div>
-    <div class="bulk-clear-scope">
-      <div class="bulk-clear-scope-btn active" id="bcsAll" onclick="setBulkClearScope('all')">Everything in those sessions</div>
-      <div class="bulk-clear-scope-btn" id="bcsRows" onclick="setBulkClearScope('rows')">Specific rows only</div>
-    </div>
-
-    <div id="bulkClearRowsSection" style="display:none">
-      <span class="bulk-clear-selall" onclick="bulkClearToggleAllRows(true)">Select all</span>
-      &nbsp;·&nbsp;
-      <span class="bulk-clear-selall" onclick="bulkClearToggleAllRows(false)">Deselect all</span>
-      <div class="bulk-clear-rows" id="bulkClearRowList"></div>
-    </div>
-
-    <div class="bulk-clear-preview" id="bulkClearPreview">Select at least one month to see a preview.</div>
-
-    <div class="bulk-clear-actions">
-      <button class="bulk-clear-cancel" onclick="closeBulkClearModal()">Cancel</button>
-      <button class="bulk-clear-confirm" id="bulkClearConfirmBtn" onclick="doBulkClear()" disabled>Clear</button>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>`;
 }
@@ -14206,5 +14175,36 @@ function renderPlannerCurrentMonth() {
   <div class="res-panel-body" id="resPanelBody"></div>
   <div class="res-panel-footer">
     <button class="res-copy-btn" onclick="copyResourcesList()">📋 Copy list</button>
+  </div>
+</div>
+
+<!-- ─── BULK CLEAR MODAL ─── -->
+<div id="bulkClearModal" onclick="if(event.target===this)closeBulkClearModal()">
+  <div class="bulk-clear-box">
+    <div class="bulk-clear-title">🗑 Bulk Clear Planning</div>
+    <div class="bulk-clear-sub">Select months and which rows to clear, then confirm. This cannot be undone.</div>
+
+    <div class="bulk-clear-section-label">1 · Choose months</div>
+    <div class="bulk-clear-months" id="bulkClearMonths"></div>
+
+    <div class="bulk-clear-section-label">2 · What to clear</div>
+    <div class="bulk-clear-scope">
+      <div class="bulk-clear-scope-btn active" id="bcsAll" onclick="setBulkClearScope('all')">Everything in those sessions</div>
+      <div class="bulk-clear-scope-btn" id="bcsRows" onclick="setBulkClearScope('rows')">Specific rows only</div>
+    </div>
+
+    <div id="bulkClearRowsSection" style="display:none">
+      <span class="bulk-clear-selall" onclick="bulkClearToggleAllRows(true)">Select all</span>
+      &nbsp;·&nbsp;
+      <span class="bulk-clear-selall" onclick="bulkClearToggleAllRows(false)">Deselect all</span>
+      <div class="bulk-clear-rows" id="bulkClearRowList"></div>
+    </div>
+
+    <div class="bulk-clear-preview" id="bulkClearPreview">Select at least one month to see a preview.</div>
+
+    <div class="bulk-clear-actions">
+      <button class="bulk-clear-cancel" onclick="closeBulkClearModal()">Cancel</button>
+      <button class="bulk-clear-confirm" id="bulkClearConfirmBtn" onclick="doBulkClear()" disabled>Clear</button>
+    </div>
   </div>
 </div>
