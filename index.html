@@ -3780,15 +3780,18 @@ body {
           <div class="m-welcome-card-title" style="color:var(--bark);">Pairs</div>
           <div class="m-welcome-card-desc">Randomly pair children and staff for the day</div>
         </div>
-      <button class="m-welcome-card" style="border-color:rgba(107,66,38,0.3);background:rgba(107,66,38,0.03);" onclick="openMobileCampTasks()">
+      </button>
+      <button class="m-welcome-card" style="border-color:rgba(139,90,43,0.35);background:rgba(139,90,43,0.04);" onclick="openMobileCampTasks()">
         <span class="m-welcome-card-icon">🔧</span>
         <div class="m-welcome-card-text">
           <div class="m-welcome-card-title" style="color:var(--bark);">Camp Tasks</div>
-          <div class="m-welcome-card-desc">Log and track camp improvement jobs as you notice them</div>
+          <div class="m-welcome-card-desc">Log camp improvement jobs as you spot them</div>
         </div>
       </button>
     </div>
   </div>
+
+  <div class="m-bottom-nav">
     <button class="m-nav-item active" id="mNavToday" onclick="mShowView('session')">
       <span class="m-nav-icon">📅</span>
       <span class="m-nav-label">Today</span>
@@ -14402,17 +14405,22 @@ function renderPlannerCurrentMonth() {
   // Try cloud first
   const cloudData = await loadFromCloud();
   if (cloudData) {
-    // Merge cloud data into state
+    // Merge cloud data into state AND into localStorage so loadState() below reads the same data
     try {
       state.sheets = cloudData.sheets || [];
       state.activeSheetId = cloudData.activeSheetId || DEFAULT_SHEET_ID;
       state.menuItems = (cloudData.menuItems || []).filter(i => i && i.name);
       state.importantDates = cloudData.importantDates || [];
-      // Also update localStorage to keep them in sync
+      state.termDates = cloudData.termDates || [];
+      state.campTasks = cloudData.campTasks || [];
+      // Write back to localStorage so loadState() below won't overwrite with stale local data
       localStorage.setItem('forestSchoolPlanner_v2', JSON.stringify(cloudData));
+      console.log('[CotF] Cloud load OK — sheets:', state.sheets.length, 'menuItems:', state.menuItems.length);
     } catch(e) {
       console.warn('Error applying cloud data:', e);
     }
+  } else {
+    console.log('[CotF] No cloud data — falling back to localStorage');
   }
 
   // Run the normal loadState logic (handles defaults, merges base data etc.)
