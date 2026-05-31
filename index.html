@@ -4157,20 +4157,20 @@ const MONTH_META = {
 };
 
 const ROW_DEFS = [
-  {key:"Morning Circle Question", label:"Morning Circle", icon:"💬", cat:"morning"},
-  {key:"Chat Topics",             label:"Chat Topics",    icon:"🗣️", cat:"chat"},
-  {key:"Nature Journaling",       label:"Nature Journaling", icon:"📓", cat:"journaling"},
-  {key:"Wide Game", label:"Wide Game (AM)", icon:"🦊"},
-  {key:"Active Bushcraft Activity / Role Playing Activity", label:"Bushcraft / Roleplay", icon:"🔥"},
-  {key:"Low Energy Craft", label:"Craft", icon:"🌿"},
-  {key:"Nature-Based Activity / Woodland Management Task", label:"Nature / Woodland Task", icon:"🌳"},
-  {key:"Cooking Activity", label:"Cooking", icon:"🍞"},
-  {key:"Long Term Project", label:"Long Term Project", icon:"🏗️"},
-  {key:"Camp Improvement / Decoration Activity", label:"Camp Improvement", icon:"🎨"},
-  {key:"Afternoon Tea Club", label:"Afternoon Tea", icon:"🍵"},
-  {key:"Afternoon Activity", label:"Afternoon Activity", icon:"🎯"},
-  {key:"Planning & Singing", label:"Planning & Singing", icon:"🎶"},
-  {key:"_notes", label:"Session Notes", icon:"📝"},
+  {key:"Morning Circle Question", label:"Morning Circle",        icon:"💬", cat:"morning"},
+  {key:"Chat Topics",             label:"Chat Topics",           icon:"🗣️", cat:"chat"},
+  {key:"Nature Journaling",       label:"Nature Journaling",     icon:"📓", cat:"journaling"},
+  {key:"Wide Game",               label:"Wide Game (AM)",        icon:"🦊", cat:"games"},
+  {key:"Active Bushcraft Activity / Role Playing Activity", label:"Bushcraft / Roleplay", icon:"🔥", cat:"bushcraft"},
+  {key:"Low Energy Craft",        label:"Craft",                 icon:"🌿", cat:"crafts"},
+  {key:"Nature-Based Activity / Woodland Management Task",  label:"Nature / Woodland Task", icon:"🌳", cat:"woodland"},
+  {key:"Cooking Activity",        label:"Cooking",               icon:"🍞", cat:"recipes"},
+  {key:"Long Term Project",       label:"Long Term Project",     icon:"🏗️", cat:"any"},
+  {key:"Camp Improvement / Decoration Activity", label:"Camp Improvement", icon:"🎨", cat:"crafts"},
+  {key:"Afternoon Tea Club",      label:"Afternoon Tea",         icon:"🍵", cat:"tea"},
+  {key:"Afternoon Activity",      label:"Afternoon Activity",    icon:"🎯", cat:"seasonal"},
+  {key:"Planning & Singing",      label:"Planning & Singing",    icon:"🎶", cat:"songs"},
+  {key:"_notes",                  label:"Session Notes",         icon:"📝", cat:"_skip"},
 ];
 
 // BASE_CATEGORIES are the built-in ones — locked from deletion but renameable
@@ -4764,6 +4764,17 @@ function loadState() {
       state.termDates = parsed.termDates || [];
     }
   } catch(e) {}
+
+  // Migrate: ensure all rowDefs on loaded sheets have correct cat values from ROW_DEFS master list
+  const ROW_DEFS_CAT_MAP = {};
+  ROW_DEFS.forEach(r => { if (r.cat) ROW_DEFS_CAT_MAP[r.key] = r.cat; });
+  (state.sheets || []).forEach(sheet => {
+    (sheet.rowDefs || []).forEach(row => {
+      if (ROW_DEFS_CAT_MAP[row.key] && (!row.cat || row.cat !== ROW_DEFS_CAT_MAP[row.key])) {
+        row.cat = ROW_DEFS_CAT_MAP[row.key];
+      }
+    });
+  });
 
   // Ensure default home ed sheet exists
   if (!state.sheets.find(s => s.id === DEFAULT_SHEET_ID)) {
@@ -6028,34 +6039,39 @@ function pickActivityForCell(rowKey, mon) {
     if (defaultRow && defaultRow.cat) explicitCat = defaultRow.cat;
   }
 
-  // For divider rows: never populate
+  // For divider rows or _skip rows: never populate
   if (rowDef && rowDef.type === 'divider') return null;
+  if (rowDef && rowDef.cat === '_skip') return null;
+  if (rowKey === '_notes') return null;
+
+  // Determine effective cat: explicit rowDef cat wins, then heuristic only for user-created rows with no cat
+  let effectiveCat = explicitCat;
+  if (!effectiveCat) {
+    const rowKeyLower = rowKey.toLowerCase();
+    if (rowKeyLower.includes('wide')) effectiveCat = 'games';
+    else if (rowKeyLower.includes('game')) effectiveCat = 'general';
+    else if (rowKeyLower.includes('bush')) effectiveCat = 'bushcraft';
+    else if (rowKeyLower.includes('cook') || rowKeyLower.includes('recipe')) effectiveCat = 'recipes';
+    else if (rowKeyLower.includes('woodland')) effectiveCat = 'woodland';
+    else if (rowKeyLower.includes('nature') || rowKeyLower.includes('forag')) effectiveCat = 'woodland';
+    else if (rowKeyLower.includes('craft') || rowKeyLower.includes('art')) effectiveCat = 'crafts';
+    else if (rowKeyLower.includes('tea')) effectiveCat = 'tea';
+    else if (rowKeyLower.includes('morning') || rowKeyLower.includes('circle')) effectiveCat = 'morning';
+    else if (rowKeyLower.includes('chat') || rowKeyLower.includes('topic')) effectiveCat = 'chat';
+    else if (rowKeyLower.includes('journal')) effectiveCat = 'journaling';
+    else if (rowKeyLower.includes('song') || rowKeyLower.includes('sing')) effectiveCat = 'songs';
+    else effectiveCat = 'any';
+  }
 
   let candidates = state.menuItems.filter(item => {
     if (item.month !== 'all' && !adjacentMonths.includes(item.month)) return false;
     if (item.hidden) return false;
-
-    // Use explicit category if set on the rowDef
-    if (explicitCat) return item.cat === explicitCat;
-
-    // Otherwise fall back to heuristic based on row key name
-    const rowKeyLower = rowKey.toLowerCase();
-    if (rowKeyLower.includes('game') || rowKeyLower.includes('wide')) return item.cat === 'games';
-    if (rowKeyLower.includes('bush') || (rowKeyLower.includes('craft') && rowKeyLower.includes('active'))) return item.cat === 'bushcraft';
-    if (rowKeyLower.includes('cook') || rowKeyLower.includes('recipe')) return item.cat === 'recipes';
-    if (rowKeyLower.includes('forag') || rowKeyLower.includes('nature') || rowKeyLower.includes('woodland')) return item.cat === 'foraging';
-    if (rowKeyLower.includes('craft') || rowKeyLower.includes('art')) return item.cat === 'crafts';
-    if (rowKeyLower.includes('tea')) return item.cat === 'tea';
-    if (rowKeyLower.includes('morning') || rowKeyLower.includes('circle')) return item.cat === 'morning';
-    if (rowKeyLower.includes('chat') || rowKeyLower.includes('topic')) return item.cat === 'chat';
-    if (rowKeyLower.includes('journal')) return item.cat === 'journaling';
-    if (rowKeyLower.includes('story') || rowKeyLower.includes('song') || rowKeyLower.includes('sing') || rowKeyLower.includes('plan')) return item.cat === 'songs';
-    return true;
+    if (effectiveCat === 'any') return true;
+    return item.cat === effectiveCat;
   });
 
-  if (candidates.length === 0) {
-    candidates = state.menuItems.filter(i => (i.month === 'all' || adjacentMonths.includes(i.month)) && !i.hidden);
-  }
+  // If no matches for the specific cat, leave blank rather than stuffing in random items
+  if (candidates.length === 0) return null;
   if (candidates.length === 0) return null;
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
@@ -10182,7 +10198,7 @@ const HOLIDAY_DEFAULT_ROWS = [
   {key:'Low Energy Craft', label:'Craft', icon:'🌿', cat:'crafts'},
   {key:'divider_lunch_default', label:'Lunch', icon:'🥪', type:'divider'},
   {key:'Nature-Based Activity / Woodland Management Task', label:'Nature / Woodland Task', icon:'🌳', cat:'woodland'},
-  {key:'Afternoon Activity', label:'Afternoon Activity', icon:'🎯', cat:'general'},
+  {key:'Afternoon Activity', label:'Afternoon Activity', icon:'🎯', cat:'seasonal'},
   {key:'Planning & Singing', label:'Planning & Singing', icon:'🎶', cat:'songs'},
   {key:'_notes', label:'Session Notes', icon:'📝'},
 ];
