@@ -994,6 +994,32 @@ body {
 .toolbar-btn.bulk-clear-btn { background: rgba(140,30,30,0.07); border-color: rgba(140,30,30,0.25); color: #7a2020; }
 .toolbar-btn.bulk-clear-btn:hover { background: #7a2020; color: #fff; border-color: #7a2020; }
 
+/* ─── VIEW TOGGLE (month / half-term) ─── */
+.toolbar-sep { width: 1px; height: 22px; background: rgba(107,66,38,0.2); margin: 0 4px; align-self: center; }
+.view-toggle-group { display: flex; border: 1.5px solid rgba(107,66,38,0.25); border-radius: 8px; overflow: hidden; }
+.view-toggle-btn { font-family: 'Lora', serif; font-size: 0.78rem; padding: 0.35rem 0.8rem; background: var(--parchment-mid); color: var(--bark-light); border: none; cursor: pointer; transition: all 0.14s; }
+.view-toggle-btn.active { background: var(--bark); color: var(--parchment); font-weight: 600; }
+.view-toggle-btn:not(.active):hover { background: var(--parchment-dark); }
+.toolbar-btn.term-dates-btn { background: var(--parchment-mid); border-color: rgba(107,66,38,0.3); }
+.toolbar-btn.term-dates-btn:hover, .toolbar-btn.term-dates-btn.open { background: var(--bark); color: var(--parchment); border-color: var(--bark); }
+
+/* ─── TERM DATES PANEL ─── */
+#termDatesPanel { background: var(--parchment-mid); border: 1.5px solid rgba(107,66,38,0.2); border-radius: 10px; padding: 1rem 1.25rem; margin: 0.5rem 0 0.75rem; }
+#termDatesPanel h3 { font-family: 'Lora', serif; font-size: 0.85rem; color: var(--bark); margin-bottom: 0.75rem; }
+.term-row-edit { display: grid; grid-template-columns: 130px 1fr 1fr 32px; gap: 8px; align-items: center; margin-bottom: 8px; }
+.term-row-edit input[type="text"] { font-family: 'Lora', serif; font-size: 0.8rem; padding: 5px 8px; border: 1.5px solid rgba(107,66,38,0.2); border-radius: 6px; background: var(--parchment); color: var(--bark); font-weight: 600; }
+.term-row-edit input[type="date"] { font-size: 0.78rem; padding: 5px 8px; border: 1.5px solid rgba(107,66,38,0.2); border-radius: 6px; background: var(--parchment); color: var(--bark); }
+.term-del-btn { background: transparent; border: none; cursor: pointer; color: var(--bark-light); font-size: 1rem; border-radius: 4px; padding: 2px 5px; }
+.term-del-btn:hover { color: #7a2020; background: rgba(140,30,30,0.1); }
+.term-panel-cols { display: grid; grid-template-columns: 130px 1fr 1fr 32px; gap: 8px; margin-bottom: 6px; }
+.term-panel-cols span { font-size: 0.72rem; color: var(--bark-light); }
+.term-panel-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+/* ─── HALF-TERM TABLE SECTIONS ─── */
+.halfterm-section { margin-bottom: 2rem; }
+.halfterm-heading { font-family: 'Lora', serif; font-size: 1.05rem; font-weight: 700; color: var(--bark); margin-bottom: 0.5rem; display: flex; align-items: baseline; gap: 10px; }
+.halfterm-heading .ht-dates { font-size: 0.78rem; font-weight: 400; color: var(--bark-light); }
+
 /* ─── ROW EDIT MODE ─── */
 .row-label.draggable { cursor: grab; user-select: none; }
 .row-label.draggable:active { cursor: grabbing; }
@@ -3399,7 +3425,14 @@ body {
         <button class="toolbar-btn" id="editRowsBtn" onclick="toggleEditMode()">⚙️ Edit Rows</button>
         <button class="toolbar-btn populate" onclick="openPopulateModal()">✨ Populate Empty</button>
         <button class="toolbar-btn bulk-clear-btn" onclick="openBulkClearModal()" title="Clear planning across a date range">🗑 Bulk Clear</button>
+        <span class="toolbar-sep"></span>
+        <div class="view-toggle-group" id="plannerViewToggle">
+          <button class="view-toggle-btn active" id="btnViewMonth" onclick="setPlannerView('month')">📅 Month</button>
+          <button class="view-toggle-btn" id="btnViewHalfterm" onclick="setPlannerView('halfterm')">📆 Half term</button>
+        </div>
+        <button class="toolbar-btn term-dates-btn" id="termDatesBtn" onclick="toggleTermDatesPanel()">🗓 Term dates</button>
       </div>
+      <div id="termDatesPanel" style="display:none;"></div>
       <div id="plannerMonthNav"></div>
       <div id="plannerContent"></div>
     </div>
@@ -4701,12 +4734,14 @@ const DEFAULT_SHEET_ID = 'homeed';
 const DEFAULT_ROW_DEFS_COPY = () => ROW_DEFS.map(r => ({...r}));
 
 let plannerActiveMonth = null; // currently displayed month pill
+let plannerViewMode = 'month'; // 'month' or 'halfterm'
 
 let state = {
   sheets: [],          // [{id, name, rowDefs, sessions, days, startMonth, startYear, endMonth, endYear}]
   activeSheetId: DEFAULT_SHEET_ID,
   menuItems: [],
   importantDates: [],  // [{id, name, day, month, type, notes}]
+  termDates: [],       // [{label, start, end}] shared across all sheets
   catFilter: 'all',
   menuSearch: '',
   calFilter: 'all',
@@ -4726,6 +4761,7 @@ function loadState() {
       state.activeSheetId = parsed.activeSheetId || DEFAULT_SHEET_ID;
       state.menuItems = (parsed.menuItems || []).filter(i => i && i.name);
       state.importantDates = parsed.importantDates || [];
+      state.termDates = parsed.termDates || [];
     }
   } catch(e) {}
 
@@ -4781,6 +4817,7 @@ function saveState() {
     activeSheetId: state.activeSheetId,
     menuItems: state.menuItems.filter(i=>i.userAdded || i.userEdited),
     importantDates: state.importantDates,
+    termDates: state.termDates,
   };
   // Always save to localStorage as instant offline backup
   localStorage.setItem('forestSchoolPlanner_v2', JSON.stringify(toSave));
@@ -4937,6 +4974,209 @@ function toggleEditMode() {
   document.getElementById('plannerContent').classList.toggle('edit-mode', editModeActive);
 }
 
+// ═══════════════════════════════════════════════════════
+// HALF-TERM VIEW
+// ═══════════════════════════════════════════════════════
+
+function setPlannerView(mode) {
+  plannerViewMode = mode;
+  const btnMonth = document.getElementById('btnViewMonth');
+  const btnHalf = document.getElementById('btnViewHalfterm');
+  const monthNav = document.getElementById('plannerMonthNav');
+  if (btnMonth) btnMonth.classList.toggle('active', mode === 'month');
+  if (btnHalf) btnHalf.classList.toggle('active', mode === 'halfterm');
+  if (monthNav) monthNav.style.display = mode === 'month' ? '' : 'none';
+  if (mode === 'month') {
+    renderPlannerMonthNav();
+    renderPlannerCurrentMonth();
+  } else {
+    renderPlannerHalfTerm();
+  }
+}
+
+function toggleTermDatesPanel() {
+  const panel = document.getElementById('termDatesPanel');
+  const btn = document.getElementById('termDatesBtn');
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  if (btn) btn.classList.toggle('open', !isOpen);
+  if (!isOpen) renderTermDatesPanel();
+}
+
+function renderTermDatesPanel() {
+  const panel = document.getElementById('termDatesPanel');
+  if (!panel) return;
+  const terms = state.termDates || [];
+
+  let html = '<h3>🗓 Half-term dates <span style="font-weight:400;font-size:0.75rem;color:var(--bark-light);">— shared across all sheets</span></h3>';
+  html += '<div class="term-panel-cols"><span>Label</span><span>Start date</span><span>End date</span><span></span></div>';
+  html += '<div id="termRowsContainer">';
+  terms.forEach((t, i) => {
+    html += `<div class="term-row-edit">
+      <input type="text" value="${t.label || ''}" placeholder="e.g. Autumn 1" onchange="updateTermField(${i},'label',this.value)" />
+      <input type="date" value="${t.start || ''}" onchange="updateTermField(${i},'start',this.value)" />
+      <input type="date" value="${t.end || ''}" onchange="updateTermField(${i},'end',this.value)" />
+      <button class="term-del-btn" onclick="deleteTerm(${i})" title="Remove">✕</button>
+    </div>`;
+  });
+  html += '</div>';
+  html += '<div class="term-panel-actions">';
+  html += '<button class="toolbar-btn" onclick="addTermRow()">＋ Add half term</button>';
+  html += '<button class="toolbar-btn populate" onclick="saveTermDates()">✓ Save</button>';
+  html += '</div>';
+  panel.innerHTML = html;
+}
+
+function updateTermField(i, field, value) {
+  if (!state.termDates[i]) return;
+  state.termDates[i][field] = value;
+}
+
+function addTermRow() {
+  if (!state.termDates) state.termDates = [];
+  state.termDates.push({ label: '', start: '', end: '' });
+  renderTermDatesPanel();
+}
+
+function deleteTerm(i) {
+  state.termDates.splice(i, 1);
+  renderTermDatesPanel();
+}
+
+function saveTermDates() {
+  saveState();
+  toggleTermDatesPanel();
+  if (plannerViewMode === 'halfterm') renderPlannerHalfTerm();
+}
+
+function fmtTermDate(str) {
+  if (!str) return '';
+  const d = new Date(str + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+}
+
+function sessionDateInTerm(sessionKey, term) {
+  // sessionKey format: "12-Sep", "3-Jan" etc.
+  if (!term.start || !term.end) return false;
+  const parts = sessionKey.split('-');
+  if (parts.length < 2) return false;
+  const day = parseInt(parts[0]);
+  const MONTH_MAP = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  const mIdx = MONTH_MAP[parts[1]];
+  if (mIdx === undefined) return false;
+  // Determine year: academic year runs Sep-Aug, so Sep-Dec = startYear, Jan-Aug = startYear+1
+  const startYear = new Date(term.start + 'T00:00:00').getFullYear();
+  const year = mIdx >= 8 ? startYear : startYear + 1;
+  const sessionDate = new Date(year, mIdx, day);
+  const termStart = new Date(term.start + 'T00:00:00');
+  const termEnd = new Date(term.end + 'T00:00:00');
+  return sessionDate >= termStart && sessionDate <= termEnd;
+}
+
+function renderPlannerHalfTerm() {
+  const sheet = getActiveSheet();
+  const container = document.getElementById('plannerContent');
+  if (!sheet || sheet.type === 'holiday') return;
+  if (!sheet.rowDefs || sheet.rowDefs.length === 0) sheet.rowDefs = DEFAULT_ROW_DEFS_COPY();
+  if (!sheet.sessions) sheet.sessions = {};
+  container.innerHTML = '';
+
+  const terms = (state.termDates || []).filter(t => t.label && t.start && t.end);
+
+  if (!terms.length) {
+    container.innerHTML = '<p style="padding:2rem;font-family:Lora,serif;color:var(--bark-light);font-style:italic;">No half-term dates set. Click 🗓 Term dates to add them.</p>';
+    return;
+  }
+
+  const allSessionKeys = Object.keys(sheet.sessions);
+  if (!allSessionKeys.length) {
+    container.innerHTML = '<p style="padding:2rem;font-family:Lora,serif;color:var(--bark-light);font-style:italic;">No sessions found on this sheet.</p>';
+    return;
+  }
+
+  const MONTH_ORDER = ['Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
+
+  function sortSessionKeys(keys) {
+    return keys.slice().sort((a, b) => {
+      const pa = a.split('-'), pb = b.split('-');
+      const MONTH_MAP = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+      const ma = MONTH_MAP[pa[1]] ?? 0, mb = MONTH_MAP[pb[1]] ?? 0;
+      if (ma !== mb) return ma - mb;
+      return parseInt(pa[0]) - parseInt(pb[0]);
+    });
+  }
+
+  terms.forEach(term => {
+    const termSessions = sortSessionKeys(allSessionKeys.filter(k => sessionDateInTerm(k, term)));
+    if (!termSessions.length) return;
+
+    const section = document.createElement('div');
+    section.className = 'halfterm-section';
+
+    const heading = document.createElement('div');
+    heading.className = 'halfterm-heading';
+    heading.innerHTML = term.label + ' <span class="ht-dates">' + fmtTermDate(term.start) + ' – ' + fmtTermDate(term.end) + '</span>';
+    section.appendChild(heading);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'planner-table-wrap';
+
+    const table = document.createElement('table');
+    table.className = 'planner-table';
+
+    // Ribbon row
+    const thead = document.createElement('thead');
+    const ribbonRow = document.createElement('tr');
+    ribbonRow.className = 'ribbon-row';
+    const rc = document.createElement('th');
+    rc.className = 'ribbon-corner date-col';
+    rc.textContent = '★ Events';
+    ribbonRow.appendChild(rc);
+    termSessions.forEach(date => {
+      const mon = date.split('-')[1];
+      const ribbonTh = document.createElement('th');
+      ribbonTh.className = 'ribbon-cell';
+      const assigned = getImportantDatesForSession(date, termSessions, mon, MONTH_ORDER);
+      assigned.forEach(d => {
+        const tag = document.createElement('span');
+        tag.className = 'ribbon-tag ' + d.type;
+        tag.title = d.name + ' — ' + d.day + ' ' + d.month + (d.notes ? '\n' + d.notes : '');
+        tag.textContent = typeIcon(d.type) + ' ' + d.name;
+        tag.onclick = () => openCalEditPanel(d.id);
+        ribbonTh.appendChild(tag);
+      });
+      ribbonRow.appendChild(ribbonTh);
+    });
+    if (state.importantDates.length > 0) thead.appendChild(ribbonRow);
+
+    // Date header row
+    const headRow = document.createElement('tr');
+    const corner = document.createElement('th');
+    corner.className = 'date-col';
+    corner.textContent = '';
+    headRow.appendChild(corner);
+    termSessions.forEach(date => {
+      const parts = date.split('-');
+      const th = document.createElement('th');
+      th.className = 'date-header-cell';
+      th.innerHTML = '<span class="date-day">' + parts[0] + '</span><span class="date-month"> ' + parts[1] + '</span>';
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    const tbody = buildPlannerTbody(sheet, termSessions, null);
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    section.appendChild(wrap);
+    container.appendChild(section);
+  });
+
+  if (!container.children.length) {
+    container.innerHTML = '<p style="padding:2rem;font-family:Lora,serif;color:var(--bark-light);font-style:italic;">No sessions fall within the defined half-term dates.</p>';
+  }
+}
+
 function renderPlanner() {
   const sheet = getActiveSheet();
   if (!sheet) {
@@ -4978,8 +5218,20 @@ function renderPlanner() {
     }
   }
 
-  renderPlannerMonthNav();
-  renderPlannerCurrentMonth();
+  // Sync toggle button states
+  const btnMonth = document.getElementById('btnViewMonth');
+  const btnHalf = document.getElementById('btnViewHalfterm');
+  const monthNav = document.getElementById('plannerMonthNav');
+  if (btnMonth) btnMonth.classList.toggle('active', plannerViewMode === 'month');
+  if (btnHalf) btnHalf.classList.toggle('active', plannerViewMode === 'halfterm');
+  if (monthNav) monthNav.style.display = plannerViewMode === 'month' ? '' : 'none';
+
+  if (plannerViewMode === 'halfterm') {
+    renderPlannerHalfTerm();
+  } else {
+    renderPlannerMonthNav();
+    renderPlannerCurrentMonth();
+  }
 }
 
 function buildPlannerTbody(sheet, dates, mon) {
