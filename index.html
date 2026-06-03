@@ -14034,6 +14034,22 @@ function renderPairList(pairIds) {
 
 
 // ── Migrate existing sheet rowDefs to add cat:'morning' to Morning Circle ──
+function migrateMenuItemCats() {
+  // Fix any menu items saved with category labels or aliases instead of IDs
+  // e.g. "Wide Games" → "games", "wide games" → "games", "Games" → "general"
+  let changed = false;
+  const validIds = new Set(CATEGORIES.map(c => c.id));
+  state.menuItems.forEach(item => {
+    if (!item.cat || validIds.has(item.cat)) return; // already valid or empty
+    const resolved = resolveCsvCategory(item.cat);
+    if (resolved && resolved !== item.cat) {
+      item.cat = resolved;
+      changed = true;
+    }
+  });
+  if (changed) saveState();
+}
+
 function migrateMorningCircleRowCat() {
   let changed = false;
   state.sheets.forEach(sheet => {
@@ -14439,6 +14455,7 @@ function renderPlannerCurrentMonth() {
   // Run the normal loadState logic (handles defaults, merges base data etc.)
   loadState();
   mergeResourcesIntoMenuItems();
+  migrateMenuItemCats();
   migrateMorningCircleRowCat();
   syncRegisterBirthdays();
   renderSheetTabs();
