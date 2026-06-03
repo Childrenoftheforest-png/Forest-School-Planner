@@ -4886,6 +4886,24 @@ function loadState() {
     if (!homeSheet.endYear) homeSheet.endYear = 2026;
   }
 
+  // Fix items saved with category labels instead of IDs (e.g. "Wide Games" → "games")
+  // Must run before base merge so userHasEdited check works correctly
+  const validIds = new Set(CATEGORIES.map(c => c.id));
+  const baseNameCatQuick = {};
+  if (typeof MENU_ITEMS_BASE !== 'undefined') {
+    MENU_ITEMS_BASE.forEach(i => { if (i && i.name && i.cat) baseNameCatQuick[i.name] = i.cat; });
+  }
+  let catFixed = false;
+  state.menuItems.forEach(item => {
+    if (item.cat && !validIds.has(item.cat)) {
+      const resolved = resolveCsvCategory(item.cat);
+      if (resolved) { item.cat = resolved; catFixed = true; }
+    }
+    if (!item.cat && baseNameCatQuick[item.name]) {
+      item.cat = baseNameCatQuick[item.name]; catFixed = true;
+    }
+  });
+
   // Merge base menu items
   const baseIds = new Set(state.menuItems.filter(i=>!i.userAdded).map(i=>i.name+'|'+i.month+'|'+i.cat));
   for (const item of MENU_ITEMS_BASE) {
@@ -14467,7 +14485,6 @@ function renderPlannerCurrentMonth() {
   // Run the normal loadState logic (handles defaults, merges base data etc.)
   loadState();
   mergeResourcesIntoMenuItems();
-  migrateMenuItemCats();
   migrateMorningCircleRowCat();
   syncRegisterBirthdays();
   renderSheetTabs();
