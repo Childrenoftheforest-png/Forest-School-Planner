@@ -14037,13 +14037,25 @@ function renderPairList(pairIds) {
 function migrateMenuItemCats() {
   // Fix any menu items saved with category labels or aliases instead of IDs
   // e.g. "Wide Games" → "games", "wide games" → "games", "Games" → "general"
+  // Also fix items with empty cat by matching against base data
   let changed = false;
   const validIds = new Set(CATEGORIES.map(c => c.id));
+
+  // Build a name→cat lookup from base items
+  const baseNameCat = {};
+  if (typeof MENU_ITEMS_BASE !== 'undefined') {
+    MENU_ITEMS_BASE.forEach(i => { if (i && i.name && i.cat) baseNameCat[i.name] = i.cat; });
+  }
+
   state.menuItems.forEach(item => {
-    if (!item.cat || validIds.has(item.cat)) return; // already valid or empty
-    const resolved = resolveCsvCategory(item.cat);
-    if (resolved && resolved !== item.cat) {
-      item.cat = resolved;
+    // Case 1: cat is a label string or alias rather than an ID
+    if (item.cat && !validIds.has(item.cat)) {
+      const resolved = resolveCsvCategory(item.cat);
+      if (resolved) { item.cat = resolved; changed = true; }
+    }
+    // Case 2: cat is empty — try to recover from base data by name
+    if (!item.cat && baseNameCat[item.name]) {
+      item.cat = baseNameCat[item.name];
       changed = true;
     }
   });
