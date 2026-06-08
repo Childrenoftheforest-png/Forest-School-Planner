@@ -4008,7 +4008,7 @@ body {
 
 
 <!-- ─── ROW PICKER MODAL ─── -->
-<div class="modal-overlay" id="rowPickerModal">
+<div class="modal-overlay" id="rowPickerModal" style="z-index:500;">
   <div class="modal" style="max-width:400px;">
     <button class="modal-close" onclick="document.getElementById('rowPickerModal').classList.remove('open')">✕</button>
     <h2 id="rowPickerTitle" style="font-family:'Lora',serif;font-size:0.95rem;margin-bottom:1rem;"></h2>
@@ -12086,12 +12086,28 @@ function applyToSession(dateKey, sheet) {
   const [dayStr, monStr] = dateKey.split('-');
   document.getElementById('rowPickerTitle').textContent = `Which row should "${item.name}" go into on ${dayStr} ${monStr}?`;
 
+  // Store sheet and dateKey on the picker for retrieval
+  picker.dataset.dateKey = dateKey;
+  picker.dataset.sheetId = sheet.id;
+
   list.innerHTML = rowKeys.map((k, i) => `
-    <button class="session-date-btn" onclick="document.getElementById('rowPickerModal').classList.remove('open'); applyToSessionRow('${dateKey}', '${sheet.id}', '${k}')">
+    <button class="session-date-btn row-pick-btn" data-rowkey="${escHtml(k)}">
       <div><div class="date-label">${escHtml(rowLabels[i])}</div></div>
       <span style="color:var(--moss);font-size:1.1rem;">＋</span>
     </button>
   `).join('');
+
+  // Attach listeners after rendering
+  list.querySelectorAll('.row-pick-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const rk = btn.dataset.rowkey;
+      const dk = picker.dataset.dateKey;
+      const sid = picker.dataset.sheetId;
+      picker.classList.remove('open');
+      closeSessionPicker();
+      applyToSessionRow(dk, sid, rk);
+    });
+  });
 
   picker.classList.add('open');
 }
