@@ -3482,6 +3482,7 @@ body {
         <button class="menu-csv-btn import" onclick="openCsvImportModal()" title="Import activities from CSV spreadsheet">⬆ Import CSV</button>
         <button class="menu-csv-btn" onclick="exportMenuCsv()" title="Export all activities as CSV spreadsheet">⬇ Export CSV</button>
         <button class="menu-csv-btn import" onclick="openBulkReclassifyModal()" title="Fix category of multiple activities at once">✏ Fix Categories</button>
+        <button class="menu-csv-btn import" onclick="openRestoreDeletedModal()" title="View and restore deleted activities" id="restoreDeletedBtn" style="display:none;">♻ Restore Deleted</button>
         <button class="menu-csv-btn import" onclick="openCatManager()" title="Add, rename or remove activity categories">⚙ Categories</button>
         <button class="add-idea-btn" onclick="openAddIdeaModal()">＋ Add New Idea</button>
       </div>
@@ -4005,6 +4006,29 @@ body {
   </div>
 </div>
 
+
+<!-- ─── ROW PICKER MODAL ─── -->
+<div class="modal-overlay" id="rowPickerModal">
+  <div class="modal" style="max-width:400px;">
+    <button class="modal-close" onclick="document.getElementById('rowPickerModal').classList.remove('open')">✕</button>
+    <h2 id="rowPickerTitle" style="font-family:'Lora',serif;font-size:0.95rem;margin-bottom:1rem;"></h2>
+    <div id="rowPickerList"></div>
+  </div>
+</div>
+
+<!-- ─── RESTORE DELETED MODAL ─── -->
+<div class="modal-overlay" id="restoreDeletedModal">
+  <div class="modal" style="max-width:480px;">
+    <button class="modal-close" onclick="closeRestoreDeletedModal()">✕</button>
+    <h2 style="font-family:'Lora',serif;font-size:1rem;margin-bottom:0.75rem;">♻ Restore deleted activities</h2>
+    <p style="font-size:0.8rem;color:var(--bark-light);margin-bottom:1rem;">These activities have been deleted. Tick any you want to restore.</p>
+    <div id="restoreDeletedList" style="max-height:320px;overflow-y:auto;"></div>
+    <div style="display:flex;gap:8px;margin-top:1rem;">
+      <button class="toolbar-btn populate" onclick="confirmRestoreDeleted()">✓ Restore selected</button>
+      <button class="toolbar-btn" onclick="closeRestoreDeletedModal()">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <!-- ─── CAMP TASK PICKER MODAL ─── -->
 <div class="modal-overlay" id="campTaskPickerModal" style="z-index:1000;">
@@ -4916,6 +4940,20 @@ function loadState() {
   }
 }
 
+function showToast(msg, duration = 2200) {
+  let toast = document.getElementById('cotfToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'cotfToast';
+    toast.style.cssText = 'position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--bark);color:var(--parchment);font-family:Lora,serif;font-size:0.82rem;padding:0.6rem 1.2rem;border-radius:20px;z-index:9999;opacity:0;transition:opacity 0.2s;pointer-events:none;';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.style.opacity = '0'; }, duration);
+}
+
 function saveState() {
   const toSave = {
     sheets: state.sheets,
@@ -5078,6 +5116,54 @@ function toggleEditMode() {
   btn.classList.toggle('active', editModeActive);
   btn.textContent = editModeActive ? '✓ Done Editing' : '⚙️ Edit Rows';
   document.getElementById('plannerContent').classList.toggle('edit-mode', editModeActive);
+}
+
+// ═══════════════════════════════════════════════════════
+// RESTORE DELETED ITEMS
+// ═══════════════════════════════════════════════════════
+
+function updateRestoreDeletedBtn() {
+  const btn = document.getElementById('restoreDeletedBtn');
+  if (!btn) return;
+  const count = (state.menuItems || []).filter(i => i && i.hidden).length;
+  btn.style.display = count > 0 ? 'inline-flex' : 'none';
+  btn.textContent = `♻ Restore Deleted (${count})`;
+}
+
+function openRestoreDeletedModal() {
+  const deleted = (state.menuItems || []).filter(i => i && i.hidden);
+  const list = document.getElementById('restoreDeletedList');
+  if (!deleted.length) {
+    list.innerHTML = '<p style="font-size:0.8rem;color:var(--bark-light);font-style:italic;">No deleted items.</p>';
+  } else {
+    list.innerHTML = deleted.map(item => {
+      const catLabel = CATEGORIES.find(c => c.id === item.cat)?.label || item.cat || 'Unknown';
+      return `<label style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:0.5px solid rgba(107,66,38,0.1);font-size:0.82rem;cursor:pointer;">
+        <input type="checkbox" value="${escHtml(item.name)}" style="width:16px;height:16px;cursor:pointer;" />
+        <span style="flex:1;font-family:'Lora',serif;">${escHtml(item.name)}</span>
+        <span style="color:var(--bark-light);font-size:0.75rem;">${catLabel}</span>
+      </label>`;
+    }).join('');
+  }
+  document.getElementById('restoreDeletedModal').style.display = 'flex';
+}
+
+function closeRestoreDeletedModal() {
+  document.getElementById('restoreDeletedModal').style.display = 'none';
+}
+
+function confirmRestoreDeleted() {
+  const checked = [...document.querySelectorAll('#restoreDeletedList input[type=checkbox]:checked')].map(cb => cb.value);
+  if (!checked.length) { closeRestoreDeletedModal(); return; }
+  checked.forEach(name => {
+    const item = state.menuItems.find(i => i && i.name === name && i.hidden);
+    if (item) { delete item.hidden; }
+  });
+  saveState();
+  renderMenu();
+  renderCatFilters();
+  updateRestoreDeletedBtn();
+  closeRestoreDeletedModal();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -6114,6 +6200,7 @@ function saveDetailPanel() {
 
   saveState();
   renderCatFilters();
+  updateRestoreDeletedBtn();
   if (document.getElementById('menuView').classList.contains('visible')) renderMenu();
   // Brief flash then close
   setTimeout(closeDetailPanel, 300);
@@ -11422,6 +11509,10 @@ function parseCsvAndPreview(text) {
     const existingItem = [...(state.menuItems), ...(typeof MENU_ITEMS_BASE !== 'undefined' ? MENU_ITEMS_BASE : [])]
       .find(i => i && i.name && i.name.toLowerCase() === nameLower);
 
+    // If item was deliberately deleted (hidden), don't re-add it
+    const deletedItem = state.menuItems.find(i => i && i.name && i.name.toLowerCase() === nameLower && i.hidden);
+    if (deletedItem) { skippedDupe++; return; }
+
     if (existingItem) {
       // Check for differences
       const changes = [];
@@ -11523,6 +11614,9 @@ function doImportCsv() {
   }));
   const newlyAdded = [];
   csvParsedRows.forEach(item => {
+    // Don't re-add items the user has deliberately deleted
+    const isDeleted = state.menuItems.some(i => i && i.name && i.name.toLowerCase() === item.name.toLowerCase() && i.hidden);
+    if (isDeleted) return;
     const key = item.month === 'all' ? item.name.toLowerCase() : (item.name.toLowerCase() + '|' + (item.month || ''));
     if (!existingKeys.has(key)) {
       state.menuItems.push(item);
@@ -11534,6 +11628,7 @@ function doImportCsv() {
   saveState();
   renderMenu();
   renderCatFilters();
+  updateRestoreDeletedBtn();
   closeCsvImportModal();
 
   // Track for backfill
@@ -11913,7 +12008,7 @@ function openSessionPicker(item) {
   document.getElementById('sessionPickerTitle').textContent =
     `📅 Add "${item.name}" to a session`;
   document.getElementById('sessionPickerSub').textContent =
-    `Choose which upcoming session to add this activity to. It will be added to all ${item.cat} rows in that session.`;
+    `Choose which upcoming session to add "${item.name}" to.`;
 
   const list = document.getElementById('sessionPickerList');
   list.innerHTML = '';
@@ -11952,29 +12047,68 @@ function applyToSession(dateKey, sheet) {
   const item = _sessionPickerItem;
   if (!item) return;
 
-  if (!sheet.sessions[dateKey]) sheet.sessions[dateKey] = {};
   const rowKeys = matchingRowKeys(sheet, item.cat);
-  let addedCount = 0;
-  rowKeys.forEach(rowKey => {
-    if (!sheet.sessions[dateKey][rowKey]) sheet.sessions[dateKey][rowKey] = [];
-    if (!sheet.sessions[dateKey][rowKey].find(a => a.text === item.name)) {
-      sheet.sessions[dateKey][rowKey].push({ text: item.name, link: item.link || '' });
-      addedCount++;
+  if (rowKeys.length === 0) return;
+
+  const doAdd = (targetRowKeys) => {
+    if (!sheet.sessions[dateKey]) sheet.sessions[dateKey] = {};
+    let addedCount = 0;
+    targetRowKeys.forEach(rowKey => {
+      if (!sheet.sessions[dateKey][rowKey]) sheet.sessions[dateKey][rowKey] = [];
+      if (!sheet.sessions[dateKey][rowKey].find(a => a.text === item.name)) {
+        sheet.sessions[dateKey][rowKey].push({ text: item.name, link: item.link || '' });
+        addedCount++;
+      }
+    });
+    saveState();
+    renderPlanner();
+    closeSessionPicker();
+    const [dayStr, monStr] = dateKey.split('-');
+    if (addedCount > 0) {
+      showToast(`✅ "${item.name}" added to ${sheet.name} on ${dayStr} ${monStr}.`);
     }
+  };
+
+  // If only one matching row, add directly
+  if (rowKeys.length === 1) {
+    doAdd(rowKeys);
+    return;
+  }
+
+  // Multiple matching rows — ask which one
+  const rowLabels = rowKeys.map(k => {
+    const rowDef = (sheet.rowDefs || []).find(r => r.key === k);
+    return rowDef ? rowDef.label : k;
   });
 
+  const picker = document.getElementById('rowPickerModal');
+  const list   = document.getElementById('rowPickerList');
+  const [dayStr, monStr] = dateKey.split('-');
+  document.getElementById('rowPickerTitle').textContent = `Which row should "${item.name}" go into on ${dayStr} ${monStr}?`;
+
+  list.innerHTML = rowKeys.map((k, i) => `
+    <button class="session-date-btn" onclick="document.getElementById('rowPickerModal').classList.remove('open'); applyToSessionRow('${dateKey}', '${sheet.id}', '${k}')">
+      <div><div class="date-label">${escHtml(rowLabels[i])}</div></div>
+      <span style="color:var(--moss);font-size:1.1rem;">＋</span>
+    </button>
+  `).join('');
+
+  picker.classList.add('open');
+}
+
+function applyToSessionRow(dateKey, sheetId, rowKey) {
+  const item = _sessionPickerItem;
+  const sheet = state.sheets.find(s => s.id === sheetId);
+  if (!item || !sheet) return;
+  if (!sheet.sessions[dateKey]) sheet.sessions[dateKey] = {};
+  if (!sheet.sessions[dateKey][rowKey]) sheet.sessions[dateKey][rowKey] = [];
+  if (!sheet.sessions[dateKey][rowKey].find(a => a.text === item.name)) {
+    sheet.sessions[dateKey][rowKey].push({ text: item.name, link: item.link || '' });
+  }
   saveState();
   renderPlanner();
-  closeSessionPicker();
-
-  const mon = sessionMonth(dateKey, sheet);
   const [dayStr, monStr] = dateKey.split('-');
-  const dateLabel = `${dayStr} ${monStr || mon}`;
-  if (addedCount > 0) {
-    alert(`✅ "${item.name}" added to ${addedCount} row${addedCount !== 1 ? 's' : ''} on ${dateLabel}.`);
-  } else {
-    alert(`"${item.name}" was already in all matching rows on ${dateLabel}.`);
-  }
+  showToast(`✅ "${item.name}" added on ${dayStr} ${monStr}.`);
 }
 
 function closeSessionPicker() {
@@ -12402,6 +12536,7 @@ function applyAlignChoices() {
   saveState();
   renderMenu();
   renderCatFilters();
+  updateRestoreDeletedBtn();
   closeAlignModal();
   closeCsvImportModal();
 
@@ -14491,6 +14626,7 @@ function renderPlannerCurrentMonth() {
   renderHolidayDropdown();
   syncRegisterBirthdays();
   renderPlanner();
+  updateRestoreDeletedBtn();
   renderCatFilters();
   document.getElementById('monthList').style.display = '';
   showView('planner');
