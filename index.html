@@ -3887,7 +3887,7 @@ body {
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Category</label>
-        <select class="form-select" id="ideaCategory"></select>
+        <select class="form-select" id="ideaCategory" onchange="onIdeaCategoryChange()"></select>
       </div>
       <div class="form-group">
         <label class="form-label">Best Month(s)</label>
@@ -3923,6 +3923,12 @@ body {
     <div class="form-group">
       <label class="form-label">🛒 Consumables <span style="font-size:0.75rem;color:#888;font-weight:400;">(used up / needs buying)</span></label>
       <textarea class="form-textarea" id="ideaConsumables" placeholder="e.g. 2 cups flour, matches, clay…"></textarea>
+    </div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-family:'Lora',serif;font-size:0.85rem;">
+        <input type="checkbox" id="ideaExcludeFromPopulate" style="width:16px;height:16px;cursor:pointer;">
+        Don't use when populating empty cells
+      </label>
     </div>
 
     <div class="modal-btns">
@@ -3971,8 +3977,15 @@ body {
       </div>
       <div class="detail-section">
         <label class="detail-section-label">🏷️ Category</label>
-        <select class="detail-field" id="dpCatInput"></select>
+        <select class="detail-field" id="dpCatInput" onchange="onDpCategoryChange()"></select>
       </div>
+    </div>
+
+    <div class="detail-section">
+      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-family:'Lora',serif;font-size:0.85rem;">
+        <input type="checkbox" id="dpExcludeFromPopulate" style="width:16px;height:16px;cursor:pointer;">
+        Don't use when populating empty cells
+      </label>
     </div>
 
     <div class="detail-section">
@@ -4284,6 +4297,7 @@ const BASE_CATEGORIES = [
   {id:"chat",      label:"Chat Topics",           emoji:"🗣️", color:"#1a2a3a", bg:"#eef3fa", accent:"#3a6a9a", base:true},
   {id:"journaling",label:"Nature Journaling",     emoji:"📓", color:"#2a1a3a", bg:"#f5f0fa", accent:"#7a4a8a", base:true},
   {id:"projects",  label:"Long Term Projects",    emoji:"🏗️", color:"#2a1a0a", bg:"#f8f4ec", accent:"#7a5a2a", base:true},
+  {id:"misc",      label:"Misc / One-off",        emoji:"🎪", color:"#3a2a2a", bg:"#f8f0ee", accent:"#8a5a4a", base:true},
 ];
 
 // CATEGORIES is the live array — merged from base + user-created, loaded at startup
@@ -6042,8 +6056,19 @@ function openAddIdeaModal() {
   const co = document.getElementById('ideaConsumables');
   if (eq) eq.value = '';
   if (co) co.value = '';
+  const excl = document.getElementById('ideaExcludeFromPopulate');
+  if (excl) excl.checked = false;
   document.getElementById('addIdeaModal').classList.add('open');
   document.getElementById('ideaName').focus();
+}
+
+// When the category is switched to Misc, auto-tick "don't use when populating"
+// (one-off events almost never want to be auto-scheduled). Switching away
+// leaves the checkbox as-is so a deliberate tick isn't clobbered.
+function onIdeaCategoryChange() {
+  const cat = document.getElementById('ideaCategory').value;
+  const excl = document.getElementById('ideaExcludeFromPopulate');
+  if (cat === 'misc' && excl) excl.checked = true;
 }
 
 function closeAddIdeaModal() {
@@ -6059,8 +6084,9 @@ function saveNewIdea() {
   const notes = document.getElementById('ideaNotes').value.trim();
   const equipment   = document.getElementById('ideaEquipment')?.value.trim() || '';
   const consumables = document.getElementById('ideaConsumables')?.value.trim() || '';
+  const excludeFromPopulate = document.getElementById('ideaExcludeFromPopulate')?.checked || false;
   const resources   = equipment;
-  const newItem = {name, cat, month, link, notes, resources, equipment, consumables, userAdded: true};
+  const newItem = {name, cat, month, link, notes, resources, equipment, consumables, excludeFromPopulate, userAdded: true};
   state.menuItems.push(newItem);
   saveState();
   renderCatFilters();
@@ -6128,6 +6154,7 @@ function openDetailPanel(name, catId) {
   document.getElementById('dpNotesInput').value = (item.notes || '').replace(/\\n/g, '\n');
   document.getElementById('dpEquipmentInput').value   = (item.equipment   || item.resources || '').replace(/\\n/g, '\n');
   document.getElementById('dpConsumablesInput').value = (item.consumables || '').replace(/\\n/g, '\n');
+  document.getElementById('dpExcludeFromPopulate').checked = !!item.excludeFromPopulate;
 
   // Link open button
   const linkOpen = document.getElementById('dpLinkOpen');
@@ -6142,9 +6169,10 @@ function openDetailPanel(name, catId) {
   document.getElementById('dpUnsavedDot').classList.remove('visible');
 
   // Wire up change listeners to show unsaved dot
-  ['dpNameInput','dpMonthInput','dpCatInput','dpLinkInput','dpNotesInput','dpEquipmentInput','dpConsumablesInput'].forEach(id => {
+  ['dpNameInput','dpMonthInput','dpCatInput','dpLinkInput','dpNotesInput','dpEquipmentInput','dpConsumablesInput','dpExcludeFromPopulate'].forEach(id => {
     const el = document.getElementById(id);
-    el.oninput = () => {
+    const evt = id === 'dpExcludeFromPopulate' ? 'onchange' : 'oninput';
+    el[evt] = () => {
       document.getElementById('dpUnsavedDot').classList.add('visible');
       // Live update link button
       if (id === 'dpLinkInput') {
@@ -6166,6 +6194,13 @@ function closeDetailPanel() {
   detailPanelState.itemIndex = -1;
 }
 
+// Same auto-tick behaviour as the Add Idea modal, but for editing existing items
+function onDpCategoryChange() {
+  const cat = document.getElementById('dpCatInput').value;
+  const excl = document.getElementById('dpExcludeFromPopulate');
+  if (cat === 'misc' && excl) excl.checked = true;
+}
+
 function saveDetailPanel() {
   const idx = detailPanelState.itemIndex;
   if (idx < 0) return;
@@ -6184,6 +6219,7 @@ function saveDetailPanel() {
     equipment:   document.getElementById('dpEquipmentInput').value.trim(),
     consumables: document.getElementById('dpConsumablesInput').value.trim(),
     resources:   document.getElementById('dpEquipmentInput').value.trim(),
+    excludeFromPopulate: document.getElementById('dpExcludeFromPopulate').checked,
     userEdited: true,  // mark as user-modified so it gets saved
   };
 
@@ -6428,6 +6464,7 @@ function pickActivityForCell(rowKey, mon) {
   let candidates = state.menuItems.filter(item => {
     if (item.month !== 'all' && !adjacentMonths.includes(item.month)) return false;
     if (item.hidden) return false;
+    if (item.excludeFromPopulate) return false;
     if (effectiveCat === 'any') return true;
     return item.cat === effectiveCat;
   });
@@ -11900,6 +11937,7 @@ function runBackfill() {
   // Group unique items by category
   const byCategory = {};
   items.forEach(item => {
+    if (item.excludeFromPopulate) return;
     if (!byCategory[item.cat]) byCategory[item.cat] = [];
     // Avoid duplicating same name in same group
     if (!byCategory[item.cat].find(i => i.name === item.name)) {
