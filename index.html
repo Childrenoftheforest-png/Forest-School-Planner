@@ -3432,6 +3432,10 @@ body {
         <button class="header-tab holiday-clubs-btn" id="holidayClubsBtn" onclick="toggleHolidayDropdown()" title="Holiday club session plans">🏕 Holiday Clubs ▾</button>
         <div class="holiday-clubs-dropdown" id="holidayClubsDropdown"></div>
       </div>
+      <div class="holiday-clubs-wrapper">
+        <button class="header-tab holiday-clubs-btn" id="archivedBtn" onclick="toggleArchivedDropdown()" title="Archived sheets">🗄 Archived ▾</button>
+        <div class="holiday-clubs-dropdown" id="archivedDropdown"></div>
+      </div>
       <div class="header-tab-divider"></div>
       <button class="header-tab" onclick="showView('planner')" data-view="planner">📅 Sessions</button>
       <button class="header-tab" onclick="showView('menu')" data-view="menu">🌱 Activity Menu</button>
@@ -3887,7 +3891,7 @@ body {
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Category</label>
-        <select class="form-select" id="ideaCategory" onchange="onIdeaCategoryChange()"></select>
+        <select class="form-select" id="ideaCategory"></select>
       </div>
       <div class="form-group">
         <label class="form-label">Best Month(s)</label>
@@ -3929,6 +3933,14 @@ body {
         <input type="checkbox" id="ideaExcludeFromPopulate" style="width:16px;height:16px;cursor:pointer;">
         Don't use when populating empty cells
       </label>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Age Range</label>
+      <select class="form-select" id="ideaAgeRange">
+        <option value="all">All ages</option>
+        <option value="0-5">0–5 (toddlers/preschool)</option>
+        <option value="5-12">5–12</option>
+      </select>
     </div>
 
     <div class="modal-btns">
@@ -3977,7 +3989,7 @@ body {
       </div>
       <div class="detail-section">
         <label class="detail-section-label">🏷️ Category</label>
-        <select class="detail-field" id="dpCatInput" onchange="onDpCategoryChange()"></select>
+        <select class="detail-field" id="dpCatInput"></select>
       </div>
     </div>
 
@@ -3986,6 +3998,15 @@ body {
         <input type="checkbox" id="dpExcludeFromPopulate" style="width:16px;height:16px;cursor:pointer;">
         Don't use when populating empty cells
       </label>
+    </div>
+
+    <div class="detail-section">
+      <label class="detail-section-label">👶 Age Range</label>
+      <select class="detail-field" id="dpAgeRange">
+        <option value="all">All ages</option>
+        <option value="0-5">0–5 (toddlers/preschool)</option>
+        <option value="5-12">5–12</option>
+      </select>
     </div>
 
     <div class="detail-section">
@@ -4107,6 +4128,28 @@ body {
 </div>
 
 <!-- ─── NEW SHEET WIZARD ─── -->
+<div class="modal-overlay" id="editSheetModal">
+  <div class="modal" style="max-width:420px;">
+    <button class="modal-close" onclick="closeEditSheetModal()">✕</button>
+    <h2>Sheet Settings</h2>
+    <div class="form-group">
+      <label class="form-label" id="editSheetNameLabel"></label>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Age Group <span style="font-size:0.75rem;color:#888;font-weight:400;">(used when populating empty cells)</span></label>
+      <select class="form-select" id="editSheetAgeGroup">
+        <option value="all">All ages</option>
+        <option value="0-5">0–5 (toddlers/preschool)</option>
+        <option value="5-12">5–12</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="closeEditSheetModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveEditSheet()">Save</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="newSheetModal">
   <div class="modal" style="max-width:560px;">
     <button class="modal-close" onclick="closeNewSheetWizard()">✕</button>
@@ -4118,6 +4161,14 @@ body {
       <div class="form-group">
         <label class="form-label">Sheet Name</label>
         <input type="text" class="form-input" id="wizName" placeholder="e.g. Young Families Tuesdays">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Age Group <span style="font-size:0.75rem;color:#888;font-weight:400;">(used when populating empty cells)</span></label>
+        <select class="form-select" id="wizAgeGroup">
+          <option value="all">All ages</option>
+          <option value="0-5">0–5 (toddlers/preschool)</option>
+          <option value="5-12">5–12</option>
+        </select>
       </div>
       <div class="form-group">
         <label class="form-label">Which day(s) of the week?</label>
@@ -5031,6 +5082,7 @@ function renderSheetTabs() {
   container.innerHTML = '';
   for (const sheet of state.sheets) {
     if (sheet.type === 'holiday') continue; // holiday clubs shown in dropdown
+    if (sheet.archived) continue; // archived sheets shown in the Archived dropdown
     const btn = document.createElement('button');
     btn.className = 'sheet-tab' + (sheet.id === state.activeSheetId ? ' active' : '');
     const labelSpan = document.createElement('span');
@@ -5039,6 +5091,23 @@ function renderSheetTabs() {
     btn.appendChild(labelSpan);
     btn.title = sheet.name;
     btn.onclick = () => switchSheet(sheet.id);
+
+    // Archive button (available on every sheet, including Home Ed —
+    // archiving just hides it from the bar, unlike delete which is blocked for it)
+    const arc = document.createElement('button');
+    arc.className = 'sheet-tab-delete';
+    arc.title = 'Archive this sheet';
+    arc.textContent = '🗄';
+    arc.onclick = (e) => { e.stopPropagation(); archiveSheet(sheet.id); };
+    btn.appendChild(arc);
+
+    // Settings button (age group, etc.)
+    const settings = document.createElement('button');
+    settings.className = 'sheet-tab-delete';
+    settings.title = 'Sheet settings (age group)';
+    settings.textContent = '⚙';
+    settings.onclick = (e) => { e.stopPropagation(); openEditSheetModal(sheet.id); };
+    btn.appendChild(settings);
 
     // Add delete button for non-default sheets
     if (sheet.id !== DEFAULT_SHEET_ID) {
@@ -5097,6 +5166,118 @@ function switchSheet(id) {
   saveState();
   renderSheetTabs();
   renderPlanner();
+}
+
+// ─── ARCHIVE / RESTORE (works for any sheet type, incl. Home Ed and holiday clubs) ───
+function archiveSheet(id) {
+  const sheet = state.sheets.find(s => s.id === id);
+  if (!sheet) return;
+  sheet.archived = true;
+  // If we just archived the sheet we were looking at, hop to the first sheet still visible
+  if (state.activeSheetId === id) {
+    const nextUp = state.sheets.find(s => !s.archived && s.type !== 'holiday') || state.sheets[0];
+    state.activeSheetId = nextUp ? nextUp.id : DEFAULT_SHEET_ID;
+  }
+  saveState();
+  renderSheetTabs();
+  renderHolidayDropdown();
+  renderArchivedDropdown();
+  renderPlanner();
+}
+
+function unarchiveSheet(id) {
+  const sheet = state.sheets.find(s => s.id === id);
+  if (!sheet) return;
+  sheet.archived = false;
+  saveState();
+  renderSheetTabs();
+  renderHolidayDropdown();
+  renderArchivedDropdown();
+  renderPlanner();
+}
+
+function renderArchivedDropdown() {
+  const dd = document.getElementById('archivedDropdown');
+  if (!dd) return;
+  const archived = state.sheets.filter(s => s.archived);
+  dd.innerHTML = '';
+
+  if (archived.length === 0) {
+    dd.innerHTML = '<div style="padding:0.6rem 0.9rem;font-size:0.78rem;font-family:Lora,serif;color:var(--bark-light);font-style:italic;">No archived sheets</div>';
+    return;
+  }
+
+  archived.forEach(sheet => {
+    const item = document.createElement('button');
+    item.className = 'holiday-dropdown-item' + (sheet.id === state.activeSheetId ? ' active-club' : '');
+    const icon = sheet.type === 'holiday' ? '🏕' : (sheet.emoji || '📁');
+    item.innerHTML = `<span>${icon} ${escHtml(sheet.name)}</span>`;
+    const restore = document.createElement('span');
+    restore.className = 'holiday-dropdown-del';
+    restore.title = 'Restore to active sheets';
+    restore.textContent = '↩';
+    restore.onclick = (e) => { e.stopPropagation(); unarchiveSheet(sheet.id); };
+    item.appendChild(restore);
+    item.onclick = () => {
+      state.activeSheetId = sheet.id;
+      saveState();
+      renderSheetTabs();
+      renderHolidayDropdown();
+      renderPlanner();
+      showView('planner');
+      closeArchivedDropdown();
+    };
+    dd.appendChild(item);
+  });
+}
+
+function toggleArchivedDropdown() {
+  const dd = document.getElementById('archivedDropdown');
+  const btn = document.getElementById('archivedBtn');
+  const isOpen = dd.classList.contains('open');
+  if (!isOpen) renderArchivedDropdown();
+  dd.classList.toggle('open', !isOpen);
+  btn.classList.toggle('open', !isOpen);
+  if (!isOpen) {
+    setTimeout(() => {
+      const handler = (e) => {
+        if (!dd.contains(e.target) && !btn.contains(e.target)) {
+          closeArchivedDropdown();
+          document.removeEventListener('click', handler);
+        }
+      };
+      document.addEventListener('click', handler);
+    }, 10);
+  }
+}
+
+function closeArchivedDropdown() {
+  document.getElementById('archivedDropdown')?.classList.remove('open');
+  document.getElementById('archivedBtn')?.classList.remove('open');
+}
+
+// ─── SHEET SETTINGS (age group) ───
+let editSheetTargetId = null;
+function openEditSheetModal(id) {
+  const sheet = state.sheets.find(s => s.id === id);
+  if (!sheet) return;
+  editSheetTargetId = id;
+  document.getElementById('editSheetNameLabel').textContent = sheet.name;
+  document.getElementById('editSheetAgeGroup').value = sheet.ageGroup || 'all';
+  document.getElementById('editSheetModal').classList.add('open');
+}
+
+function closeEditSheetModal() {
+  document.getElementById('editSheetModal').classList.remove('open');
+  editSheetTargetId = null;
+}
+
+function saveEditSheet() {
+  const sheet = state.sheets.find(s => s.id === editSheetTargetId);
+  if (!sheet) return;
+  sheet.ageGroup = document.getElementById('editSheetAgeGroup').value;
+  saveState();
+  closeEditSheetModal();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -6058,17 +6239,10 @@ function openAddIdeaModal() {
   if (co) co.value = '';
   const excl = document.getElementById('ideaExcludeFromPopulate');
   if (excl) excl.checked = false;
+  const ageSel = document.getElementById('ideaAgeRange');
+  if (ageSel) ageSel.value = 'all';
   document.getElementById('addIdeaModal').classList.add('open');
   document.getElementById('ideaName').focus();
-}
-
-// When the category is switched to Misc, auto-tick "don't use when populating"
-// (one-off events almost never want to be auto-scheduled). Switching away
-// leaves the checkbox as-is so a deliberate tick isn't clobbered.
-function onIdeaCategoryChange() {
-  const cat = document.getElementById('ideaCategory').value;
-  const excl = document.getElementById('ideaExcludeFromPopulate');
-  if (cat === 'misc' && excl) excl.checked = true;
 }
 
 function closeAddIdeaModal() {
@@ -6085,8 +6259,9 @@ function saveNewIdea() {
   const equipment   = document.getElementById('ideaEquipment')?.value.trim() || '';
   const consumables = document.getElementById('ideaConsumables')?.value.trim() || '';
   const excludeFromPopulate = document.getElementById('ideaExcludeFromPopulate')?.checked || false;
+  const ageRange = document.getElementById('ideaAgeRange')?.value || 'all';
   const resources   = equipment;
-  const newItem = {name, cat, month, link, notes, resources, equipment, consumables, excludeFromPopulate, userAdded: true};
+  const newItem = {name, cat, month, link, notes, resources, equipment, consumables, excludeFromPopulate, ageRange, userAdded: true};
   state.menuItems.push(newItem);
   saveState();
   renderCatFilters();
@@ -6155,6 +6330,7 @@ function openDetailPanel(name, catId) {
   document.getElementById('dpEquipmentInput').value   = (item.equipment   || item.resources || '').replace(/\\n/g, '\n');
   document.getElementById('dpConsumablesInput').value = (item.consumables || '').replace(/\\n/g, '\n');
   document.getElementById('dpExcludeFromPopulate').checked = !!item.excludeFromPopulate;
+  document.getElementById('dpAgeRange').value = item.ageRange || 'all';
 
   // Link open button
   const linkOpen = document.getElementById('dpLinkOpen');
@@ -6169,9 +6345,9 @@ function openDetailPanel(name, catId) {
   document.getElementById('dpUnsavedDot').classList.remove('visible');
 
   // Wire up change listeners to show unsaved dot
-  ['dpNameInput','dpMonthInput','dpCatInput','dpLinkInput','dpNotesInput','dpEquipmentInput','dpConsumablesInput','dpExcludeFromPopulate'].forEach(id => {
+  ['dpNameInput','dpMonthInput','dpCatInput','dpLinkInput','dpNotesInput','dpEquipmentInput','dpConsumablesInput','dpExcludeFromPopulate','dpAgeRange'].forEach(id => {
     const el = document.getElementById(id);
-    const evt = id === 'dpExcludeFromPopulate' ? 'onchange' : 'oninput';
+    const evt = (id === 'dpExcludeFromPopulate' || id === 'dpAgeRange') ? 'onchange' : 'oninput';
     el[evt] = () => {
       document.getElementById('dpUnsavedDot').classList.add('visible');
       // Live update link button
@@ -6220,6 +6396,7 @@ function saveDetailPanel() {
     consumables: document.getElementById('dpConsumablesInput').value.trim(),
     resources:   document.getElementById('dpEquipmentInput').value.trim(),
     excludeFromPopulate: document.getElementById('dpExcludeFromPopulate').checked,
+    ageRange: document.getElementById('dpAgeRange').value,
     userEdited: true,  // mark as user-modified so it gets saved
   };
 
@@ -6465,6 +6642,10 @@ function pickActivityForCell(rowKey, mon) {
     if (item.month !== 'all' && !adjacentMonths.includes(item.month)) return false;
     if (item.hidden) return false;
     if (item.excludeFromPopulate) return false;
+    if (sheet.ageGroup && sheet.ageGroup !== 'all') {
+      const itemAge = item.ageRange || 'all';
+      if (itemAge !== 'all' && itemAge !== sheet.ageGroup) return false;
+    }
     if (effectiveCat === 'any') return true;
     return item.cat === effectiveCat;
   });
@@ -6673,12 +6854,13 @@ function createNewSheet() {
   const startYear = parseInt(document.getElementById('wizStartYear').value);
   const endMonth = document.getElementById('wizEndMonth').value;
   const endYear = parseInt(document.getElementById('wizEndYear').value);
+  const ageGroup = document.getElementById('wizAgeGroup')?.value || 'all';
 
   const id = 'sheet_' + Date.now();
   const sessions = generateSessionDates(days, startMonth, startYear, endMonth, endYear);
   const rowDefs = wizRoutineRows.map(r => ({...r}));
 
-  const sheet = {id, name, days, startMonth, startYear, endMonth, endYear, rowDefs, sessions};
+  const sheet = {id, name, days, startMonth, startYear, endMonth, endYear, rowDefs, sessions, archived: false, ageGroup};
   state.sheets.push(sheet);
   state.activeSheetId = id;
   saveState();
@@ -10752,7 +10934,8 @@ function createHolidayClub() {
     rowDefs: hcWizRows.map(r => ({...r})),
     sessions,
     days: [], // not used for holiday clubs
-    startMonth: '', startYear: 0, endMonth: '', endYear: 0
+    startMonth: '', startYear: 0, endMonth: '', endYear: 0,
+    archived: false, ageGroup: 'all'
   };
 
   state.sheets.push(sheet);
@@ -10782,7 +10965,7 @@ function generateHolidayDates(startISO, endISO) {
 function renderHolidayDropdown() {
   const dd = document.getElementById('holidayClubsDropdown');
   if (!dd) return;
-  const holidaySheets = state.sheets.filter(s => s.type === 'holiday');
+  const holidaySheets = state.sheets.filter(s => s.type === 'holiday' && !s.archived);
   dd.innerHTML = '';
 
   if (holidaySheets.length === 0) {
@@ -10799,6 +10982,13 @@ function renderHolidayDropdown() {
       };
       const dateRange = sheet.startISO && sheet.endISO ? ` · ${fmtDate(sheet.startISO)}–${fmtDate(sheet.endISO)}` : '';
       item.innerHTML = `<span>🏕 ${escHtml(sheet.name)}</span><span style="font-size:0.7rem;color:var(--bark-light);margin-left:0.3rem;">${dateRange}</span>`;
+      // Archive button
+      const arc = document.createElement('span');
+      arc.className = 'holiday-dropdown-del';
+      arc.title = 'Archive this holiday plan';
+      arc.textContent = '🗄';
+      arc.onclick = (e) => { e.stopPropagation(); archiveSheet(sheet.id); };
+      item.appendChild(arc);
       // Delete button
       const del = document.createElement('span');
       del.className = 'holiday-dropdown-del';
@@ -11923,6 +12113,13 @@ function activityFitsMonth(item, mon) {
   return adjacent.includes(item.month);
 }
 
+// Check if an activity's age range fits a sheet's target age group
+function activityFitsAge(item, sheet) {
+  if (!sheet.ageGroup || sheet.ageGroup === 'all') return true;
+  const itemAge = item.ageRange || 'all';
+  return itemAge === 'all' || itemAge === sheet.ageGroup;
+}
+
 // Find matching rowDef keys in a sheet for a given category
 function matchingRowKeys(sheet, cat) {
   const rows = sheet.rowDefs || [];
@@ -11968,6 +12165,7 @@ function runBackfill() {
         // Look ahead for a seasonally appropriate session
         continue;
       }
+      if (!activityFitsAge(item, sheet)) continue;
 
       // Add to all matching rows in this session
       if (!sheet.sessions[key]) sheet.sessions[key] = {};
@@ -11997,6 +12195,7 @@ function runBackfill() {
         const mon = sessionMonth(key, sheet);
         const item = catItems[itemIdx % catItems.length];
         if (!activityFitsMonth(item, mon)) continue;
+        if (!activityFitsAge(item, sheet)) continue;
         if (!sheet.sessions[key]) sheet.sessions[key] = {};
         rowKeys.forEach(rowKey => {
           if (!sheet.sessions[key][rowKey]) sheet.sessions[key][rowKey] = [];
@@ -14689,7 +14888,7 @@ function renderPlannerCurrentMonth() {
   if (IS_MOBILE()) mInit();
 
   // Wire overlay-click listeners (moved here from end of file)
-  ['populateModal','newSheetModal'].forEach(id => {
+  ['populateModal','newSheetModal','editSheetModal'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('click', function(e) {
       if (e.target === this) {
