@@ -13536,8 +13536,8 @@ function renderRegisterTable() {
   const dates    = currentMon
     ? regAllDates.filter(d => d.slice(0,7) === currentMon)
     : regAllDates;
-  const children = regState.people.filter(p => p.type === 'child');
-  const staff    = regState.people.filter(p => p.type === 'staff');
+  const children = regState.people.filter(p => p.type === 'child' && !p.left);
+  const staff    = regState.people.filter(p => p.type === 'staff' && !p.left);
   const head = document.getElementById('registerTableHead');
   const body = document.getElementById('registerTableBody');
 
@@ -13609,14 +13609,18 @@ const REGISTER_CSV_COLS = [
   {key:'medicalAllergies',label:'Medical / Allergies'},
   {key:'nextOfKin',       label:'Next of Kin'},
   {key:'notes',           label:'Notes'},
+  {key:'leftStatus',      label:'Status'},
+  {key:'leftDate',        label:'Left Date'},
 ];
 
 function exportRegisterCSV() {
   const esc = v => { const s=String(v||''); return (s.includes(',')||s.includes('"')||s.includes('\n'))?'"'+s.replace(/"/g,'""')+'"':s; };
+  const includeLeft = document.getElementById('exportIncludeLeft')?.checked;
   const header = REGISTER_CSV_COLS.map(c => c.label);
   const rows = [header.map(esc).join(',')];
-  regState.people.forEach(p => {
-    rows.push(REGISTER_CSV_COLS.map(c => esc(p[c.key]||'')).join(','));
+  regState.people.filter(p => includeLeft || !p.left).forEach(p => {
+    const row = {...p, leftStatus: p.left ? 'Left' : 'Active'};
+    rows.push(REGISTER_CSV_COLS.map(c => esc(row[c.key]||'')).join(','));
   });
   const a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(rows.join('\r\n'));
@@ -13640,23 +13644,52 @@ function switchManageTab(tab) {
   profileEditingType = tab === 'children' ? 'child' : 'staff';
   document.getElementById('manageTabChildren').classList.toggle('active', tab==='children');
   document.getElementById('manageTabStaff').classList.toggle('active', tab==='staff');
-  const people = regState.people.filter(p => p.type === (tab==='children'?'child':'staff'));
+  const typeKey = tab==='children' ? 'child' : 'staff';
+  const showFormer = document.getElementById('manageShowFormer')?.checked;
+  const active = regState.people.filter(p => p.type === typeKey && !p.left);
+  const former = regState.people.filter(p => p.type === typeKey && p.left);
   const list = document.getElementById('manageList');
   list.innerHTML = '';
-  if (!people.length) {
+
+  const renderRow = (p, isFormer) => {
+    const row = document.createElement('div');
+    row.className = 'manage-person-row';
+    let sub = escHtml(p.fullName||'') + (p.type==='staff'&&p.role?' · '+escHtml(p.role):'');
+    if (isFormer) sub += p.leftDate ? ' · Left ' + escHtml(formatRegisterDateShort(p.leftDate)) : ' · Left';
+    row.innerHTML = '<div><div class="manage-person-name">'+escHtml(p.preferredName||p.fullName||'—')+'</div>'+
+      '<div class="manage-person-sub">'+sub+'</div></div>';
+    const btnWrap = document.createElement('div');
+    btnWrap.style.display = 'flex'; btnWrap.style.gap = '0.4rem';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'register-btn'; editBtn.textContent = 'Edit';
+    editBtn.onclick = () => openPersonProfileById(p.id);
+    btnWrap.appendChild(editBtn);
+    if (isFormer) {
+      const restoreBtn = document.createElement('button');
+      restoreBtn.className = 'register-btn';
+      restoreBtn.textContent = '↩ Restore';
+      restoreBtn.onclick = () => {
+        const person = regState.people.find(x => x.id === p.id);
+        if (person) { person.left = false; saveRegister(); switchManageTab(manageActiveTab); renderRegisterTable(); }
+      };
+      btnWrap.appendChild(restoreBtn);
+    }
+    row.appendChild(btnWrap);
+    list.appendChild(row);
+  };
+
+  if (!active.length && !(showFormer && former.length)) {
     list.innerHTML = '<div style="font-family:EB Garamond,serif;font-style:italic;color:var(--bark-light);padding:0.5rem 0;">No '+tab+' added yet.</div>';
     return;
   }
-  people.forEach(p => {
-    const row = document.createElement('div');
-    row.className = 'manage-person-row';
-    row.innerHTML = '<div><div class="manage-person-name">'+escHtml(p.preferredName||p.fullName||'—')+'</div>'+
-      '<div class="manage-person-sub">'+escHtml(p.fullName||'')+(p.type==='staff'&&p.role?' · '+escHtml(p.role):'')+'</div></div>';
-    const btn = document.createElement('button');
-    btn.className = 'register-btn'; btn.textContent = 'Edit';
-    btn.onclick = () => openPersonProfileById(p.id);
-    row.appendChild(btn); list.appendChild(row);
-  });
+  active.forEach(p => renderRow(p, false));
+  if (showFormer && former.length) {
+    const divider = document.createElement('div');
+    divider.style.cssText = 'margin:0.6rem 0 0.3rem;font-family:"Lora",serif;font-size:0.72rem;font-weight:600;color:var(--bark-light);text-transform:uppercase;letter-spacing:0.05em;';
+    divider.textContent = 'Former';
+    list.appendChild(divider);
+    former.forEach(p => renderRow(p, true));
+  }
 }
 
 // ═══════════════════════════════ PROFILE PANEL ═══════════════════════════════
@@ -13741,6 +13774,60 @@ function renderProfileForm(p, type) {
     if (f.type==='textarea') el.rows = 2;
     grp.appendChild(el); container.appendChild(grp);
   });
+  renderLeftSection(p);
+}
+
+function renderLeftSection(p) {
+  const section = document.getElementById('profileLeftSection');
+  const label = document.getElementById('profileLeftLabel');
+  const dateInput = document.getElementById('profileLeftDateInput');
+  const btn = document.getElementById('profileLeftBtn');
+  // Only show for an existing person — nothing to mark left on someone not yet saved
+  if (!profileEditingId) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  if (p.left) {
+    label.textContent = 'Status: Left';
+    dateInput.style.display = '';
+    dateInput.value = p.leftDate || '';
+    btn.textContent = '↩ Restore to Active';
+    btn.onclick = restorePersonActive;
+  } else {
+    label.textContent = 'Status: Active';
+    dateInput.style.display = 'none';
+    btn.textContent = 'Mark as Left';
+    btn.onclick = markPersonLeft;
+  }
+}
+
+function markPersonLeft() {
+  if (!profileEditingId) return;
+  const person = regState.people.find(x => x.id === profileEditingId);
+  if (!person) return;
+  person.left = true;
+  person.leftDate = person.leftDate || ukDateNow();
+  saveRegister();
+  renderLeftSection(person);
+  switchManageTab(manageActiveTab);
+  renderRegisterTable();
+}
+
+function restorePersonActive() {
+  if (!profileEditingId) return;
+  const person = regState.people.find(x => x.id === profileEditingId);
+  if (!person) return;
+  person.left = false;
+  saveRegister();
+  renderLeftSection(person);
+  switchManageTab(manageActiveTab);
+  renderRegisterTable();
+}
+
+function updateLeftDate(val) {
+  if (!profileEditingId) return;
+  const person = regState.people.find(x => x.id === profileEditingId);
+  if (!person) return;
+  person.leftDate = val;
+  saveRegister();
 }
 function savePersonProfile() {
   const fields = profileEditingType==='child' ? CHILD_FIELDS : STAFF_FIELDS;
@@ -13761,7 +13848,7 @@ function savePersonProfile() {
 function deletePersonProfile() {
   if (!profileEditingId) return;
   const name = regState.people.find(p=>p.id===profileEditingId)?.preferredName||'this person';
-  if (!confirm('Remove '+name+'? Arrival records will be kept.')) return;
+  if (!confirm('Remove '+name+'? This is permanent — for someone who has simply left the group, use "Mark as Left" instead to keep their attendance history. Arrival records for this person will no longer be viewable.')) return;
   regState.people = regState.people.filter(p => p.id!==profileEditingId);
   saveRegister(); closePersonProfile(); switchManageTab(manageActiveTab);
 }
@@ -13796,12 +13883,12 @@ function mRenderRegister() {
   document.getElementById('mRegisterDateLabel').textContent = formatRegisterDate(iso);
   document.getElementById('mRegisterNavLabel').textContent  = formatRegisterDateShort(iso);
   const arrivals = regState.arrivals[iso]||{};
-  const onSite   = regState.people.filter(p => arrivals[p.id]).length;
+  const onSite   = regState.people.filter(p => !p.left && arrivals[p.id]).length;
   document.getElementById('mRegisterCount').textContent = onSite+' on site';
   const list = document.getElementById('mRegisterList');
   list.innerHTML = '';
-  const children = regState.people.filter(p => p.type==='child');
-  const staff    = regState.people.filter(p => p.type==='staff');
+  const children = regState.people.filter(p => p.type==='child' && !p.left);
+  const staff    = regState.people.filter(p => p.type==='staff' && !p.left);
   if (!children.length && !staff.length) {
     list.innerHTML = '<div style="padding:2rem 1rem;text-align:center;font-family:Lora,serif;font-style:italic;color:var(--bark-light);">No people added yet.<br><span style="font-size:0.8rem;">Add children and staff from the desktop Register view.</span></div>';
     return;
@@ -13875,7 +13962,7 @@ function mRemoveArrival(iso, personId, btn, removeBtn, info) {
 function mUpdateOnSiteCount(iso) {
   const arr = regState.arrivals[iso] || {};
   document.getElementById('mRegisterCount').textContent =
-    regState.people.filter(p => arr[p.id]).length + ' on site';
+    regState.people.filter(p => !p.left && arr[p.id]).length + ' on site';
 }
 
 // ═══════════════════════════════ VIEW ROUTING ═══════════════════════════════
@@ -15022,9 +15109,16 @@ function renderPlannerCurrentMonth() {
       <button class="manage-tab active" id="manageTabChildren" onclick="switchManageTab('children')">🧒 Children</button>
       <button class="manage-tab" id="manageTabStaff" onclick="switchManageTab('staff')">🌿 Staff</button>
     </div>
+    <label style="display:flex;align-items:center;gap:0.4rem;font-family:'Lora',serif;font-size:0.78rem;color:var(--bark-light);margin:0.4rem 0;">
+      <input type="checkbox" id="manageShowFormer" onchange="switchManageTab(manageActiveTab)"> Show former members
+    </label>
     <div class="manage-list" id="manageList"></div>
-    <div style="display:flex;gap:0.6rem;">
+    <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;">
       <button class="register-btn primary" onclick="openNewPersonProfile()">＋ Add Person</button>
+      <label style="display:flex;align-items:center;gap:0.35rem;font-family:'Lora',serif;font-size:0.75rem;color:var(--bark-light);">
+        <input type="checkbox" id="exportIncludeLeft"> Include former members
+      </label>
+      <button class="register-btn" onclick="exportRegisterCSV()">⬇ Export CSV</button>
       <button class="register-btn" onclick="closeManageRegister()">Close</button>
     </div>
   </div>
@@ -15037,6 +15131,13 @@ function renderPlannerCurrentMonth() {
     <div class="profile-name-header" id="profileNameHeader">Person</div>
     <span class="profile-role-badge child" id="profileRoleBadge">Child</span>
     <div class="profile-fields" id="profileFields"></div>
+    <div class="profile-field-group" id="profileLeftSection" style="display:none;">
+      <label id="profileLeftLabel">Status: Active</label>
+      <div style="display:flex;align-items:center;gap:0.6rem;">
+        <input type="date" id="profileLeftDateInput" class="profile-field-input" style="display:none;max-width:170px;" onchange="updateLeftDate(this.value)">
+        <button class="register-btn" id="profileLeftBtn">Mark as Left</button>
+      </div>
+    </div>
     <div class="profile-actions">
       <button class="profile-delete-btn" id="profileDeleteBtn" onclick="deletePersonProfile()">Delete</button>
       <button class="profile-save-btn" onclick="savePersonProfile()">Save Changes</button>
