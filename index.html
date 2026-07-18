@@ -3777,13 +3777,7 @@ body {
           <div class="m-welcome-card-desc">This week's resources from session plans, plus your own items</div>
         </div>
       </button>
-      <button class="m-welcome-card" style="border-color:rgba(61,90,46,0.35);background:rgba(61,90,46,0.04);" onclick="mShowView('register')">
-        <span class="m-welcome-card-icon">📋</span>
-        <div class="m-welcome-card-text">
-          <div class="m-welcome-card-title" style="color:var(--moss);">Register</div>
-          <div class="m-welcome-card-desc">Record arrivals and view who is on site today</div>
-        </div>
-      </button>
+      <div id="mRegisterCardsWrap"></div>
       <button class="m-welcome-card" style="border-color:rgba(107,66,38,0.3);background:rgba(107,66,38,0.03);" onclick="mShowView('pairs')">
         <span class="m-welcome-card-icon">👥</span>
         <div class="m-welcome-card-text">
@@ -10716,7 +10710,7 @@ function mCloseResPanel() {
 }
 
 // ── View switching ──
-function mShowView(view) {
+function mShowView(view, sheetId) {
   mState.view = view;
   document.querySelectorAll('.m-view').forEach(v => {
     v.classList.remove('active', 'prev');
@@ -10728,6 +10722,7 @@ function mShowView(view) {
   if (view === 'welcome') {
     document.getElementById('mWelcomeView').classList.add('active');
     if (nav) nav.style.display = 'none';
+    renderMobileRegisterCards();
     return;
   }
 
@@ -10750,7 +10745,7 @@ function mShowView(view) {
     mBuildShoppingList();
   } else if (view === 'register') {
     document.getElementById('mRegisterView').classList.add('active');
-    mOpenRegister();
+    mOpenRegister(sheetId);
   } else if (view === 'pairs') {
     document.getElementById('mPairView').classList.add('active');
     mOpenPairs();
@@ -13516,6 +13511,7 @@ function formatRegisterDateShort(iso) {
 let regViewMonthIdx = 0;   // index into regViewMonths array
 let regViewMonths   = [];  // ['2025-09', '2025-10', ...]
 let regAllDates     = [];  // all ISO dates for current sheet
+let regActiveSheetId = null;
 
 function populateRegisterSheetSelect() {
   const sel = document.getElementById('registerSheetSelect');
@@ -13538,6 +13534,7 @@ function onRegisterSheetChange() {
   const sel = document.getElementById('registerSheetSelect');
   const sheetId = sel ? sel.value : state.sheets[0]?.id;
   if (!sheetId) return;
+  regActiveSheetId = sheetId;
   regAllDates   = getRegisterSessionDates(sheetId);
   // Build unique month list
   const monthSet = new Set(regAllDates.map(d => d.slice(0,7)));
@@ -13583,8 +13580,9 @@ function renderRegisterTable() {
   const dates    = currentMon
     ? regAllDates.filter(d => d.slice(0,7) === currentMon)
     : regAllDates;
-  const children = regState.people.filter(p => p.type === 'child' && !p.left);
-  const staff    = regState.people.filter(p => p.type === 'staff' && !p.left);
+  const inGroup = p => !p.groupIds || p.groupIds.length === 0 || p.groupIds.includes(regActiveSheetId);
+  const children = regState.people.filter(p => p.type === 'child' && !p.left && inGroup(p));
+  const staff    = regState.people.filter(p => p.type === 'staff' && !p.left && inGroup(p));
   const head = document.getElementById('registerTableHead');
   const body = document.getElementById('registerTableBody');
 
@@ -13704,6 +13702,112 @@ function closeManageRegister() {
   renderRegisterTable();
   renderPlanner(); // refresh session flags
 }
+// ─── COPY PEOPLE FROM ANOTHER SHEET ───
+function openCopyFromSheetModal() {
+  const targetId = regActiveSheetId || document.getElementById('registerSheetSelect')?.value;
+  if (!targetId) { alert('Pick a sheet in the Register view first.'); return; }
+  const sel = document.getElementById('copySourceSheet');
+  sel.innerHTML = '';
+  state.sheets.filter(s => s.id !== targetId).forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = (s.type==='holiday'?'🏕 ':'') + s.name + (s.archived ? ' (archived)' : '');
+    sel.appendChild(opt);
+  });
+  renderCopySourceList();
+  document.getElementById('copyFromSheetModal').classList.add('open');
+}
+
+function closeCopyFromSheetModal() {
+  document.getElementById('copyFromSheetModal').classList.remove('open');
+}
+
+function renderCopySourceList() {
+  const sourceId = document.getElementById('copySourceSheet').value;
+  const list = document.getElementById('copySourceList');
+  list.innerHTML = '';
+  const people = regState.people.filter(p => !p.left && (p.groupIds||[]).includes(sourceId));
+  if (!people.length) {
+    list.innerHTML = '<div style="font-style:italic;color:var(--bark-light);font-family:\'Lora\',serif;font-size:0.8rem;">No one tagged to that sheet yet.</div>';
+    return;
+  }
+  people.forEach(p => {
+    const label = document.createElement('label');
+    label.style.cssText = 'display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-family:"Lora",serif;font-size:0.82rem;';
+    label.innerHTML = '<input type="checkbox" value="'+p.id+'" style="width:15px;height:15px;cursor:pointer;"> '+
+      (p.type==='staff'?'🌿 ':'🧒 ')+escHtml(p.preferredName||p.fullName||'—');
+    list.appendChild(label);
+  });
+}
+
+function applyCopyFromSheet() {
+  const targetId = regActiveSheetId || document.getElementById('registerSheetSelect')?.value;
+  if (!targetId) return;
+  const checked = [...document.querySelectorAll('#copySourceList input[type="checkbox"]:checked')].map(cb => cb.value);
+  checked.forEach(id => {
+    const person = regState.people.find(p => p.id === id);
+    if (!person) return;
+    if (!person.groupIds) person.groupIds = [];
+    if (!person.groupIds.includes(targetId)) person.groupIds.push(targetId);
+  });
+  saveRegister();
+  switchManageTab(manageActiveTab);
+  renderRegisterTable();
+  closeCopyFromSheetModal();
+}
+
+// ─── ASSIGN UNASSIGNED PEOPLE (one-time sweep) ───
+function openAssignSweepModal() {
+  const sel = document.getElementById('sweepTargetSheet');
+  sel.innerHTML = '';
+  state.sheets.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = (s.type==='holiday'?'🏕 ':'') + s.name + (s.archived ? ' (archived)' : '');
+    sel.appendChild(opt);
+  });
+  const currentReg = regActiveSheetId || document.getElementById('registerSheetSelect')?.value;
+  if (currentReg) sel.value = currentReg;
+  renderSweepList();
+  document.getElementById('assignSweepModal').classList.add('open');
+}
+
+function closeAssignSweepModal() {
+  document.getElementById('assignSweepModal').classList.remove('open');
+}
+
+function renderSweepList() {
+  const list = document.getElementById('sweepList');
+  list.innerHTML = '';
+  const unassigned = regState.people.filter(p => !p.left && (!p.groupIds || p.groupIds.length === 0));
+  if (!unassigned.length) {
+    list.innerHTML = '<div style="font-style:italic;color:var(--bark-light);font-family:\'Lora\',serif;font-size:0.8rem;">Everyone is already assigned to a group.</div>';
+    return;
+  }
+  unassigned.forEach(p => {
+    const label = document.createElement('label');
+    label.style.cssText = 'display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-family:"Lora",serif;font-size:0.82rem;';
+    label.innerHTML = '<input type="checkbox" value="'+p.id+'" style="width:15px;height:15px;cursor:pointer;" checked> '+
+      (p.type==='staff'?'🌿 ':'🧒 ')+escHtml(p.preferredName||p.fullName||'—');
+    list.appendChild(label);
+  });
+}
+
+function applyAssignSweep() {
+  const targetId = document.getElementById('sweepTargetSheet').value;
+  if (!targetId) return;
+  const checked = [...document.querySelectorAll('#sweepList input[type="checkbox"]:checked')].map(cb => cb.value);
+  checked.forEach(id => {
+    const person = regState.people.find(p => p.id === id);
+    if (!person) return;
+    person.groupIds = [targetId];
+  });
+  saveRegister();
+  switchManageTab(manageActiveTab);
+  renderRegisterTable();
+  closeAssignSweepModal();
+}
+
 function switchManageTab(tab) {
   manageActiveTab = tab;
   profileEditingType = tab === 'children' ? 'child' : 'staff';
@@ -13785,7 +13889,8 @@ const STAFF_FIELDS = [
 
 function openNewPersonProfile() {
   profileEditingId = null;
-  renderProfileForm({}, profileEditingType);
+  const defaultGroup = regActiveSheetId ? [regActiveSheetId] : [];
+  renderProfileForm({groupIds: defaultGroup}, profileEditingType);
   document.getElementById('personProfilePanel').classList.add('open');
 }
 function openPersonProfileById(id) {
@@ -13839,7 +13944,24 @@ function renderProfileForm(p, type) {
     if (f.type==='textarea') el.rows = 2;
     grp.appendChild(el); container.appendChild(grp);
   });
+  renderGroupsSection(p);
   renderLeftSection(p);
+}
+
+function renderGroupsSection(p) {
+  const list = document.getElementById('profileGroupsList');
+  if (!list) return;
+  list.innerHTML = '';
+  const groupIds = p.groupIds || [];
+  state.sheets.forEach(s => {
+    const cbId = 'pg_' + s.id;
+    const label = document.createElement('label');
+    label.style.cssText = 'display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-family:"Lora",serif;font-size:0.82rem;';
+    const icon = s.type === 'holiday' ? '🏕' : (s.emoji || '📁');
+    label.innerHTML = '<input type="checkbox" id="'+cbId+'" value="'+s.id+'" style="width:15px;height:15px;cursor:pointer;"'+
+      (groupIds.includes(s.id) ? ' checked' : '') + '> ' + icon + ' ' + escHtml(s.name) + (s.archived ? ' <span style="color:var(--bark-light);font-style:italic;">(archived)</span>' : '');
+    list.appendChild(label);
+  });
 }
 
 function renderLeftSection(p) {
@@ -13899,6 +14021,7 @@ function savePersonProfile() {
   const data = { type: profileEditingType };
   fields.forEach(f => { data[f.key] = document.getElementById('pf_'+f.key)?.value.trim()||''; });
   if (!data.preferredName && !data.fullName) { alert('Please enter a name.'); return; }
+  data.groupIds = [...document.querySelectorAll('#profileGroupsList input[type="checkbox"]:checked')].map(cb => cb.value);
   if (profileEditingId) {
     const idx = regState.people.findIndex(p => p.id===profileEditingId);
     if (idx>=0) regState.people[idx] = {...regState.people[idx],...data};
@@ -13924,11 +14047,38 @@ function closePersonProfile() {
 
 // ═══════════════════════════════ MOBILE REGISTER ═══════════════════════════════
 
-async function mOpenRegister() {
+function renderMobileRegisterCards() {
+  const wrap = document.getElementById('mRegisterCardsWrap');
+  if (!wrap) return;
+  const groups = state.sheets.filter(s => !s.archived);
+  wrap.innerHTML = '';
+  if (!groups.length) return; // nothing active yet — no card to show
+  groups.forEach(sheet => {
+    const btn = document.createElement('button');
+    btn.className = 'm-welcome-card';
+    btn.style.cssText = 'border-color:rgba(61,90,46,0.35);background:rgba(61,90,46,0.04);';
+    const icon = sheet.type === 'holiday' ? '🏕' : '📋';
+    btn.innerHTML = '<span class="m-welcome-card-icon">'+icon+'</span>'+
+      '<div class="m-welcome-card-text">'+
+      '<div class="m-welcome-card-title" style="color:var(--moss);">'+escHtml(sheet.name)+' Register</div>'+
+      '<div class="m-welcome-card-desc">Record arrivals and view who is on site today</div>'+
+      '</div>';
+    btn.onclick = () => mShowView('register', sheet.id);
+    wrap.appendChild(btn);
+  });
+}
+
+async function mOpenRegister(sheetId) {
   // Always reload fresh from Firebase so desktop changes show immediately
   await loadRegister();
   applyAutoDepartures();
-  const sheet = state.sheets.find(s => s.type!=='holiday' && !s.archived) || state.sheets.find(s => s.type!=='holiday') || state.sheets[0];
+  let sheet = sheetId ? state.sheets.find(s => s.id === sheetId && !s.archived) : null;
+  if (!sheet) {
+    const today = ukDateNow();
+    // Prefer whichever active sheet actually has a session running today
+    sheet = state.sheets.find(s => !s.archived && getRegisterSessionDates(s.id).includes(today));
+  }
+  if (!sheet) sheet = state.sheets.find(s => s.type!=='holiday' && !s.archived) || state.sheets.find(s => s.type!=='holiday') || state.sheets[0];
   if (!sheet) return;
   mRegisterSheetId = sheet.id;
   mRegisterDates   = getRegisterSessionDates(sheet.id);
@@ -13953,8 +14103,9 @@ function mRenderRegister() {
   updateOnSiteCountFor(iso);
   const list = document.getElementById('mRegisterList');
   list.innerHTML = '';
-  const children = regState.people.filter(p => p.type==='child' && !p.left);
-  const staff    = regState.people.filter(p => p.type==='staff' && !p.left);
+  const inGroup = p => !p.groupIds || p.groupIds.length === 0 || p.groupIds.includes(mRegisterSheetId);
+  const children = regState.people.filter(p => p.type==='child' && !p.left && inGroup(p));
+  const staff    = regState.people.filter(p => p.type==='staff' && !p.left && inGroup(p));
   if (!children.length && !staff.length) {
     list.innerHTML = '<div style="padding:2rem 1rem;text-align:center;font-family:Lora,serif;font-style:italic;color:var(--bark-light);">No people added yet.<br><span style="font-size:0.8rem;">Add children and staff from the desktop Register view.</span></div>';
     return;
@@ -14051,11 +14202,12 @@ function mRemoveDeparture(iso, personId, btn, removeBtn, info) {
   mRenderRegister();
 }
 
-// "On site" = arrived today and not yet marked as left
+// "On site" = arrived today and not yet marked as left, scoped to the sheet currently in view
 function updateOnSiteCountFor(iso) {
   const arr = regState.arrivals[iso] || {};
   const dep = regState.departures[iso] || {};
-  const onSite = regState.people.filter(p => !p.left && arr[p.id] && !dep[p.id]).length;
+  const inGroup = p => !p.groupIds || p.groupIds.length === 0 || p.groupIds.includes(mRegisterSheetId);
+  const onSite = regState.people.filter(p => !p.left && inGroup(p) && arr[p.id] && !dep[p.id]).length;
   document.getElementById('mRegisterCount').textContent = onSite + ' on site';
 }
 
@@ -15070,7 +15222,7 @@ function renderPlannerCurrentMonth() {
   if (IS_MOBILE()) mInit();
 
   // Wire overlay-click listeners (moved here from end of file)
-  ['populateModal','newSheetModal','editSheetModal'].forEach(id => {
+  ['populateModal','newSheetModal','editSheetModal','copyFromSheetModal','assignSweepModal'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('click', function(e) {
       if (e.target === this) {
@@ -15210,11 +15362,54 @@ function renderPlannerCurrentMonth() {
     <div class="manage-list" id="manageList"></div>
     <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;">
       <button class="register-btn primary" onclick="openNewPersonProfile()">＋ Add Person</button>
+      <button class="register-btn" onclick="openCopyFromSheetModal()">⇄ Copy from Another Sheet</button>
+      <button class="register-btn" onclick="openAssignSweepModal()">🏷 Assign Unassigned</button>
       <label style="display:flex;align-items:center;gap:0.35rem;font-family:'Lora',serif;font-size:0.75rem;color:var(--bark-light);">
         <input type="checkbox" id="exportIncludeLeft"> Include former members
       </label>
       <button class="register-btn" onclick="exportRegisterCSV()">⬇ Export CSV</button>
       <button class="register-btn" onclick="closeManageRegister()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── COPY PEOPLE FROM ANOTHER SHEET ─── -->
+<div class="modal-overlay" id="copyFromSheetModal">
+  <div class="modal" style="max-width:480px;">
+    <button class="modal-close" onclick="closeCopyFromSheetModal()">✕</button>
+    <h2>Copy People from Another Sheet</h2>
+    <div class="form-group">
+      <label class="form-label">Copy from</label>
+      <select class="form-select" id="copySourceSheet" onchange="renderCopySourceList()"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Who's continuing?</label>
+      <div id="copySourceList" style="display:flex;flex-direction:column;gap:0.3rem;max-height:280px;overflow-y:auto;"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="closeCopyFromSheetModal()">Cancel</button>
+      <button class="btn-primary" onclick="applyCopyFromSheet()">Add Selected to This Sheet</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── ASSIGN UNASSIGNED PEOPLE ─── -->
+<div class="modal-overlay" id="assignSweepModal">
+  <div class="modal" style="max-width:480px;">
+    <button class="modal-close" onclick="closeAssignSweepModal()">✕</button>
+    <h2>Assign Unassigned People</h2>
+    <p style="font-family:'Lora',serif;font-size:0.8rem;font-style:italic;color:var(--bark-light);margin-bottom:0.6rem;">People with no group yet. Pick a group to assign the selected people to.</p>
+    <div class="form-group">
+      <label class="form-label">Assign to</label>
+      <select class="form-select" id="sweepTargetSheet"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Unassigned people</label>
+      <div id="sweepList" style="display:flex;flex-direction:column;gap:0.3rem;max-height:280px;overflow-y:auto;"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="closeAssignSweepModal()">Cancel</button>
+      <button class="btn-primary" onclick="applyAssignSweep()">Assign Selected</button>
     </div>
   </div>
 </div>
@@ -15226,6 +15421,10 @@ function renderPlannerCurrentMonth() {
     <div class="profile-name-header" id="profileNameHeader">Person</div>
     <span class="profile-role-badge child" id="profileRoleBadge">Child</span>
     <div class="profile-fields" id="profileFields"></div>
+    <div class="profile-field-group" id="profileGroupsSection">
+      <label>Groups <span style="font-size:0.75rem;color:#888;font-weight:400;">(which register(s) this person appears on)</span></label>
+      <div id="profileGroupsList" style="display:flex;flex-direction:column;gap:0.3rem;margin-top:0.3rem;"></div>
+    </div>
     <div class="profile-field-group" id="profileLeftSection" style="display:none;">
       <label id="profileLeftLabel">Status: Active</label>
       <div style="display:flex;align-items:center;gap:0.6rem;">
