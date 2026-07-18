@@ -3300,6 +3300,11 @@ body {
   .time-cell-input:hover{border-color:rgba(107,66,38,0.2);background:#fff;}
   .time-cell-input:focus{outline:none;border-color:var(--moss);background:#fff;}
   .time-cell-input.has-time{color:var(--moss);font-weight:600;}
+  .time-cell-departure{width:58px;font-family:'EB Garamond',serif;font-size:0.78rem;text-align:center;border:1px solid transparent;border-radius:4px;background:transparent;color:var(--bark-light);padding:0.1rem 0.2rem;cursor:pointer;margin-top:1px;}
+  .time-cell-departure:hover{border-color:rgba(107,66,38,0.2);background:#fff;}
+  .time-cell-departure:focus{outline:none;border-color:var(--bark);background:#fff;}
+  .time-cell-departure.has-time{color:var(--bark);}
+  .time-cell-departure.auto-filled{color:#b89b6a;font-style:italic;border:1px dashed rgba(184,155,106,0.5);}
   /* MANAGE PANEL */
   #manageRegisterPanel{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:600;align-items:flex-start;justify-content:center;padding:2rem 1rem;overflow-y:auto;}
   #manageRegisterPanel.open{display:flex;}
@@ -5057,6 +5062,7 @@ function showView(v) {
     document.getElementById('monthList').style.display = 'none';
     document.getElementById('catFilterSection').style.display = 'none';
     if (regView) regView.classList.add('active');
+    applyAutoDepartures();
     populateRegisterSheetSelect();
     onRegisterSheetChange();
     return;
@@ -13410,7 +13416,7 @@ auth.onAuthStateChanged(user => {
 
 // ═══════════════════════════════ REGISTER DATA ═══════════════════════════════
 
-let regState = { people: [], arrivals: {} };
+let regState = { people: [], arrivals: {}, departures: {}, departureAuto: {} };
 let manageActiveTab = 'children';
 let profileEditingId = null;
 let profileEditingType = 'child';
@@ -13421,13 +13427,47 @@ let mRegisterDateIdx = 0;
 async function loadRegister() {
   try {
     const doc = await db.collection('planner').doc('register').get();
-    if (doc.exists) { const d = doc.data(); regState.people = d.people||[]; regState.arrivals = d.arrivals||{}; }
+    if (doc.exists) {
+      const d = doc.data();
+      regState.people = d.people||[];
+      regState.arrivals = d.arrivals||{};
+      regState.departures = d.departures||{};
+      regState.departureAuto = d.departureAuto||{};
+    }
   } catch(e) { console.warn('Register load failed', e); }
 }
 
 async function saveRegister() {
   try { await db.collection('planner').doc('register').set(regState); }
   catch(e) { console.warn('Register save failed', e); }
+}
+
+// Fills in a default leaving time for anyone who arrived but was never marked as
+// having left, once the day is over (past 3:30pm today, or any earlier day).
+// This can only run when the app is actually open — there's no background server —
+// so it catches up whenever the register is next viewed on or after that point.
+function applyAutoDepartures() {
+  const today = ukDateNow();
+  const nowTime = ukTimeNow();
+  let changed = false;
+  Object.keys(regState.arrivals).forEach(iso => {
+    const isPastDay = iso < today;
+    const isTodayAfterCutoff = iso === today && nowTime >= '16:00';
+    if (!isPastDay && !isTodayAfterCutoff) return; // day's still in progress — leave it alone
+    const dayArrivals = regState.arrivals[iso] || {};
+    Object.keys(dayArrivals).forEach(personId => {
+      if ((regState.departures[iso] || {})[personId]) return; // already has a leaving time
+      const person = regState.people.find(p => p.id === personId);
+      if (!person) return; // orphaned arrival (person since deleted) — leave as-is
+      const defaultTime = person.type === 'staff' ? '15:30' : '15:00';
+      if (!regState.departures[iso]) regState.departures[iso] = {};
+      if (!regState.departureAuto[iso]) regState.departureAuto[iso] = {};
+      regState.departures[iso][personId] = defaultTime;
+      regState.departureAuto[iso][personId] = true;
+      changed = true;
+    });
+  });
+  if (changed) saveRegister();
 }
 
 function ukTimeNow() {
@@ -13481,10 +13521,17 @@ function populateRegisterSheetSelect() {
   const sel = document.getElementById('registerSheetSelect');
   if (!sel) return;
   sel.innerHTML = '';
-  state.sheets.filter(s => s.type !== 'holiday').forEach(s => {
+  const eligible = state.sheets.filter(s => s.type !== 'holiday');
+  // Active sheets first, archived ones after (clearly labelled) — so old, closed-out
+  // sheets stay reachable for historical dates without ever being the default view
+  const active = eligible.filter(s => !s.archived);
+  const archived = eligible.filter(s => s.archived);
+  [...active, ...archived].forEach(s => {
     const opt = document.createElement('option');
-    opt.value = s.id; opt.textContent = s.name; sel.appendChild(opt);
+    opt.value = s.id; opt.textContent = s.name + (s.archived ? ' (archived)' : ''); sel.appendChild(opt);
   });
+  // Explicitly default to the first active sheet, regardless of DOM/array order
+  if (active.length) sel.value = active[0].id;
 }
 
 function onRegisterSheetChange() {
@@ -13561,10 +13608,17 @@ function renderRegisterTable() {
         escHtml(p.preferredName||p.fullName||'—')+'</td>';
       dates.forEach(d => {
         const t = (regState.arrivals[d]||{})[p.id]||'';
-        bodyHtml += '<td><input class="time-cell-input'+(t?' has-time':'')+'" type="text" value="'+
-          escHtml(t)+'" placeholder="—" maxlength="5"'+
+        const dep = (regState.departures[d]||{})[p.id]||'';
+        const isAuto = !!(regState.departureAuto[d]||{})[p.id];
+        bodyHtml += '<td>' +
+          '<input class="time-cell-input'+(t?' has-time':'')+'" type="text" value="'+
+          escHtml(t)+'" placeholder="arr —" maxlength="5"'+
           ' onchange="setArrivalTime(\''+d+'\',\''+p.id+'\',this.value)"'+
-          ' title="'+formatRegisterDate(d)+'"></td>';
+          ' title="Arrived — '+formatRegisterDate(d)+'"><br>'+
+          '<input class="time-cell-departure'+(dep?' has-time':'')+(isAuto?' auto-filled':'')+'" type="text" value="'+
+          escHtml(dep)+'" placeholder="left —" maxlength="5"'+
+          ' onchange="setDepartureTime(\''+d+'\',\''+p.id+'\',this.value)"'+
+          ' title="'+(isAuto?'Auto-filled default — click to set a real time — ':'Left — ')+formatRegisterDate(d)+'"></td>';
       });
       bodyHtml += '</tr>';
     });
@@ -13588,6 +13642,17 @@ function setArrivalTime(iso, personId, val) {
   if (t) regState.arrivals[iso][personId] = t;
   else delete regState.arrivals[iso][personId];
   saveRegister();
+}
+
+function setDepartureTime(iso, personId, val) {
+  if (!regState.departures[iso]) regState.departures[iso] = {};
+  const t = val.trim();
+  if (t) regState.departures[iso][personId] = t;
+  else delete regState.departures[iso][personId];
+  // Any manual edit (including clearing it) means this is no longer an untouched auto-default
+  if (regState.departureAuto[iso]) delete regState.departureAuto[iso][personId];
+  saveRegister();
+  renderRegisterTable();
 }
 
 // All profile columns in export order
@@ -13862,7 +13927,8 @@ function closePersonProfile() {
 async function mOpenRegister() {
   // Always reload fresh from Firebase so desktop changes show immediately
   await loadRegister();
-  const sheet = state.sheets.find(s => s.type!=='holiday') || state.sheets[0];
+  applyAutoDepartures();
+  const sheet = state.sheets.find(s => s.type!=='holiday' && !s.archived) || state.sheets.find(s => s.type!=='holiday') || state.sheets[0];
   if (!sheet) return;
   mRegisterSheetId = sheet.id;
   mRegisterDates   = getRegisterSessionDates(sheet.id);
@@ -13883,8 +13949,8 @@ function mRenderRegister() {
   document.getElementById('mRegisterDateLabel').textContent = formatRegisterDate(iso);
   document.getElementById('mRegisterNavLabel').textContent  = formatRegisterDateShort(iso);
   const arrivals = regState.arrivals[iso]||{};
-  const onSite   = regState.people.filter(p => !p.left && arrivals[p.id]).length;
-  document.getElementById('mRegisterCount').textContent = onSite+' on site';
+  const departures = regState.departures[iso]||{};
+  updateOnSiteCountFor(iso);
   const list = document.getElementById('mRegisterList');
   list.innerHTML = '';
   const children = regState.people.filter(p => p.type==='child' && !p.left);
@@ -13904,6 +13970,7 @@ function mRenderRegister() {
       const nameEl = document.createElement('div'); nameEl.className = 'm-register-person-name';
       nameEl.textContent = p.preferredName||p.fullName||'—'; info.appendChild(nameEl);
       const arrived = !!arrivals[p.id];
+      const left = !!departures[p.id];
       const btn = document.createElement('button');
       btn.className = 'm-register-arrive-btn' + (arrived ? ' arrived' : '');
       btn.textContent = arrived ? 'On site' : 'Arrived';
@@ -13914,19 +13981,35 @@ function mRenderRegister() {
       removeBtn.textContent = '✕';
       removeBtn.title = 'Undo arrival';
 
+      // Left button — only relevant once arrived
+      const leftBtn = document.createElement('button');
+      leftBtn.className = 'm-register-arrive-btn' + (left ? ' arrived' : '');
+      leftBtn.style.display = arrived ? '' : 'none';
+      leftBtn.textContent = left ? 'Left' : 'Mark Left';
+
+      const leftRemoveBtn = document.createElement('button');
+      leftRemoveBtn.className = 'm-register-remove-btn' + (left ? ' visible' : '');
+      leftRemoveBtn.textContent = '✕';
+      leftRemoveBtn.title = 'Undo leaving time';
+
       // Wire up handlers
       btn.onclick    = () => mRecordArrival(iso, p.id, btn, removeBtn, info);
       removeBtn.onclick = (e) => { e.stopPropagation(); mRemoveArrival(iso, p.id, btn, removeBtn, info); };
+      leftBtn.onclick = (e) => { e.stopPropagation(); mRecordDeparture(iso, p.id, leftBtn, leftRemoveBtn, info); };
+      leftRemoveBtn.onclick = (e) => { e.stopPropagation(); mRemoveDeparture(iso, p.id, leftBtn, leftRemoveBtn, info); };
 
-      // Show existing arrival time
+      // Show existing arrival / leaving time
       if (arrived) {
         const t = document.createElement('div'); t.className = 'm-register-person-time';
-        t.textContent = 'Arrived ' + arrivals[p.id]; info.appendChild(t);
+        t.textContent = 'Arrived ' + arrivals[p.id] + (left ? ' · Left ' + departures[p.id] : '');
+        info.appendChild(t);
       }
 
       row.appendChild(info);
       row.appendChild(btn);
       row.appendChild(removeBtn);
+      row.appendChild(leftBtn);
+      row.appendChild(leftRemoveBtn);
       list.appendChild(row);
     });
   };
@@ -13939,30 +14022,41 @@ function mRecordArrival(iso, personId, btn, removeBtn, info) {
   if (!regState.arrivals[iso]) regState.arrivals[iso] = {};
   regState.arrivals[iso][personId] = time;
   saveRegister();
-  btn.textContent = 'On site';
-  btn.classList.add('arrived');
-  removeBtn.classList.add('visible');
-  let t = info.querySelector('.m-register-person-time');
-  if (!t) { t = document.createElement('div'); t.className = 'm-register-person-time'; info.appendChild(t); }
-  t.textContent = 'Arrived ' + time;
-  mUpdateOnSiteCount(iso);
+  mRenderRegister();
 }
 
 function mRemoveArrival(iso, personId, btn, removeBtn, info) {
   if (regState.arrivals[iso]) delete regState.arrivals[iso][personId];
+  // Leaving without arriving doesn't make sense — clear any leaving time too
+  if (regState.departures[iso]) delete regState.departures[iso][personId];
+  if (regState.departureAuto[iso]) delete regState.departureAuto[iso][personId];
   saveRegister();
-  btn.textContent = 'Arrived';
-  btn.classList.remove('arrived');
-  removeBtn.classList.remove('visible');
-  const t = info.querySelector('.m-register-person-time');
-  if (t) t.remove();
-  mUpdateOnSiteCount(iso);
+  mRenderRegister();
 }
 
-function mUpdateOnSiteCount(iso) {
+function mRecordDeparture(iso, personId, btn, removeBtn, info) {
+  const time = ukTimeNow();
+  if (!regState.departures[iso]) regState.departures[iso] = {};
+  regState.departures[iso][personId] = time;
+  // A manually-tapped leaving time is a real record, not the auto default
+  if (regState.departureAuto[iso]) delete regState.departureAuto[iso][personId];
+  saveRegister();
+  mRenderRegister();
+}
+
+function mRemoveDeparture(iso, personId, btn, removeBtn, info) {
+  if (regState.departures[iso]) delete regState.departures[iso][personId];
+  if (regState.departureAuto[iso]) delete regState.departureAuto[iso][personId];
+  saveRegister();
+  mRenderRegister();
+}
+
+// "On site" = arrived today and not yet marked as left
+function updateOnSiteCountFor(iso) {
   const arr = regState.arrivals[iso] || {};
-  document.getElementById('mRegisterCount').textContent =
-    regState.people.filter(p => !p.left && arr[p.id]).length + ' on site';
+  const dep = regState.departures[iso] || {};
+  const onSite = regState.people.filter(p => !p.left && arr[p.id] && !dep[p.id]).length;
+  document.getElementById('mRegisterCount').textContent = onSite + ' on site';
 }
 
 // ═══════════════════════════════ VIEW ROUTING ═══════════════════════════════
@@ -14931,6 +15025,7 @@ function renderPlannerCurrentMonth() {
   const shell = document.querySelector('.app-shell');
   if (shell) shell.style.display = 'none';
   await loadRegister();
+  applyAutoDepartures();
   await loadUserCategories();
   // Show loading state
   const main = document.getElementById('plannerContent');
