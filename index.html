@@ -1144,6 +1144,21 @@ body {
 .wizard-progress { display: flex; gap: 0.4rem; margin-bottom: 1.2rem; }
 .wizard-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(107,66,38,0.2); transition: background 0.2s; }
 .wizard-dot.done { background: var(--moss); }
+.wizard-kind-card {
+  flex: 1; text-align: center; padding: 1.1rem 0.9rem; border-radius: 12px;
+  border: 1.5px solid rgba(107,66,38,0.2); background: #fff; cursor: pointer;
+  font-family: 'Lora', serif; color: var(--bark); transition: all 0.15s;
+}
+.wizard-kind-card:hover { border-color: var(--moss); background: rgba(61,90,46,0.05); }
+.wizard-kind-card.selected { border-color: var(--moss); background: rgba(61,90,46,0.08); box-shadow: 0 0 0 2px rgba(61,90,46,0.15); }
+.wizard-picked-date-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.4rem 0.7rem; border-radius: 6px; background: rgba(107,66,38,0.05);
+  font-family: 'Lora', serif; font-size: 0.85rem;
+}
+.wizard-picked-date-row button {
+  border: none; background: none; color: #c0392b; cursor: pointer; font-size: 0.8rem;
+}
 .wizard-dot.current { background: var(--gold); }
 .routine-row-list { display: flex; flex-direction: column; gap: 0.35rem; margin: 0.5rem 0; }
 .routine-row-item {
@@ -4155,8 +4170,25 @@ body {
     <h2 id="wizardTitle">New Planning Sheet</h2>
     <div class="wizard-progress" id="wizardProgress"></div>
 
-    <!-- Step 1: Name + days -->
-    <div class="wizard-step active" id="wizStep1">
+    <!-- Step 1: What kind of group is this? -->
+    <div class="wizard-step active" id="wizStep0">
+      <p style="font-family:'Lora',serif;font-size:0.85rem;color:var(--bark-light);margin-bottom:1rem;">What kind of group is this?</p>
+      <div style="display:flex;gap:0.8rem;">
+        <button class="wizard-kind-card" id="wizKindLongterm" onclick="wizChooseKind('longterm')">
+          <div style="font-size:1.8rem;">📅</div>
+          <div style="font-weight:600;margin-top:0.4rem;">Long Term Group</div>
+          <div style="font-size:0.75rem;color:var(--bark-light);margin-top:0.2rem;">Meets weekly across a term or year — e.g. Home Ed, Young Families</div>
+        </button>
+        <button class="wizard-kind-card" id="wizKindHoliday" onclick="wizChooseKind('holiday')">
+          <div style="font-size:1.8rem;">🏕</div>
+          <div style="font-weight:600;margin-top:0.4rem;">Holiday Club</div>
+          <div style="font-size:0.75rem;color:var(--bark-light);margin-top:0.2rem;">Runs on specific dates you pick — a week, a few days, whatever pattern you like</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 2: Name + days (days only for long term groups) -->
+    <div class="wizard-step" id="wizStep1">
       <div class="form-group">
         <label class="form-label">Sheet Name</label>
         <input type="text" class="form-input" id="wizName" placeholder="e.g. Young Families Tuesdays">
@@ -4169,7 +4201,7 @@ body {
           <option value="5-12">5–12</option>
         </select>
       </div>
-      <div class="form-group">
+      <div class="form-group" id="wizDaysGroup">
         <label class="form-label">Which day(s) of the week?</label>
         <div class="day-check-group">
           <label class="day-check-label"><input type="checkbox" value="1" name="wizDay"> Mon</label>
@@ -4183,51 +4215,34 @@ body {
       </div>
     </div>
 
-    <!-- Step 2: Date range -->
+    <!-- Step 3: Date range (long term) OR pick-your-own dates (holiday club) -->
     <div class="wizard-step" id="wizStep2">
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Start Month</label>
-          <select class="form-select" id="wizStartMonth">
-            <option value="Sep">September</option><option value="Oct">October</option>
-            <option value="Nov">November</option><option value="Dec">December</option>
-            <option value="all">🌿 Year Round</option>
-          <option value="Jan">January</option><option value="Feb">February</option>
-            <option value="Mar">March</option><option value="Apr">April</option>
-            <option value="May">May</option><option value="Jun">June</option>
-            <option value="Jul">July</option><option value="Aug">August</option>
-          </select>
+      <div id="wizDateRangeSection">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Start Date</label>
+            <input type="date" class="form-input" id="wizStartDate">
+          </div>
+          <div class="form-group">
+            <label class="form-label">End Date</label>
+            <input type="date" class="form-input" id="wizEndDate">
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Start Year</label>
-          <select class="form-select" id="wizStartYear">
-            <option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option>
-          </select>
-        </div>
+        <p style="font-family:'Lora',serif;font-size:0.78rem;font-style:italic;color:var(--bark-light);">Sessions are created for every checked weekday between these two dates.</p>
       </div>
-      <div class="form-row">
+      <div id="wizPickDatesSection" style="display:none;">
         <div class="form-group">
-          <label class="form-label">End Month</label>
-          <select class="form-select" id="wizEndMonth">
-            <option value="Sep">September</option><option value="Oct">October</option>
-            <option value="Nov">November</option><option value="Dec">December</option>
-            <option value="all">🌿 Year Round</option>
-          <option value="Jan">January</option><option value="Feb">February</option>
-            <option value="Mar">March</option><option value="Apr">April</option>
-            <option value="May">May</option><option value="Jun">June</option>
-            <option value="Jul" selected>July</option><option value="Aug">August</option>
-          </select>
+          <label class="form-label">Add each date the club runs</label>
+          <div style="display:flex;gap:0.5rem;">
+            <input type="date" class="form-input" id="wizAddDateInput" style="flex:1;">
+            <button class="toolbar-btn" onclick="wizAddPickedDate()" style="padding:0.3rem 0.9rem;">＋ Add</button>
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">End Year</label>
-          <select class="form-select" id="wizEndYear">
-            <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
-          </select>
-        </div>
+        <div id="wizPickedDatesList" style="display:flex;flex-direction:column;gap:0.3rem;max-height:220px;overflow-y:auto;margin-top:0.5rem;"></div>
       </div>
     </div>
 
-    <!-- Step 3: Routine rows -->
+    <!-- Step 4: Routine rows -->
     <div class="wizard-step" id="wizStep3">
       <p style="font-family:'Lora',serif;font-size:0.8rem;font-style:italic;color:var(--bark-light);margin-bottom:0.7rem;">Drag to reorder. These become the rows of your planning grid.</p>
       <div class="routine-row-list" id="wizRoutineList"></div>
@@ -4241,7 +4256,7 @@ body {
     <div class="modal-btns" style="margin-top:1.4rem;">
       <button class="btn-secondary" id="wizBackBtn" style="display:none;" onclick="wizNav(-1)">← Back</button>
       <button class="btn-secondary" onclick="closeNewSheetWizard()" style="margin-right:auto;">Cancel</button>
-      <button class="btn-primary" id="wizNextBtn" onclick="wizNav(1)">Next →</button>
+      <button class="btn-primary" id="wizNextBtn" onclick="wizNav(1)" style="display:none;">Next →</button>
     </div>
   </div>
 </div>
@@ -4890,6 +4905,102 @@ const SESSION_DATA_BASE = {"3-Sep": {"Morning Circle Question": [{text: "What do
 
 // Default sheet definition (home ed)
 const DEFAULT_SHEET_ID = 'homeed';
+
+// ─── SESSION KEY HELPERS ───────────────────────────────────────────────
+// Session keys are ISO ('YYYY-MM-DD') for every sheet going forward — this
+// is what fixes the old day-month collision across academic years. These
+// helpers also tolerate a legacy pre-migration 'D-Mon' key defensively
+// (year-less, e.g. '14-Sep'), so anything that somehow wasn't caught by
+// migrateSheetToISO() still reads correctly rather than breaking outright.
+const SHORT_MONTHS_GLOBAL = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function keyIsISO(key) { return /^\d{4}-\d{2}-\d{2}$/.test(key); }
+function keyDayNum(key) {
+  const parts = key.split('-');
+  return parseInt(keyIsISO(key) ? parts[2] : parts[0], 10);
+}
+function keyMonthAbbr(key) {
+  const parts = key.split('-');
+  if (keyIsISO(key)) return SHORT_MONTHS_GLOBAL[parseInt(parts[1],10)-1] || parts[1];
+  return parts[1];
+}
+function keyYearNum(key, sheet) {
+  if (keyIsISO(key)) return parseInt(key.split('-')[0], 10);
+  if (!sheet) return null;
+  const monIdx = SHORT_MONTHS_GLOBAL.indexOf(keyMonthAbbr(key));
+  const startMonIdx = SHORT_MONTHS_GLOBAL.indexOf(sheet.startMonth);
+  return monIdx >= startMonIdx ? sheet.startYear : sheet.endYear;
+}
+// Normalises any session key (ISO or legacy) to a true ISO 'YYYY-MM-DD' string
+function keyToISO(key, sheet) {
+  if (keyIsISO(key)) return key;
+  const day = keyDayNum(key);
+  const monIdx = SHORT_MONTHS_GLOBAL.indexOf(keyMonthAbbr(key));
+  const year = keyYearNum(key, sheet);
+  if (monIdx < 0 || !year) return key; // can't resolve — return as-is rather than throw
+  return year + '-' + String(monIdx+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+}
+// A real JS Date (midday, to dodge timezone edge cases) for any session key
+function keyToDate(key, sheet) {
+  return new Date(keyToISO(key, sheet) + 'T12:00:00');
+}
+
+// Converts every legacy 'D-Mon' session key on a sheet to a true ISO key,
+// using the sheet's stored start/end month+year to resolve which calendar
+// year each one belongs to. Also backfills startISO/endISO on the sheet
+// (kept alongside the legacy startMonth/startYear/endMonth/endYear fields,
+// which stay for the header subtitle display). Returns true if anything changed.
+function migrateSheetToISO(sheet) {
+  if (!sheet || !sheet.sessions) return false;
+  let changed = false;
+  const legacyKeys = Object.keys(sheet.sessions).filter(k => !keyIsISO(k));
+  legacyKeys.forEach(key => {
+    const iso = keyToISO(key, sheet);
+    if (!keyIsISO(iso)) return; // couldn't resolve (missing sheet bounds) — leave as-is rather than lose it
+    if (!sheet.sessions[iso]) {
+      sheet.sessions[iso] = sheet.sessions[key];
+    } else {
+      // Collision would be very unusual, but merge rather than drop either side
+      Object.keys(sheet.sessions[key]).forEach(rowKey => {
+        if (sheet.sessions[iso][rowKey] === undefined) sheet.sessions[iso][rowKey] = sheet.sessions[key][rowKey];
+      });
+    }
+    delete sheet.sessions[key];
+    changed = true;
+  });
+  if (!sheet.startISO && sheet.startMonth && sheet.startYear) {
+    const smIdx = SHORT_MONTHS_GLOBAL.indexOf(sheet.startMonth);
+    if (smIdx >= 0) { sheet.startISO = sheet.startYear + '-' + String(smIdx+1).padStart(2,'0') + '-01'; changed = true; }
+  }
+  if (!sheet.endISO && sheet.endMonth && sheet.endYear) {
+    const emIdx = SHORT_MONTHS_GLOBAL.indexOf(sheet.endMonth);
+    if (emIdx >= 0) {
+      const lastDay = new Date(sheet.endYear, emIdx+1, 0).getDate();
+      sheet.endISO = sheet.endYear + '-' + String(emIdx+1).padStart(2,'0') + '-' + String(lastDay).padStart(2,'0');
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+// Shared ISO-keyed session generator. `days`: array of day-of-week numbers
+// (0=Sun..6=Sat) to include, or null to include every day in the range
+// (used for holiday-club-style date-range entry and, going forward, the
+// pick-your-own-dates flow builds its session object directly instead).
+function generateDateRangeSessions(startISO, endISO, days) {
+  const sessions = {};
+  const cur = new Date(startISO + 'T12:00:00');
+  const end = new Date(endISO + 'T12:00:00');
+  while (cur <= end) {
+    if (!days || days.includes(cur.getDay())) {
+      const y = cur.getFullYear();
+      const m = String(cur.getMonth()+1).padStart(2,'0');
+      const d = String(cur.getDate()).padStart(2,'0');
+      sessions[`${y}-${m}-${d}`] = {};
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return sessions;
+}
 const DEFAULT_ROW_DEFS_COPY = () => ROW_DEFS.map(r => ({...r}));
 
 let plannerActiveMonth = null; // currently displayed month pill
@@ -4960,7 +5071,11 @@ function loadState() {
     // Merge any new base sessions into existing home ed sheet
     const homeSheet = state.sheets.find(s => s.id === DEFAULT_SHEET_ID);
     for (const date in SESSION_DATA_BASE) {
-      if (!homeSheet.sessions[date]) homeSheet.sessions[date] = SESSION_DATA_BASE[date];
+      // Check both the raw legacy key and its ISO equivalent — once migrateSheetToISO
+      // has run, the literal 'D-Mon' key won't exist any more even though the date does
+      const isoEquivalent = keyToISO(date, homeSheet);
+      const alreadyExists = homeSheet.sessions[date] || (keyIsISO(isoEquivalent) && homeSheet.sessions[isoEquivalent]);
+      if (!alreadyExists) homeSheet.sessions[date] = SESSION_DATA_BASE[date];
     }
     // Ensure rowDefs exist (migrate from v1 if needed)
     if (!homeSheet.rowDefs || homeSheet.rowDefs.length === 0) {
@@ -4973,6 +5088,13 @@ function loadState() {
     if (!homeSheet.endMonth) homeSheet.endMonth = 'Jul';
     if (!homeSheet.endYear) homeSheet.endYear = 2026;
   }
+
+  // Migrate any sheet still using legacy pre-ISO session keys ('D-Mon', no year —
+  // the source of the old multi-year collision bug) onto real ISO 'YYYY-MM-DD' keys.
+  let anySheetMigrated = false;
+  (state.sheets || []).forEach(sheet => {
+    if (migrateSheetToISO(sheet)) anySheetMigrated = true;
+  });
 
   // Fix items saved with category labels instead of IDs (e.g. "Wide Games" → "games")
   // Must run before base merge so userHasEdited check works correctly
@@ -5002,6 +5124,8 @@ function loadState() {
     const id = item.name+'|'+item.month+'|'+item.cat;
     if (!baseIds.has(id)) state.menuItems.push({...item, userAdded:false});
   }
+
+  if (anySheetMigrated) saveState();
 }
 
 function showToast(msg, duration = 2200) {
@@ -5124,16 +5248,17 @@ function renderSheetTabs() {
   // Update subtitle
   const active = getActiveSheet();
   if (active) {
-    if (active.type === 'holiday') {
-      const fmtISO = iso => {
-        if (!iso) return '';
-        const [y,m,d] = iso.split('-');
-        const mons = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        return `${parseInt(d)} ${mons[parseInt(m)-1]} ${y}`;
-      };
+    const fmtISO = iso => {
+      if (!iso) return '';
+      const [y,m,d] = iso.split('-');
+      const mons = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return `${parseInt(d)} ${mons[parseInt(m)-1]} ${y}`;
+    };
+    if (active.startISO || active.endISO) {
       document.getElementById('headerSubtitle').textContent =
         active.name + ' · ' + fmtISO(active.startISO) + ' – ' + fmtISO(active.endISO);
     } else {
+      // Very old sheet that somehow missed migration — fall back to legacy fields
       document.getElementById('headerSubtitle').textContent =
         active.name + ' · ' + active.startMonth + ' ' + active.startYear + ' – ' + active.endMonth + ' ' + active.endYear;
     }
@@ -5286,7 +5411,7 @@ function saveEditSheet() {
 function groupByMonth(sessions) {
   const groups = {};
   for (const date of Object.keys(sessions)) {
-    const [d, mon] = date.split('-');
+    const mon = keyMonthAbbr(date);
     if (!groups[mon]) groups[mon] = [];
     groups[mon].push(date);
   }
@@ -5294,13 +5419,11 @@ function groupByMonth(sessions) {
 }
 
 function monthFromDate(date) {
-  return date.split('-')[1];
+  return keyMonthAbbr(date);
 }
 
 function getMonthKey(date) {
-  const mon = date.split('-')[1];
-  const monthMap = {Jan:'Jan',Feb:'Feb',Mar:'Mar',Apr:'Apr',May:'May',Jun:'Jun',Jul:'Jul',Aug:'Aug',Sep:'Sep',Oct:'Oct',Nov:'Nov',Dec:'Dec'};
-  return monthMap[mon] || mon;
+  return keyMonthAbbr(date);
 }
 
 let editModeActive = false;
@@ -5576,18 +5699,21 @@ function fmtTermDate(str) {
 }
 
 function sessionDateInTerm(sessionKey, term) {
-  // sessionKey format: "12-Sep", "3-Jan" etc.
   if (!term.start || !term.end) return false;
-  const parts = sessionKey.split('-');
-  if (parts.length < 2) return false;
-  const day = parseInt(parts[0]);
-  const MONTH_MAP = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
-  const mIdx = MONTH_MAP[parts[1]];
-  if (mIdx === undefined) return false;
-  // Determine year: academic year runs Sep-Aug, so Sep-Dec = startYear, Jan-Aug = startYear+1
-  const startYear = new Date(term.start + 'T00:00:00').getFullYear();
-  const year = mIdx >= 8 ? startYear : startYear + 1;
-  const sessionDate = new Date(year, mIdx, day);
+  let sessionDate;
+  if (keyIsISO(sessionKey)) {
+    sessionDate = new Date(sessionKey + 'T00:00:00');
+  } else {
+    // Legacy 'D-Mon' key with no year — infer via the academic year the term falls in
+    const parts = sessionKey.split('-');
+    if (parts.length < 2) return false;
+    const day = parseInt(parts[0]);
+    const mIdx = SHORT_MONTHS_GLOBAL.indexOf(parts[1]);
+    if (mIdx < 0) return false;
+    const startYear = new Date(term.start + 'T00:00:00').getFullYear();
+    const year = mIdx >= 8 ? startYear : startYear + 1;
+    sessionDate = new Date(year, mIdx, day);
+  }
   const termStart = new Date(term.start + 'T00:00:00');
   const termEnd = new Date(term.end + 'T00:00:00');
   return sessionDate >= termStart && sessionDate <= termEnd;
@@ -5618,11 +5744,12 @@ function renderPlannerHalfTerm() {
 
   function sortSessionKeys(keys) {
     return keys.slice().sort((a, b) => {
-      const pa = a.split('-'), pb = b.split('-');
-      const MONTH_MAP = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
-      const ma = MONTH_MAP[pa[1]] ?? 0, mb = MONTH_MAP[pb[1]] ?? 0;
+      if (keyIsISO(a) && keyIsISO(b)) return a < b ? -1 : a > b ? 1 : 0;
+      // Legacy fallback: academic-year month order (Sep..Aug), then day
+      const ACAD_ORDER = ['Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
+      const ma = ACAD_ORDER.indexOf(keyMonthAbbr(a)), mb = ACAD_ORDER.indexOf(keyMonthAbbr(b));
       if (ma !== mb) return ma - mb;
-      return parseInt(pa[0]) - parseInt(pb[0]);
+      return keyDayNum(a) - keyDayNum(b);
     });
   }
 
@@ -5653,7 +5780,7 @@ function renderPlannerHalfTerm() {
     rc.textContent = '★ Events';
     ribbonRow.appendChild(rc);
     termSessions.forEach(date => {
-      const mon = date.split('-')[1];
+      const mon = keyMonthAbbr(date);
       const ribbonTh = document.createElement('th');
       ribbonTh.className = 'ribbon-cell';
       const assigned = getImportantDatesForSession(date, termSessions, mon, MONTH_ORDER);
@@ -5676,10 +5803,9 @@ function renderPlannerHalfTerm() {
     corner.textContent = '';
     headRow.appendChild(corner);
     termSessions.forEach(date => {
-      const parts = date.split('-');
       const th = document.createElement('th');
       th.className = 'date-header-cell';
-      th.innerHTML = '<span class="date-day">' + parts[0] + '</span><span class="date-month"> ' + parts[1] + '</span>';
+      th.innerHTML = '<span class="date-day">' + keyDayNum(date) + '</span><span class="date-month"> ' + keyMonthAbbr(date) + '</span>';
       headRow.appendChild(th);
     });
     thead.appendChild(headRow);
@@ -6048,7 +6174,7 @@ function filterPicker() {
   const q = (document.getElementById('pickerSearch').value||'').toLowerCase();
   const {rowKey} = cellModalState;
   const list = document.getElementById('pickerList');
-  const sessionMonth = cellModalState.date ? cellModalState.date.split('-')[1] : 'Sep';
+  const sessionMonth = cellModalState.date ? keyMonthAbbr(cellModalState.date) : 'Sep';
   const monthOrder = ['Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
   const monthIdx = monthOrder.indexOf(sessionMonth);
 
@@ -6694,7 +6820,7 @@ function runPopulate() {
   } else if (populateScope === 'month') {
     const targetMon = document.getElementById('popMonthVal').value;
     for (const date of allDates) {
-      if (date.split('-')[1] !== targetMon) continue;
+      if (keyMonthAbbr(date) !== targetMon) continue;
       for (const row of rows) {
         if (shouldFill(date, row.key)) fillCell(date, row.key);
       }
@@ -6716,18 +6842,29 @@ function runPopulate() {
 // ═══════════════════════════════════════════════════════════════
 // NEW SHEET WIZARD
 // ═══════════════════════════════════════════════════════════════
-let wizardStep = 1;
-const WIZARD_STEPS = 3;
+let wizardStep = 0;
+const WIZARD_STEPS = 3; // dot-tracked steps; kind-selection (step 0) isn't counted
 let wizRoutineRows = [];
+let wizKind = null;
+let wizPickedDates = [];
 
 function openNewSheetWizard() {
-  wizardStep = 1;
+  wizardStep = 0;
+  wizKind = null;
   wizRoutineRows = DEFAULT_ROW_DEFS_COPY().filter(r => r.key !== '_notes');
   // Add notes row at end
   wizRoutineRows.push({key:'_notes', label:'Session Notes', icon:'📝'});
+  wizPickedDates = [];
   document.getElementById('wizName').value = '';
+  document.getElementById('wizAgeGroup').value = 'all';
   // Uncheck all days
   document.querySelectorAll('[name="wizDay"]').forEach(cb => cb.checked = false);
+  document.getElementById('wizStartDate').value = '';
+  document.getElementById('wizEndDate').value = '';
+  document.getElementById('wizAddDateInput').value = '';
+  document.getElementById('wizKindLongterm').classList.remove('selected');
+  document.getElementById('wizKindHoliday').classList.remove('selected');
+  renderWizPickedDates();
   renderWizardStep();
   document.getElementById('newSheetModal').classList.add('open');
 }
@@ -6736,21 +6873,46 @@ function closeNewSheetWizard() {
   document.getElementById('newSheetModal').classList.remove('open');
 }
 
+// Entry point from the Holiday Clubs dropdown's "+ New Holiday Club Plan" — same
+// unified wizard, just pre-set to the Holiday Club kind so it skips straight past
+// the fork step.
+function openNewSheetWizardAsHoliday() {
+  openNewSheetWizard();
+  wizChooseKind('holiday');
+  closeHolidayDropdown();
+}
+
+function wizChooseKind(kind) {
+  wizKind = kind;
+  document.getElementById('wizKindLongterm').classList.toggle('selected', kind === 'longterm');
+  document.getElementById('wizKindHoliday').classList.toggle('selected', kind === 'holiday');
+  document.getElementById('wizDaysGroup').style.display = kind === 'holiday' ? 'none' : '';
+  document.getElementById('wizDateRangeSection').style.display = kind === 'holiday' ? 'none' : '';
+  document.getElementById('wizPickDatesSection').style.display = kind === 'holiday' ? '' : 'none';
+  wizardStep = 1;
+  renderWizardStep();
+}
+
 function renderWizardStep() {
-  document.querySelectorAll('.wizard-step').forEach((el, i) => {
-    el.classList.toggle('active', i + 1 === wizardStep);
-  });
-  // Progress dots
+  document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
+  const stepEl = document.getElementById('wizStep' + wizardStep);
+  if (stepEl) stepEl.classList.add('active');
+
+  // Progress dots (only once a kind has been chosen)
   const prog = document.getElementById('wizardProgress');
   prog.innerHTML = '';
-  for (let i = 1; i <= WIZARD_STEPS; i++) {
-    const dot = document.createElement('div');
-    dot.className = 'wizard-dot' + (i < wizardStep ? ' done' : i === wizardStep ? ' current' : '');
-    prog.appendChild(dot);
+  if (wizardStep >= 1) {
+    for (let i = 1; i <= WIZARD_STEPS; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'wizard-dot' + (i < wizardStep ? ' done' : i === wizardStep ? ' current' : '');
+      prog.appendChild(dot);
+    }
   }
-  document.getElementById('wizBackBtn').style.display = wizardStep > 1 ? '' : 'none';
+  document.getElementById('wizBackBtn').style.display = wizardStep >= 1 ? '' : 'none';
+  document.getElementById('wizNextBtn').style.display = wizardStep >= 1 ? '' : 'none';
   document.getElementById('wizNextBtn').textContent = wizardStep === WIZARD_STEPS ? '✓ Create Sheet' : 'Next →';
-  document.getElementById('wizardTitle').textContent = ['New Planning Sheet', 'Date Range', 'Session Routine'][wizardStep - 1];
+  const titles = {0:'What kind of group?', 1:'New Planning Sheet', 2: wizKind==='holiday' ? 'Session Dates' : 'Date Range', 3:'Session Routine'};
+  document.getElementById('wizardTitle').textContent = titles[wizardStep];
   if (wizardStep === 3) renderWizRoutineList();
 }
 
@@ -6761,15 +6923,62 @@ function wizNav(dir) {
       if (!document.getElementById('wizName').value.trim()) {
         document.getElementById('wizName').focus(); return;
       }
-      const days = [...document.querySelectorAll('[name="wizDay"]:checked')];
-      if (days.length === 0) { alert('Please select at least one day.'); return; }
+      if (wizKind === 'longterm') {
+        const days = [...document.querySelectorAll('[name="wizDay"]:checked')];
+        if (days.length === 0) { alert('Please select at least one day.'); return; }
+      }
+    }
+    if (wizardStep === 2) {
+      if (wizKind === 'longterm') {
+        const s = document.getElementById('wizStartDate').value;
+        const e = document.getElementById('wizEndDate').value;
+        if (!s || !e) { alert('Please set a start and end date.'); return; }
+        if (s > e) { alert('Start date must be before the end date.'); return; }
+      } else if (!wizPickedDates.length) {
+        alert('Please add at least one date.'); return;
+      }
     }
     if (wizardStep === WIZARD_STEPS) { createNewSheet(); return; }
     wizardStep++;
   } else {
     wizardStep--;
+    if (wizardStep < 1) wizardStep = 0; // back to the kind picker
   }
   renderWizardStep();
+}
+
+function wizAddPickedDate() {
+  const val = document.getElementById('wizAddDateInput').value;
+  if (!val) return;
+  if (!wizPickedDates.includes(val)) {
+    wizPickedDates.push(val);
+    wizPickedDates.sort();
+  }
+  document.getElementById('wizAddDateInput').value = '';
+  renderWizPickedDates();
+}
+
+function wizRemovePickedDate(iso) {
+  wizPickedDates = wizPickedDates.filter(d => d !== iso);
+  renderWizPickedDates();
+}
+
+function renderWizPickedDates() {
+  const list = document.getElementById('wizPickedDatesList');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!wizPickedDates.length) {
+    list.innerHTML = '<div style="font-style:italic;color:var(--bark-light);font-family:\'Lora\',serif;font-size:0.8rem;">No dates added yet.</div>';
+    return;
+  }
+  wizPickedDates.forEach(iso => {
+    const row = document.createElement('div');
+    row.className = 'wizard-picked-date-row';
+    const d = new Date(iso + 'T12:00:00');
+    row.innerHTML = '<span>' + d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}) + '</span>' +
+      '<button onclick="wizRemovePickedDate(\''+iso+'\')">✕ Remove</button>';
+    list.appendChild(row);
+  });
 }
 
 function renderWizRoutineList() {
@@ -6814,57 +7023,38 @@ function wizAddRow() {
   renderWizRoutineList();
 }
 
-function generateSessionDates(days, startMonth, startYear, endMonth, endYear) {
-  // Calendar month names (JS Date uses 0=Jan...11=Dec)
-  const CAL_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  // Academic month labels used as session keys
-  const LABEL_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-  const startMonIdx = CAL_MONTHS.indexOf(startMonth); // real calendar month index
-  const endMonIdx   = CAL_MONTHS.indexOf(endMonth);
-
-  // Determine real calendar year for end month
-  // If end month is earlier in calendar than start month, it's the next year
-  const realEndYear = (endMonIdx < startMonIdx) ? endYear : endYear;
-
-  const startDate = new Date(startYear, startMonIdx, 1);
-  const endDate   = new Date(
-    endMonIdx < startMonIdx ? endYear : endYear,
-    endMonIdx + 1, 0
-  ); // last day of end month
-
-  const sessions = {};
-  const cur = new Date(startDate);
-  while (cur <= endDate) {
-    if (days.includes(cur.getDay())) {
-      const day = cur.getDate();
-      const mon = CAL_MONTHS[cur.getMonth()]; // use real calendar month for key
-      const key = day + '-' + mon;
-      sessions[key] = {};
-    }
-    cur.setDate(cur.getDate() + 1);
-  }
-  return sessions;
-}
+// Legacy generateSessionDates(days, startMonth, startYear, endMonth, endYear) has been
+// replaced by generateDateRangeSessions(startISO, endISO, days), which produces ISO keys.
 
 function createNewSheet() {
   const name = document.getElementById('wizName').value.trim();
-  const days = [...document.querySelectorAll('[name="wizDay"]:checked')].map(cb => parseInt(cb.value));
-  const startMonth = document.getElementById('wizStartMonth').value;
-  const startYear = parseInt(document.getElementById('wizStartYear').value);
-  const endMonth = document.getElementById('wizEndMonth').value;
-  const endYear = parseInt(document.getElementById('wizEndYear').value);
   const ageGroup = document.getElementById('wizAgeGroup')?.value || 'all';
-
-  const id = 'sheet_' + Date.now();
-  const sessions = generateSessionDates(days, startMonth, startYear, endMonth, endYear);
   const rowDefs = wizRoutineRows.map(r => ({...r}));
+  const id = 'sheet_' + Date.now();
+  let sheet;
 
-  const sheet = {id, name, days, startMonth, startYear, endMonth, endYear, rowDefs, sessions, archived: false, ageGroup};
+  if (wizKind === 'holiday') {
+    const sessions = {};
+    wizPickedDates.forEach(iso => { sessions[iso] = {}; });
+    sheet = {
+      id, name, type: 'holiday',
+      startISO: wizPickedDates[0], endISO: wizPickedDates[wizPickedDates.length - 1],
+      rowDefs, sessions, days: [],
+      archived: false, ageGroup
+    };
+  } else {
+    const days = [...document.querySelectorAll('[name="wizDay"]:checked')].map(cb => parseInt(cb.value));
+    const startISO = document.getElementById('wizStartDate').value;
+    const endISO = document.getElementById('wizEndDate').value;
+    const sessions = generateDateRangeSessions(startISO, endISO, days);
+    sheet = {id, name, days, startISO, endISO, rowDefs, sessions, archived: false, ageGroup};
+  }
+
   state.sheets.push(sheet);
   state.activeSheetId = id;
   saveState();
   renderSheetTabs();
+  renderHolidayDropdown();
   renderPlanner();
   closeNewSheetWizard();
 }
@@ -6884,8 +7074,7 @@ function typeIcon(t) { return CAL_TYPE_ICONS[t] || '⭐'; }
 // or if none in that month, the nearest session date in the adjacent months.
 function getImportantDatesForSession(sessionDate, allSessionDatesInMonth, mon, monthOrder) {
   const results = [];
-  const [sessionDay] = sessionDate.split('-');
-  const sessionDayNum = parseInt(sessionDay);
+  const sessionDayNum = keyDayNum(sessionDate);
 
   for (const d of state.importantDates) {
     // Find the best session for this important date
@@ -6909,9 +7098,8 @@ function findNearestSession(importantDate, candidateDates, currentMon) {
   let bestDist = Infinity;
 
   for (const date of allDates) {
-    const [dayStr, monStr] = date.split('-');
-    const monIdx = monthOrder.indexOf(monStr);
-    const dayNum = parseInt(dayStr);
+    const monIdx = monthOrder.indexOf(keyMonthAbbr(date));
+    const dayNum = keyDayNum(date);
     // Distance in "month-days" — approximate
     const dist = Math.abs((monIdx * 31 + dayNum) - (impMonIdx * 31 + impDay));
     if (dist < bestDist) { bestDist = dist; best = date; }
@@ -7049,9 +7237,11 @@ function deleteCalDate() {
 // ═══════════════════════════════════════════════════════════════
 
 function openResourcesPanel(date, sheet) {
-  const [day, mon] = date.split('-');
+  const day = keyDayNum(date);
+  const mon = keyMonthAbbr(date);
+  const yearSuffix = keyIsISO(date) ? ' ' + date.split('-')[0] : '';
   const MONTH_NAMES = {Jan:'January',Feb:'February',Mar:'March',Apr:'April',May:'May',Jun:'June',Jul:'July',Aug:'August',Sep:'September',Oct:'October',Nov:'November',Dec:'December'};
-  document.getElementById('resPanelDate').textContent = day + ' ' + (MONTH_NAMES[mon] || mon);
+  document.getElementById('resPanelDate').textContent = day + ' ' + (MONTH_NAMES[mon] || mon) + yearSuffix;
 
   const body = document.getElementById('resPanelBody');
   body.innerHTML = '';
@@ -7061,7 +7251,7 @@ function openResourcesPanel(date, sheet) {
 
   // Collect all activities for the day, row by row
   let anyActivities = false;
-  let plainTextLines = [`📋 Resources for ${day} ${MONTH_NAMES[mon] || mon}`, ''];
+  let plainTextLines = [`📋 Resources for ${day} ${MONTH_NAMES[mon] || mon}${yearSuffix}`, ''];
 
   for (const row of rowDefs) {
     if (row.key === '_notes') continue;
@@ -9957,8 +10147,10 @@ function getUpcomingWeekRange() {
 }
 
 function dateToSessionKey(date) {
-  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  return date.getDate() + '-' + MONTHS[date.getMonth()];
+  const y = date.getFullYear();
+  const m = String(date.getMonth()+1).padStart(2,'0');
+  const d = String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
 }
 
 function renderUpcomingView() {
@@ -10067,7 +10259,7 @@ function renderUpcomingView() {
 
       const allKeys = weekDays.map(d => dateToSessionKey(d));
       const ribbons = state.importantDates.filter(id => {
-        const best = findNearestSession(id, allKeys, key.split('-')[1]);
+        const best = findNearestSession(id, allKeys, keyMonthAbbr(key));
         return best === key;
       });
       if (ribbons.length > 0) {
@@ -10200,24 +10392,11 @@ function mBuildSessionList() {
   mState.sessions = [];
 
   for (const sheet of state.sheets) {
-    const MONTH_ORDER = ['Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
     const sessionKeys = Object.keys(sheet.sessions || {});
 
     for (const key of sessionKeys) {
-      const parts = key.split('-');
-      if (parts.length !== 2) continue;
-      const day = parseInt(parts[0]);
-      const mon = parts[1];
-      const monIdx = MONTH_SHORT_M.indexOf(mon);
-      if (monIdx < 0) continue;
-
-      // Determine year from sheet context
-      const startYear = sheet.startYear || 2025;
-      const endYear = sheet.endYear || 2026;
-      const academicStartMon = MONTH_SHORT_M.indexOf(sheet.startMonth || 'Sep');
-      const year = monIdx >= academicStartMon ? startYear : endYear;
-
-      const jsDate = new Date(year, monIdx, day);
+      const jsDate = keyToDate(key, sheet);
+      if (isNaN(jsDate.getTime())) continue;
       // Only include if this date's day of week matches the sheet's scheduled days
       const dow = jsDate.getDay();
       const isScheduled = !sheet.days || sheet.days.length === 0 || sheet.days.includes(dow);
@@ -10266,7 +10445,7 @@ function mRenderSession() {
   // Ribbons (important dates)
   const ribbonEl = document.getElementById('mSessionRibbon');
   const sessionRibbons = state.importantDates.filter(d => {
-    const best = findNearestSession(d, [key], key.split('-')[1]);
+    const best = findNearestSession(d, [key], keyMonthAbbr(key));
     return best === key;
   });
   if (sessionRibbons.length > 0) {
@@ -10651,7 +10830,7 @@ function mOpenDayList() {
   const { key, sheet } = mState.sessions[mState.sessionIndex] || {};
   if (!key || !sheet) return;
 
-  const [day, mon] = key.split('-');
+  const day = keyDayNum(key), mon = keyMonthAbbr(key);
   document.getElementById('mResPanelDate').textContent = day + ' ' + (MONTH_FULL_M[MONTH_SHORT_M.indexOf(mon)] || mon);
 
   const body = document.getElementById('mResPanelBody');
@@ -11008,7 +11187,7 @@ function renderHolidayDropdown() {
   const newBtn = document.createElement('button');
   newBtn.className = 'holiday-dropdown-item holiday-dropdown-new';
   newBtn.innerHTML = '＋ New Holiday Club Plan';
-  newBtn.onclick = openHolidayModal;
+  newBtn.onclick = openNewSheetWizardAsHoliday;
   dd.appendChild(newBtn);
 }
 
@@ -12008,11 +12187,8 @@ function buildPrintHtml(dateLabel, sheetName, rows, sessionData, logoSrc) {
 
 // ─── MAIN PLANNER PRINT ───────────────────────────────────────
 function printDay(date, sheet) {
-  const CAL_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  // date format: "3-Sep"
-  const [day, mon] = date.split('-');
-  const monthIdx = CAL_MONTHS.indexOf(mon);
-  const dateLabel = `${getDayName(date, sheet)} ${day} ${mon}`;
+  const d = keyToDate(date, sheet);
+  const dateLabel = d.toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
 
   const rows = sheet.rowDefs || [];
   const sessionData = sheet.sessions[date] || {};
@@ -12020,19 +12196,6 @@ function printDay(date, sheet) {
 
   const printHtml = buildPrintHtml(dateLabel, sheet.name, rows, sessionData, logoSrc);
   openPrintWindow(printHtml);
-}
-
-function getDayName(date, sheet) {
-  // Find this date in the sessions and get the weekday
-  const CAL_MONTHS_FULL = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
-  const [day, mon] = date.split('-');
-  if (!(mon in CAL_MONTHS_FULL)) return '';
-  // We need the year — find it from the sheet date range
-  const year = CAL_MONTHS_FULL[mon] >= CAL_MONTHS_FULL[sheet.startMonth]
-    ? sheet.startYear
-    : sheet.endYear;
-  const d = new Date(year, CAL_MONTHS_FULL[mon], parseInt(day));
-  return d.toLocaleDateString('en-GB', { weekday: 'long' });
 }
 
 // ─── HOLIDAY PLANNER PRINT ────────────────────────────────────
@@ -12075,16 +12238,9 @@ function getAllFutureSessionDates() {
     if (sheet.type === 'holiday') return; // holiday clubs separate
     if (!sheet.sessions) return;
 
-    const startMonIdx = CAL_MONTHS_BF.indexOf(sheet.startMonth);
-    const endMonIdx   = CAL_MONTHS_BF.indexOf(sheet.endMonth);
-
     Object.keys(sheet.sessions).forEach(key => {
-      const [dayStr, mon] = key.split('-');
-      const monIdx = CAL_MONTHS_BF.indexOf(mon);
-      if (monIdx < 0) return;
-      // Determine year
-      const year = monIdx >= startMonIdx ? sheet.startYear : sheet.endYear;
-      const d = new Date(year, monIdx, parseInt(dayStr));
+      const d = keyToDate(key, sheet);
+      if (isNaN(d.getTime())) return;
       if (d >= today) {
         results.push({ key, date: d, sheet, sheetId: sheet.id });
       }
@@ -12301,9 +12457,8 @@ function applyToSession(dateKey, sheet) {
     saveState();
     renderPlanner();
     closeSessionPicker();
-    const [dayStr, monStr] = dateKey.split('-');
     if (addedCount > 0) {
-      showToast(`✅ "${item.name}" added to ${sheet.name} on ${dayStr} ${monStr}.`);
+      showToast(`✅ "${item.name}" added to ${sheet.name} on ${keyDayNum(dateKey)} ${keyMonthAbbr(dateKey)}.`);
     }
   };
 
@@ -12321,8 +12476,7 @@ function applyToSession(dateKey, sheet) {
 
   const picker = document.getElementById('rowPickerModal');
   const list   = document.getElementById('rowPickerList');
-  const [dayStr, monStr] = dateKey.split('-');
-  document.getElementById('rowPickerTitle').textContent = `Which row should "${item.name}" go into on ${dayStr} ${monStr}?`;
+  document.getElementById('rowPickerTitle').textContent = `Which row should "${item.name}" go into on ${keyDayNum(dateKey)} ${keyMonthAbbr(dateKey)}?`;
 
   // Store sheet and dateKey on the picker for retrieval
   picker.dataset.dateKey = dateKey;
@@ -12361,8 +12515,7 @@ function applyToSessionRow(dateKey, sheetId, rowKey) {
   }
   saveState();
   renderPlanner();
-  const [dayStr, monStr] = dateKey.split('-');
-  showToast(`✅ "${item.name}" added on ${dayStr} ${monStr}.`);
+  showToast(`✅ "${item.name}" added on ${keyDayNum(dateKey)} ${keyMonthAbbr(dateKey)}.`);
 }
 
 function closeSessionPicker() {
@@ -12409,10 +12562,9 @@ function openBulkClearModal() {
 
   const monthsPresent = new Set();
   Object.keys(sheet.sessions || {}).forEach(dateKey => {
-    const parts = dateKey.split('-');
-    if (parts.length >= 2) monthsPresent.add(parts[parts.length - 1]);
+    monthsPresent.add(keyMonthAbbr(dateKey));
   });
-  // Also check SESSION_DATA_BASE
+  // Also check SESSION_DATA_BASE (raw seed data, always legacy 'D-Mon' literals)
   if (typeof SESSION_DATA_BASE !== 'undefined') {
     Object.keys(SESSION_DATA_BASE).forEach(dateKey => {
       const parts = dateKey.split('-');
@@ -12492,10 +12644,7 @@ function _getBulkClearTargets() {
     ...(typeof SESSION_DATA_BASE !== 'undefined' ? Object.keys(SESSION_DATA_BASE) : [])
   ]);
 
-  const targetDates = [...allDates].filter(d => {
-    const parts = d.split('-');
-    return selectedMonths.has(parts[parts.length - 1]);
-  });
+  const targetDates = [...allDates].filter(d => selectedMonths.has(keyMonthAbbr(d)));
 
   // Determine row keys to clear
   let rowKeys;
@@ -13478,23 +13627,13 @@ function ukDateNow() {
 function getRegisterSessionDates(sheetId) {
   const sheet = state.sheets.find(s => s.id === sheetId);
   if (!sheet) return [];
-  const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const dates = [], seen = new Set();
-  if (sheet.type === 'holiday') {
-    Object.keys(sheet.sessions||{}).sort().forEach(k => { if (/^\d{4}-\d{2}-\d{2}$/.test(k)) dates.push(k); });
-  } else {
-    Object.keys(sheet.sessions||{}).forEach(k => {
-      const parts = k.split('-');
-      if (parts.length !== 2) return;
-      const day = parseInt(parts[0]), mon = MONS.indexOf(parts[1]);
-      if (isNaN(day)||mon<0) return;
-      const startMon = MONS.indexOf(sheet.startMonth);
-      const year = mon>=startMon ? sheet.startYear : sheet.endYear;
-      const iso = year+'-'+String(mon+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
-      if (!seen.has(iso)) { seen.add(iso); dates.push(iso); }
-    });
-    dates.sort();
-  }
+  Object.keys(sheet.sessions||{}).forEach(k => {
+    const iso = keyToISO(k, sheet);
+    if (!keyIsISO(iso)) return; // couldn't resolve — skip rather than show a bad date
+    if (!seen.has(iso)) { seen.add(iso); dates.push(iso); }
+  });
+  dates.sort();
   return dates;
 }
 
@@ -15070,7 +15209,7 @@ function renderPlannerCurrentMonth() {
   if (!sheet.sessions) sheet.sessions = {};
 
   const groups = groupByMonth(sheet.sessions);
-  const dates = (groups[mon] || []).sort((a,b) => parseInt(a.split('-')[0]) - parseInt(b.split('-')[0]));
+  const dates = (groups[mon] || []).sort((a,b) => keyIsISO(a) && keyIsISO(b) ? (a < b ? -1 : a > b ? 1 : 0) : keyDayNum(a) - keyDayNum(b));
 
   if (!dates.length) {
     container.innerHTML = '<p style="padding:2rem;font-family:Lora,serif;color:var(--bark-light);font-style:italic;">No sessions in this month.</p>';
@@ -15127,8 +15266,7 @@ function renderPlannerCurrentMonth() {
   headRow.appendChild(cornerTh);
   dates.forEach(date => {
     const th = document.createElement('th');
-    const [day, m] = date.split('-');
-    th.textContent = day + ' ' + m;
+    th.textContent = keyDayNum(date) + ' ' + keyMonthAbbr(date);
     headRow.appendChild(th);
   });
   thead.appendChild(headRow);
