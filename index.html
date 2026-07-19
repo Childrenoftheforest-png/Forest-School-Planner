@@ -5694,39 +5694,45 @@ function deleteTerm(i) {
 // empty dates are deleted automatically; anything with real activities is left alone
 // and listed instead, so nothing gets lost silently.
 function cleanupOutOfTermSessions() {
-  const sheet = getActiveSheet();
-  if (!sheet || sheet.type === 'holiday') { alert('Switch to a term-time sheet first — holiday clubs use their own picked dates, not terms.'); return; }
-  const terms = (state.termDates || []).filter(t => t.label && t.start && t.end);
-  if (!terms.length) { alert('Set up your term dates first (🗓 Term dates), then run this again.'); return; }
+  try {
+    const sheet = getActiveSheet();
+    if (!sheet || sheet.type === 'holiday') { showToast('Switch to a term-time sheet first — holiday clubs use their own picked dates.'); return; }
+    const terms = (state.termDates || []).filter(t => t.label && t.start && t.end);
+    if (!terms.length) { showToast('Set up your term dates first (🗓 Term dates), then run this again.'); return; }
 
-  const inAnyTerm = iso => terms.some(t => iso >= t.start && iso <= t.end);
-  const keys = Object.keys(sheet.sessions || {});
-  const outOfTerm = keys.filter(k => {
-    const iso = keyToISO(k, sheet);
-    return keyIsISO(iso) && !inAnyTerm(iso);
-  });
+    const inAnyTerm = iso => terms.some(t => iso >= t.start && iso <= t.end);
+    const keys = Object.keys(sheet.sessions || {});
+    const outOfTerm = keys.filter(k => {
+      const iso = keyToISO(k, sheet);
+      return keyIsISO(iso) && !inAnyTerm(iso);
+    });
 
-  if (!outOfTerm.length) { alert('No sessions found outside your configured term dates — nothing to clean up.'); return; }
+    if (!outOfTerm.length) { showToast('✅ No sessions found outside your configured term dates.'); return; }
 
-  const isEmpty = k => {
-    const day = sheet.sessions[k] || {};
-    return Object.keys(day).every(rk => rk === '_notes' ? !day[rk] : !(day[rk] || []).length);
-  };
-  const emptyOnes = outOfTerm.filter(isEmpty);
-  const nonEmptyOnes = outOfTerm.filter(k => !isEmpty(k));
+    const isEmpty = k => {
+      const day = sheet.sessions[k] || {};
+      return Object.keys(day).every(rk => rk === '_notes' ? !day[rk] : !(day[rk] || []).length);
+    };
+    const emptyOnes = outOfTerm.filter(isEmpty);
+    const nonEmptyOnes = outOfTerm.filter(k => !isEmpty(k));
 
-  let msg = `Found ${outOfTerm.length} session date(s) outside your configured terms.\n\n`;
-  msg += `${emptyOnes.length} are empty and will be removed.\n`;
-  if (nonEmptyOnes.length) {
-    const list = nonEmptyOnes.map(k => keyDayNum(k) + ' ' + keyMonthAbbr(k)).join(', ');
-    msg += `${nonEmptyOnes.length} have activities planned, so they'll be left alone: ${list}\n\nYou can review and remove those by hand if they're not needed.`;
+    let msg = `Found ${outOfTerm.length} session date(s) outside your configured terms.\n\n`;
+    msg += `${emptyOnes.length} are empty and will be removed.\n`;
+    if (nonEmptyOnes.length) {
+      const list = nonEmptyOnes.map(k => keyDayNum(k) + ' ' + keyMonthAbbr(k)).join(', ');
+      msg += `${nonEmptyOnes.length} have activities planned, so they'll be left alone: ${list}\n\nYou can review and remove those by hand if they're not needed.`;
+    }
+    if (emptyOnes.length === 0) { showToast(`Found ${outOfTerm.length} out-of-term date(s), but all have activities planned — nothing removed automatically.`); return; }
+    if (!confirm(msg + '\n\nRemove the empty ones?')) return;
+
+    emptyOnes.forEach(k => delete sheet.sessions[k]);
+    saveState();
+    renderPlanner();
+    showToast(`🧹 Removed ${emptyOnes.length} empty out-of-term session${emptyOnes.length !== 1 ? 's' : ''}.`);
+  } catch (err) {
+    console.error('Clean Up Sessions failed:', err);
+    showToast('⚠️ Clean Up hit an error — check the browser console (F12) and let Claude know what it says.', 4000);
   }
-  if (!confirm(msg + '\n\nRemove the empty ones?')) return;
-
-  emptyOnes.forEach(k => delete sheet.sessions[k]);
-  saveState();
-  renderPlanner();
-  showToast(`🧹 Removed ${emptyOnes.length} empty out-of-term session${emptyOnes.length !== 1 ? 's' : ''}.`);
 }
 
 function saveTermDates() {
