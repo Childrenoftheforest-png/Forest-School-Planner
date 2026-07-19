@@ -3493,6 +3493,7 @@ body {
           <button class="view-toggle-btn" id="btnViewHalfterm" onclick="setPlannerView('halfterm')">📆 Half term</button>
         </div>
         <button class="toolbar-btn term-dates-btn" id="termDatesBtn" onclick="toggleTermDatesPanel()">🗓 Term dates</button>
+        <button class="toolbar-btn" onclick="cleanupOutOfTermSessions()" title="Remove empty sessions that fall outside your configured term dates">🧹 Clean Up Sessions</button>
       </div>
       <div id="termDatesPanel" style="display:none;"></div>
       <div id="plannerMonthNav"></div>
@@ -4218,17 +4219,26 @@ body {
     <!-- Step 3: Date range (long term) OR pick-your-own dates (holiday club) -->
     <div class="wizard-step" id="wizStep2">
       <div id="wizDateRangeSection">
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Start Date</label>
-            <input type="date" class="form-input" id="wizStartDate">
-          </div>
-          <div class="form-group">
-            <label class="form-label">End Date</label>
-            <input type="date" class="form-input" id="wizEndDate">
-          </div>
+        <div id="wizTermsPickSection" style="display:none;">
+          <label class="form-label">Which terms does this run?</label>
+          <p style="font-family:'Lora',serif;font-size:0.78rem;font-style:italic;color:var(--bark-light);margin-bottom:0.6rem;">Sessions are only created within the term dates you've already set up — no stray sessions in the holidays or before term starts.</p>
+          <div id="wizTermsList" style="display:flex;flex-direction:column;gap:0.4rem;margin-bottom:0.8rem;"></div>
+          <button class="toolbar-btn" onclick="wizToggleDateMode('custom')" style="padding:0.25rem 0.7rem;font-size:0.75rem;">Use a custom date range instead</button>
         </div>
-        <p style="font-family:'Lora',serif;font-size:0.78rem;font-style:italic;color:var(--bark-light);">Sessions are created for every checked weekday between these two dates.</p>
+        <div id="wizCustomRangeSection">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Start Date</label>
+              <input type="date" class="form-input" id="wizStartDate">
+            </div>
+            <div class="form-group">
+              <label class="form-label">End Date</label>
+              <input type="date" class="form-input" id="wizEndDate">
+            </div>
+          </div>
+          <p style="font-family:'Lora',serif;font-size:0.78rem;font-style:italic;color:var(--bark-light);">Sessions are created for every checked weekday between these two dates — including any holiday weeks in between.</p>
+          <button class="toolbar-btn" id="wizBackToTermsBtn" onclick="wizToggleDateMode('terms')" style="display:none;padding:0.25rem 0.7rem;font-size:0.75rem;">← Use my term dates instead</button>
+        </div>
       </div>
       <div id="wizPickDatesSection" style="display:none;">
         <div class="form-group">
@@ -5690,6 +5700,46 @@ function deleteTerm(i) {
   renderTermDatesPanel();
 }
 
+// Removes sessions that fall outside every configured term (leftover from a sheet
+// created before term dates existed, or from a custom range that overshot). Only
+// empty dates are deleted automatically; anything with real activities is left alone
+// and listed instead, so nothing gets lost silently.
+function cleanupOutOfTermSessions() {
+  const sheet = getActiveSheet();
+  if (!sheet || sheet.type === 'holiday') { alert('Switch to a term-time sheet first — holiday clubs use their own picked dates, not terms.'); return; }
+  const terms = (state.termDates || []).filter(t => t.label && t.start && t.end);
+  if (!terms.length) { alert('Set up your term dates first (🗓 Term dates), then run this again.'); return; }
+
+  const inAnyTerm = iso => terms.some(t => iso >= t.start && iso <= t.end);
+  const keys = Object.keys(sheet.sessions || {});
+  const outOfTerm = keys.filter(k => {
+    const iso = keyToISO(k, sheet);
+    return keyIsISO(iso) && !inAnyTerm(iso);
+  });
+
+  if (!outOfTerm.length) { alert('No sessions found outside your configured term dates — nothing to clean up.'); return; }
+
+  const isEmpty = k => {
+    const day = sheet.sessions[k] || {};
+    return Object.keys(day).every(rk => rk === '_notes' ? !day[rk] : !(day[rk] || []).length);
+  };
+  const emptyOnes = outOfTerm.filter(isEmpty);
+  const nonEmptyOnes = outOfTerm.filter(k => !isEmpty(k));
+
+  let msg = `Found ${outOfTerm.length} session date(s) outside your configured terms.\n\n`;
+  msg += `${emptyOnes.length} are empty and will be removed.\n`;
+  if (nonEmptyOnes.length) {
+    const list = nonEmptyOnes.map(k => keyDayNum(k) + ' ' + keyMonthAbbr(k)).join(', ');
+    msg += `${nonEmptyOnes.length} have activities planned, so they'll be left alone: ${list}\n\nYou can review and remove those by hand if they're not needed.`;
+  }
+  if (!confirm(msg + '\n\nRemove the empty ones?')) return;
+
+  emptyOnes.forEach(k => delete sheet.sessions[k]);
+  saveState();
+  renderPlanner();
+  showToast(`🧹 Removed ${emptyOnes.length} empty out-of-term session${emptyOnes.length !== 1 ? 's' : ''}.`);
+}
+
 function saveTermDates() {
   saveState();
   toggleTermDatesPanel();
@@ -6851,10 +6901,12 @@ const WIZARD_STEPS = 3; // dot-tracked steps; kind-selection (step 0) isn't coun
 let wizRoutineRows = [];
 let wizKind = null;
 let wizPickedDates = [];
+let wizDateMode = 'custom'; // 'terms' | 'custom' — which date-entry UI is showing for a Long Term Group
 
 function openNewSheetWizard() {
   wizardStep = 0;
   wizKind = null;
+  wizDateMode = 'custom';
   wizRoutineRows = DEFAULT_ROW_DEFS_COPY().filter(r => r.key !== '_notes');
   // Add notes row at end
   wizRoutineRows.push({key:'_notes', label:'Session Notes', icon:'📝'});
@@ -6893,8 +6945,40 @@ function wizChooseKind(kind) {
   document.getElementById('wizDaysGroup').style.display = kind === 'holiday' ? 'none' : '';
   document.getElementById('wizDateRangeSection').style.display = kind === 'holiday' ? 'none' : '';
   document.getElementById('wizPickDatesSection').style.display = kind === 'holiday' ? '' : 'none';
+  if (kind === 'longterm') {
+    const validTerms = (state.termDates || []).filter(t => t.label && t.start && t.end);
+    wizDateMode = validTerms.length ? 'terms' : 'custom';
+    renderWizTermsList();
+    wizToggleDateMode(wizDateMode);
+  }
   wizardStep = 1;
   renderWizardStep();
+}
+
+function renderWizTermsList() {
+  const list = document.getElementById('wizTermsList');
+  if (!list) return;
+  const validTerms = (state.termDates || []).filter(t => t.label && t.start && t.end);
+  list.innerHTML = '';
+  if (!validTerms.length) return;
+  validTerms.forEach((t, i) => {
+    const fmt = iso => { const [y,m,d] = iso.split('-'); const mons=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return `${parseInt(d)} ${mons[parseInt(m)-1]} ${y}`; };
+    const label = document.createElement('label');
+    label.style.cssText = 'display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-family:"Lora",serif;font-size:0.85rem;';
+    label.innerHTML = '<input type="checkbox" class="wizTermCheck" value="'+i+'" style="width:15px;height:15px;cursor:pointer;" checked> '+
+      '<span><strong>'+escHtml(t.label)+'</strong> <span style="color:var(--bark-light);font-size:0.78rem;">'+fmt(t.start)+' – '+fmt(t.end)+'</span></span>';
+    list.appendChild(label);
+  });
+}
+
+// Switch between "use my configured term dates" and "custom continuous range" for a Long Term Group
+function wizToggleDateMode(mode) {
+  wizDateMode = mode;
+  const validTerms = (state.termDates || []).filter(t => t.label && t.start && t.end);
+  const showTerms = mode === 'terms' && validTerms.length > 0;
+  document.getElementById('wizTermsPickSection').style.display = showTerms ? '' : 'none';
+  document.getElementById('wizCustomRangeSection').style.display = showTerms ? 'none' : '';
+  document.getElementById('wizBackToTermsBtn').style.display = (!showTerms && validTerms.length) ? '' : 'none';
 }
 
 function renderWizardStep() {
@@ -6934,10 +7018,15 @@ function wizNav(dir) {
     }
     if (wizardStep === 2) {
       if (wizKind === 'longterm') {
-        const s = document.getElementById('wizStartDate').value;
-        const e = document.getElementById('wizEndDate').value;
-        if (!s || !e) { alert('Please set a start and end date.'); return; }
-        if (s > e) { alert('Start date must be before the end date.'); return; }
+        if (wizDateMode === 'terms') {
+          const checked = [...document.querySelectorAll('.wizTermCheck:checked')];
+          if (!checked.length) { alert('Please select at least one term.'); return; }
+        } else {
+          const s = document.getElementById('wizStartDate').value;
+          const e = document.getElementById('wizEndDate').value;
+          if (!s || !e) { alert('Please set a start and end date.'); return; }
+          if (s > e) { alert('Start date must be before the end date.'); return; }
+        }
       } else if (!wizPickedDates.length) {
         alert('Please add at least one date.'); return;
       }
@@ -7048,9 +7137,22 @@ function createNewSheet() {
     };
   } else {
     const days = [...document.querySelectorAll('[name="wizDay"]:checked')].map(cb => parseInt(cb.value));
-    const startISO = document.getElementById('wizStartDate').value;
-    const endISO = document.getElementById('wizEndDate').value;
-    const sessions = generateDateRangeSessions(startISO, endISO, days);
+    let sessions, startISO, endISO;
+    if (wizDateMode === 'terms') {
+      const validTerms = (state.termDates || []).filter(t => t.label && t.start && t.end);
+      const chosenIdx = [...document.querySelectorAll('.wizTermCheck:checked')].map(cb => parseInt(cb.value));
+      const chosenTerms = chosenIdx.map(i => validTerms[i]).filter(Boolean);
+      sessions = {};
+      chosenTerms.forEach(t => Object.assign(sessions, generateDateRangeSessions(t.start, t.end, days)));
+      const allStarts = chosenTerms.map(t => t.start).sort();
+      const allEnds = chosenTerms.map(t => t.end).sort();
+      startISO = allStarts[0];
+      endISO = allEnds[allEnds.length - 1];
+    } else {
+      startISO = document.getElementById('wizStartDate').value;
+      endISO = document.getElementById('wizEndDate').value;
+      sessions = generateDateRangeSessions(startISO, endISO, days);
+    }
     sheet = {id, name, days, startISO, endISO, rowDefs, sessions, archived: false, ageGroup, strictRoster: true};
   }
 
