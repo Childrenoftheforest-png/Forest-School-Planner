@@ -10487,6 +10487,7 @@ function mInit() {
   mRenderWeek();
   mBuildMenuTabs();
   mFilterMenu();
+  renderMobileRegisterCards(); // populate the welcome screen's register card(s) on first load too
 
   // Navigate to chosen destination (set by mWelcomeChoose)
   if (mState._welcomeDest) {
