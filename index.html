@@ -4219,26 +4219,15 @@ body {
     <!-- Step 3: Date range (long term) OR pick-your-own dates (holiday club) -->
     <div class="wizard-step" id="wizStep2">
       <div id="wizDateRangeSection">
-        <div id="wizTermsPickSection" style="display:none;">
-          <label class="form-label">Which terms does this run?</label>
-          <p style="font-family:'Lora',serif;font-size:0.78rem;font-style:italic;color:var(--bark-light);margin-bottom:0.6rem;">Sessions are only created within the term dates you've already set up — no stray sessions in the holidays or before term starts.</p>
-          <div id="wizTermsList" style="display:flex;flex-direction:column;gap:0.4rem;margin-bottom:0.8rem;"></div>
-          <button class="toolbar-btn" onclick="wizToggleDateMode('custom')" style="padding:0.25rem 0.7rem;font-size:0.75rem;">Use a custom date range instead</button>
+        <label class="form-label">Add each term this runs</label>
+        <p style="font-family:'Lora',serif;font-size:0.78rem;font-style:italic;color:var(--bark-light);margin-bottom:0.6rem;">Sessions are only created within these dates — nothing in the holidays between terms. Enter this year's dates here each time; they don't carry over automatically, since term dates change every year.</p>
+        <div class="form-row">
+          <input type="text" class="form-input" id="wizTermLabelInput" placeholder="e.g. Autumn 1" style="flex:1.2;">
+          <input type="date" class="form-input" id="wizTermStartInput" title="Term start">
+          <input type="date" class="form-input" id="wizTermEndInput" title="Term end">
         </div>
-        <div id="wizCustomRangeSection">
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Start Date</label>
-              <input type="date" class="form-input" id="wizStartDate">
-            </div>
-            <div class="form-group">
-              <label class="form-label">End Date</label>
-              <input type="date" class="form-input" id="wizEndDate">
-            </div>
-          </div>
-          <p style="font-family:'Lora',serif;font-size:0.78rem;font-style:italic;color:var(--bark-light);">Sessions are created for every checked weekday between these two dates — including any holiday weeks in between.</p>
-          <button class="toolbar-btn" id="wizBackToTermsBtn" onclick="wizToggleDateMode('terms')" style="display:none;padding:0.25rem 0.7rem;font-size:0.75rem;">← Use my term dates instead</button>
-        </div>
+        <button class="toolbar-btn" onclick="wizAddTerm()" style="padding:0.3rem 0.9rem;margin-top:0.5rem;">＋ Add Term</button>
+        <div id="wizTermsBuiltList" style="display:flex;flex-direction:column;gap:0.35rem;margin-top:0.8rem;max-height:200px;overflow-y:auto;"></div>
       </div>
       <div id="wizPickDatesSection" style="display:none;">
         <div class="form-group">
@@ -6901,12 +6890,12 @@ const WIZARD_STEPS = 3; // dot-tracked steps; kind-selection (step 0) isn't coun
 let wizRoutineRows = [];
 let wizKind = null;
 let wizPickedDates = [];
-let wizDateMode = 'custom'; // 'terms' | 'custom' — which date-entry UI is showing for a Long Term Group
+let wizTerms = []; // [{label, start, end}] built directly in the wizard each time
 
 function openNewSheetWizard() {
   wizardStep = 0;
   wizKind = null;
-  wizDateMode = 'custom';
+  wizTerms = [];
   wizRoutineRows = DEFAULT_ROW_DEFS_COPY().filter(r => r.key !== '_notes');
   // Add notes row at end
   wizRoutineRows.push({key:'_notes', label:'Session Notes', icon:'📝'});
@@ -6945,40 +6934,53 @@ function wizChooseKind(kind) {
   document.getElementById('wizDaysGroup').style.display = kind === 'holiday' ? 'none' : '';
   document.getElementById('wizDateRangeSection').style.display = kind === 'holiday' ? 'none' : '';
   document.getElementById('wizPickDatesSection').style.display = kind === 'holiday' ? '' : 'none';
-  if (kind === 'longterm') {
-    const validTerms = (state.termDates || []).filter(t => t.label && t.start && t.end);
-    wizDateMode = validTerms.length ? 'terms' : 'custom';
-    renderWizTermsList();
-    wizToggleDateMode(wizDateMode);
+  if (kind === 'longterm' && wizTerms.length === 0) {
+    // Pre-fill from previously saved term dates as an editable starting point only —
+    // these are copied in, not linked, so changing them here doesn't touch the saved ones
+    // until this sheet is actually created
+    const saved = (state.termDates || []).filter(t => t.label && t.start && t.end);
+    wizTerms = saved.map(t => ({...t}));
   }
+  renderWizTermsBuiltList();
   wizardStep = 1;
   renderWizardStep();
 }
 
-function renderWizTermsList() {
-  const list = document.getElementById('wizTermsList');
-  if (!list) return;
-  const validTerms = (state.termDates || []).filter(t => t.label && t.start && t.end);
-  list.innerHTML = '';
-  if (!validTerms.length) return;
-  validTerms.forEach((t, i) => {
-    const fmt = iso => { const [y,m,d] = iso.split('-'); const mons=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return `${parseInt(d)} ${mons[parseInt(m)-1]} ${y}`; };
-    const label = document.createElement('label');
-    label.style.cssText = 'display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-family:"Lora",serif;font-size:0.85rem;';
-    label.innerHTML = '<input type="checkbox" class="wizTermCheck" value="'+i+'" style="width:15px;height:15px;cursor:pointer;" checked> '+
-      '<span><strong>'+escHtml(t.label)+'</strong> <span style="color:var(--bark-light);font-size:0.78rem;">'+fmt(t.start)+' – '+fmt(t.end)+'</span></span>';
-    list.appendChild(label);
-  });
+function wizAddTerm() {
+  const label = document.getElementById('wizTermLabelInput').value.trim() || `Term ${wizTerms.length + 1}`;
+  const start = document.getElementById('wizTermStartInput').value;
+  const end = document.getElementById('wizTermEndInput').value;
+  if (!start || !end) { alert('Please set both a start and end date for the term.'); return; }
+  if (start > end) { alert('Term start must be before its end date.'); return; }
+  wizTerms.push({label, start, end});
+  wizTerms.sort((a,b) => a.start < b.start ? -1 : a.start > b.start ? 1 : 0);
+  document.getElementById('wizTermLabelInput').value = '';
+  document.getElementById('wizTermStartInput').value = '';
+  document.getElementById('wizTermEndInput').value = '';
+  renderWizTermsBuiltList();
 }
 
-// Switch between "use my configured term dates" and "custom continuous range" for a Long Term Group
-function wizToggleDateMode(mode) {
-  wizDateMode = mode;
-  const validTerms = (state.termDates || []).filter(t => t.label && t.start && t.end);
-  const showTerms = mode === 'terms' && validTerms.length > 0;
-  document.getElementById('wizTermsPickSection').style.display = showTerms ? '' : 'none';
-  document.getElementById('wizCustomRangeSection').style.display = showTerms ? 'none' : '';
-  document.getElementById('wizBackToTermsBtn').style.display = (!showTerms && validTerms.length) ? '' : 'none';
+function wizRemoveTerm(i) {
+  wizTerms.splice(i, 1);
+  renderWizTermsBuiltList();
+}
+
+function renderWizTermsBuiltList() {
+  const list = document.getElementById('wizTermsBuiltList');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!wizTerms.length) {
+    list.innerHTML = '<div style="font-style:italic;color:var(--bark-light);font-family:\'Lora\',serif;font-size:0.8rem;">No terms added yet — add at least one above.</div>';
+    return;
+  }
+  const fmt = iso => { const [y,m,d] = iso.split('-'); const mons=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return `${parseInt(d)} ${mons[parseInt(m)-1]} ${y}`; };
+  wizTerms.forEach((t, i) => {
+    const row = document.createElement('div');
+    row.className = 'wizard-picked-date-row';
+    row.innerHTML = '<span><strong>'+escHtml(t.label)+'</strong> <span style="color:var(--bark-light);font-size:0.78rem;">'+fmt(t.start)+' – '+fmt(t.end)+'</span></span>'+
+      '<button onclick="wizRemoveTerm('+i+')">✕ Remove</button>';
+    list.appendChild(row);
+  });
 }
 
 function renderWizardStep() {
@@ -7018,15 +7020,7 @@ function wizNav(dir) {
     }
     if (wizardStep === 2) {
       if (wizKind === 'longterm') {
-        if (wizDateMode === 'terms') {
-          const checked = [...document.querySelectorAll('.wizTermCheck:checked')];
-          if (!checked.length) { alert('Please select at least one term.'); return; }
-        } else {
-          const s = document.getElementById('wizStartDate').value;
-          const e = document.getElementById('wizEndDate').value;
-          if (!s || !e) { alert('Please set a start and end date.'); return; }
-          if (s > e) { alert('Start date must be before the end date.'); return; }
-        }
+        if (!wizTerms.length) { alert('Please add at least one term.'); return; }
       } else if (!wizPickedDates.length) {
         alert('Please add at least one date.'); return;
       }
@@ -7137,23 +7131,17 @@ function createNewSheet() {
     };
   } else {
     const days = [...document.querySelectorAll('[name="wizDay"]:checked')].map(cb => parseInt(cb.value));
-    let sessions, startISO, endISO;
-    if (wizDateMode === 'terms') {
-      const validTerms = (state.termDates || []).filter(t => t.label && t.start && t.end);
-      const chosenIdx = [...document.querySelectorAll('.wizTermCheck:checked')].map(cb => parseInt(cb.value));
-      const chosenTerms = chosenIdx.map(i => validTerms[i]).filter(Boolean);
-      sessions = {};
-      chosenTerms.forEach(t => Object.assign(sessions, generateDateRangeSessions(t.start, t.end, days)));
-      const allStarts = chosenTerms.map(t => t.start).sort();
-      const allEnds = chosenTerms.map(t => t.end).sort();
-      startISO = allStarts[0];
-      endISO = allEnds[allEnds.length - 1];
-    } else {
-      startISO = document.getElementById('wizStartDate').value;
-      endISO = document.getElementById('wizEndDate').value;
-      sessions = generateDateRangeSessions(startISO, endISO, days);
-    }
+    const sessions = {};
+    wizTerms.forEach(t => Object.assign(sessions, generateDateRangeSessions(t.start, t.end, days)));
+    const sortedStarts = wizTerms.map(t => t.start).sort();
+    const sortedEnds = wizTerms.map(t => t.end).sort();
+    const startISO = sortedStarts[0];
+    const endISO = sortedEnds[sortedEnds.length - 1];
     sheet = {id, name, days, startISO, endISO, rowDefs, sessions, archived: false, ageGroup, strictRoster: true};
+    // Keep the shared term-dates config (used by half-term view) in sync with what
+    // was just entered — these dates are now the authoritative ones for this year
+    state.termDates = wizTerms.map(t => ({...t}));
+    if (document.getElementById('termDatesPanel')) renderTermDatesPanel();
   }
 
   state.sheets.push(sheet);
@@ -14073,6 +14061,9 @@ function switchManageTab(tab) {
   const list = document.getElementById('manageList');
   list.innerHTML = '';
 
+  const targetSheet = state.sheets.find(s => s.id === regActiveSheetId);
+  const targetName = targetSheet ? targetSheet.name : 'this sheet';
+
   const renderRow = (p, isFormer) => {
     const row = document.createElement('div');
     row.className = 'manage-person-row';
@@ -14081,7 +14072,30 @@ function switchManageTab(tab) {
     row.innerHTML = '<div><div class="manage-person-name">'+escHtml(p.preferredName||p.fullName||'—')+'</div>'+
       '<div class="manage-person-sub">'+sub+'</div></div>';
     const btnWrap = document.createElement('div');
-    btnWrap.style.display = 'flex'; btnWrap.style.gap = '0.4rem';
+    btnWrap.style.display = 'flex'; btnWrap.style.alignItems = 'center'; btnWrap.style.gap = '0.6rem';
+
+    // Direct toggle for whether this person is on the register currently selected above
+    if (regActiveSheetId && !isFormer) {
+      const label = document.createElement('label');
+      label.style.cssText = 'display:flex;align-items:center;gap:0.35rem;cursor:pointer;font-family:"Lora",serif;font-size:0.75rem;color:var(--bark-light);white-space:nowrap;';
+      const onThisSheet = (p.groupIds || []).includes(regActiveSheetId);
+      label.innerHTML = '<input type="checkbox" style="width:15px;height:15px;cursor:pointer;"'+(onThisSheet?' checked':'')+'> On '+escHtml(targetName);
+      const cb = label.querySelector('input');
+      cb.onchange = () => {
+        const person = regState.people.find(x => x.id === p.id);
+        if (!person) return;
+        if (!person.groupIds) person.groupIds = [];
+        if (cb.checked) {
+          if (!person.groupIds.includes(regActiveSheetId)) person.groupIds.push(regActiveSheetId);
+        } else {
+          person.groupIds = person.groupIds.filter(g => g !== regActiveSheetId);
+        }
+        saveRegister();
+        renderRegisterTable();
+      };
+      btnWrap.appendChild(label);
+    }
+
     const editBtn = document.createElement('button');
     editBtn.className = 'register-btn'; editBtn.textContent = 'Edit';
     editBtn.onclick = () => openPersonProfileById(p.id);
