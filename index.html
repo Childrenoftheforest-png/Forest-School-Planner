@@ -5205,12 +5205,16 @@ function renderSheetTabs() {
   container.innerHTML = '';
   for (const sheet of state.sheets) {
     if (sheet.type === 'holiday') continue; // holiday clubs shown in dropdown
-    if (sheet.archived) continue; // archived sheets shown in the Archived dropdown
+    // Archived sheets are normally tucked away in the Archived dropdown, but if one
+    // is somehow still the active sheet, keep showing its tab (clearly labelled) —
+    // otherwise you'd be looking at its data with no visible tab at all
+    if (sheet.archived && sheet.id !== state.activeSheetId) continue;
     const btn = document.createElement('button');
     btn.className = 'sheet-tab' + (sheet.id === state.activeSheetId ? ' active' : '');
     const labelSpan = document.createElement('span');
     labelSpan.className = 'sheet-tab-label';
-    labelSpan.textContent = sheet.emoji ? sheet.emoji + ' ' + sheet.name : sheet.name;
+    const baseLabel = sheet.emoji ? sheet.emoji + ' ' + sheet.name : sheet.name;
+    labelSpan.textContent = sheet.archived ? baseLabel + ' (archived)' : baseLabel;
     btn.appendChild(labelSpan);
     btn.title = sheet.name;
     btn.onclick = () => switchSheet(sheet.id);
@@ -6910,8 +6914,10 @@ function openNewSheetWizard() {
   document.getElementById('wizAgeGroup').value = 'all';
   // Uncheck all days
   document.querySelectorAll('[name="wizDay"]').forEach(cb => cb.checked = false);
-  document.getElementById('wizStartDate').value = '';
-  document.getElementById('wizEndDate').value = '';
+  document.getElementById('wizTermLabelInput').value = '';
+  document.getElementById('wizTermStartInput').value = '';
+  document.getElementById('wizTermEndInput').value = '';
+  renderWizTermsBuiltList();
   document.getElementById('wizAddDateInput').value = '';
   document.getElementById('wizKindLongterm').classList.remove('selected');
   document.getElementById('wizKindHoliday').classList.remove('selected');
