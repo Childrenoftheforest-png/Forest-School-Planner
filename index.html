@@ -5283,6 +5283,8 @@ function deleteSheet(id) {
   }
   saveState();
   renderSheetTabs();
+  renderHolidayDropdown();
+  if (document.getElementById('registerSheetSelect')) populateRegisterSheetSelect();
   renderPlanner();
 }
 
@@ -5307,6 +5309,7 @@ function archiveSheet(id) {
   renderSheetTabs();
   renderHolidayDropdown();
   renderArchivedDropdown();
+  if (document.getElementById('registerSheetSelect')) populateRegisterSheetSelect();
   renderPlanner();
 }
 
@@ -5318,6 +5321,7 @@ function unarchiveSheet(id) {
   renderSheetTabs();
   renderHolidayDropdown();
   renderArchivedDropdown();
+  if (document.getElementById('registerSheetSelect')) populateRegisterSheetSelect();
   renderPlanner();
 }
 
@@ -7040,14 +7044,14 @@ function createNewSheet() {
       id, name, type: 'holiday',
       startISO: wizPickedDates[0], endISO: wizPickedDates[wizPickedDates.length - 1],
       rowDefs, sessions, days: [],
-      archived: false, ageGroup
+      archived: false, ageGroup, strictRoster: true
     };
   } else {
     const days = [...document.querySelectorAll('[name="wizDay"]:checked')].map(cb => parseInt(cb.value));
     const startISO = document.getElementById('wizStartDate').value;
     const endISO = document.getElementById('wizEndDate').value;
     const sessions = generateDateRangeSessions(startISO, endISO, days);
-    sheet = {id, name, days, startISO, endISO, rowDefs, sessions, archived: false, ageGroup};
+    sheet = {id, name, days, startISO, endISO, rowDefs, sessions, archived: false, ageGroup, strictRoster: true};
   }
 
   state.sheets.push(sheet);
@@ -7056,6 +7060,9 @@ function createNewSheet() {
   renderSheetTabs();
   renderHolidayDropdown();
   renderPlanner();
+  // Keep the Register sheet dropdown in sync even if we're not currently on that view —
+  // otherwise a new sheet (holiday club or not) only appears there after switching views
+  if (document.getElementById('registerSheetSelect')) populateRegisterSheetSelect();
   closeNewSheetWizard();
 }
 
@@ -13656,14 +13663,15 @@ function populateRegisterSheetSelect() {
   const sel = document.getElementById('registerSheetSelect');
   if (!sel) return;
   sel.innerHTML = '';
-  const eligible = state.sheets.filter(s => s.type !== 'holiday');
+  const eligible = state.sheets; // holiday clubs get a register too, same as any other sheet
   // Active sheets first, archived ones after (clearly labelled) — so old, closed-out
   // sheets stay reachable for historical dates without ever being the default view
   const active = eligible.filter(s => !s.archived);
   const archived = eligible.filter(s => s.archived);
   [...active, ...archived].forEach(s => {
     const opt = document.createElement('option');
-    opt.value = s.id; opt.textContent = s.name + (s.archived ? ' (archived)' : ''); sel.appendChild(opt);
+    const icon = s.type === 'holiday' ? '🏕 ' : '';
+    opt.value = s.id; opt.textContent = icon + s.name + (s.archived ? ' (archived)' : ''); sel.appendChild(opt);
   });
   // Explicitly default to the first active sheet, regardless of DOM/array order
   if (active.length) sel.value = active[0].id;
@@ -13719,7 +13727,11 @@ function renderRegisterTable() {
   const dates    = currentMon
     ? regAllDates.filter(d => d.slice(0,7) === currentMon)
     : regAllDates;
-  const inGroup = p => !p.groupIds || p.groupIds.length === 0 || p.groupIds.includes(regActiveSheetId);
+  const regSheet = state.sheets.find(s => s.id === regActiveSheetId);
+  const inGroup = p => {
+    if (p.groupIds && p.groupIds.length > 0) return p.groupIds.includes(regActiveSheetId);
+    return !(regSheet && regSheet.strictRoster); // untagged people show everywhere, except on fresh sheets
+  };
   const children = regState.people.filter(p => p.type === 'child' && !p.left && inGroup(p));
   const staff    = regState.people.filter(p => p.type === 'staff' && !p.left && inGroup(p));
   const head = document.getElementById('registerTableHead');
@@ -14242,7 +14254,11 @@ function mRenderRegister() {
   updateOnSiteCountFor(iso);
   const list = document.getElementById('mRegisterList');
   list.innerHTML = '';
-  const inGroup = p => !p.groupIds || p.groupIds.length === 0 || p.groupIds.includes(mRegisterSheetId);
+  const mRegSheet = state.sheets.find(s => s.id === mRegisterSheetId);
+  const inGroup = p => {
+    if (p.groupIds && p.groupIds.length > 0) return p.groupIds.includes(mRegisterSheetId);
+    return !(mRegSheet && mRegSheet.strictRoster);
+  };
   const children = regState.people.filter(p => p.type==='child' && !p.left && inGroup(p));
   const staff    = regState.people.filter(p => p.type==='staff' && !p.left && inGroup(p));
   if (!children.length && !staff.length) {
@@ -14345,7 +14361,11 @@ function mRemoveDeparture(iso, personId, btn, removeBtn, info) {
 function updateOnSiteCountFor(iso) {
   const arr = regState.arrivals[iso] || {};
   const dep = regState.departures[iso] || {};
-  const inGroup = p => !p.groupIds || p.groupIds.length === 0 || p.groupIds.includes(mRegisterSheetId);
+  const mRegSheet = state.sheets.find(s => s.id === mRegisterSheetId);
+  const inGroup = p => {
+    if (p.groupIds && p.groupIds.length > 0) return p.groupIds.includes(mRegisterSheetId);
+    return !(mRegSheet && mRegSheet.strictRoster);
+  };
   const onSite = regState.people.filter(p => !p.left && inGroup(p) && arr[p.id] && !dep[p.id]).length;
   document.getElementById('mRegisterCount').textContent = onSite + ' on site';
 }
