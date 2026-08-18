@@ -3979,7 +3979,6 @@ body {
     <div class="detail-panel-meta">
       <span class="month-tag" id="dpMonthTag"></span>
       <span class="detail-panel-cat-label" id="dpCatLabel"></span>
-      <span class="tag-user" id="dpUserTag" style="display:none;">✦ yours</span>
     </div>
   </div>
 
@@ -4330,7 +4329,7 @@ const ROW_DEFS = [
   {key:"Morning Circle Question", label:"Morning Circle",        icon:"💬", cat:"morning"},
   {key:"Chat Topics",             label:"Chat Topics",           icon:"🗣️", cat:"chat"},
   {key:"Nature Journaling",       label:"Nature Journaling",     icon:"📓", cat:"journaling"},
-  {key:"Wide Game",               label:"Wide Game (AM)",        icon:"🦊", cat:"games"},
+  {key:"Wide Game",               label:"Wide Game (AM)",        icon:"🦊", cat:"wide"},
   {key:"Active Bushcraft Activity / Role Playing Activity", label:"Bushcraft", icon:"🔥", cat:"bushcraft"},
   {key:"Bushcraft & Skills",      label:"Bushcraft",             icon:"🔥", cat:"bushcraft"},
   {key:"Low Energy Craft",        label:"Craft",                 icon:"🌿", cat:"crafts"},
@@ -4346,8 +4345,8 @@ const ROW_DEFS = [
 
 // BASE_CATEGORIES are the built-in ones — locked from deletion but renameable
 const BASE_CATEGORIES = [
-  {id:"games",     label:"Wide Games",           emoji:"🦊", color:"#5c3d2e", bg:"#fdf3e7", accent:"#c0703a", base:true},
-  {id:"general",   label:"Games",                emoji:"🎮", color:"#1a2a4a", bg:"#eef0fa", accent:"#3a5aaa", base:true},
+  {id:"wide",      label:"Wide Games",           emoji:"🦊", color:"#5c3d2e", bg:"#fdf3e7", accent:"#c0703a", base:true},
+  {id:"static",    label:"Static Games",         emoji:"🎮", color:"#1a2a4a", bg:"#eef0fa", accent:"#3a5aaa", base:true},
   {id:"bushcraft", label:"Bushcraft & Skills",   emoji:"🔥", color:"#3b2a1a", bg:"#fef8ef", accent:"#8b4513", base:true},
   {id:"crafts",    label:"Craft Projects",        emoji:"🌿", color:"#2d4a22", bg:"#f1f8ee", accent:"#4a7c3f", base:true},
   {id:"recipes",   label:"Recipes & Cooking",     emoji:"🍞", color:"#3d2b00", bg:"#fdf7ed", accent:"#b8860b", base:true},
@@ -4377,7 +4376,7 @@ const USER_CAT_COLORS = [
 ];
 
 const MENU_ITEMS_BASE = [
-  {name:"Dracula / Zombie tag",month:"Jan",cat:"games"},{name:"Only Safe If...",month:"Jan",cat:"games"},{name:"Raiders",month:"Jan",cat:"games"},{name:"Jays and Squirrels",month:"Jan",cat:"games"},{name:"Beat the Bear",month:"Feb",cat:"games"},{name:"Smell Your Friends",month:"Feb",cat:"games"},{name:"Squirrel Sneak Up",month:"Feb",cat:"games"},{name:"Hunters and Rabbits",month:"Feb",cat:"games"},{name:"Green Man and the Pinecones",month:"Mar",cat:"games"},{name:"Panther Attack",month:"Mar",cat:"games"},{name:"Zeus' Coming",month:"Mar",cat:"games"},{name:"Hunters and Rabbits",month:"Mar",cat:"games"},{name:"Up the Hill",month:"Mar",cat:"games"},{name:"Laser Maze",month:"Mar",cat:"games"},{name:"Hands Poses Games",month:"Mar",cat:"games"},{name:"Simon Says Spring",month:"Apr",cat:"games"},{name:"Spring scavenger race",month:"Apr",cat:"games"},{name:"Bunny tail tag",month:"Apr",cat:"games"},{name:"Human knot and untangle",month:"Apr",cat:"games"},{name:"Spring charades",month:"Apr",cat:"games"},{name:"Animal Yoga challenge",month:"Apr",cat:"games"},{name:"Panther Attack",month:"Apr",cat:"games"},{name:"Maypole dash",month:"May",cat:"games"},{name:"Deer Dance Game",month:"May",cat:"games"},{name:"Find and Fire",month:"May",cat:"games"},{name:"Ostrich Tag",month:"May",cat:"games"},{name:"Find Your Flock",month:"May",cat:"games"},{name:"Seed scatter tag",month:"May",cat:"games"},{name:"Roots and shoots tag",month:"May",cat:"games"},{name:"Meet the Trees",month:"Jun",cat:"games"},{name:"Spider Tag",month:"Jun",cat:"games"},{name:"Shoulder and Knee Tag",month:"Jun",cat:"games"},{name:"Sardines",month:"Jun",cat:"games"},{name:"Hooray OK No Way",month:"Jun",cat:"games"},{name:"Go Find It",month:"Jun",cat:"games"},{name:"Green Man's Coming",month:"Jun",cat:"games"},{name:"Penguins on the Iceberg",month:"Jun",cat:"games"},{name:"Attack the Treehouse / Monster Traps",month:"Jul",cat:"games"},{name:"Pathfinder Race",month:"Jul",cat:"games"},{name:"Memory match",month:"Jul",cat:"games"},{name:"Harvest relay",month:"Sep",cat:"games"},{name:"Forest treasure hunt",month:"Jul",cat:"games"},{name:"Nature Ninja Warrior Course",month:"Aug",cat:"games"},{name:"Wild Chase",month:"Aug",cat:"games"},{name:"Capture the Dragon's Tail",month:"Aug",cat:"games"},{name:"Leaf Races in Stream",month:"Oct",cat:"games"},{name:"Survivor: Nature Challenges",month:"Aug",cat:"games"},{name:"Fox Hunt — Up the Hill",month:"Aug",cat:"games"},{name:"Capture the Flag",month:"Sep",cat:"games"},{name:"Forest Relay Races",month:"Sep",cat:"games"},{name:"Tug-of-War",month:"Sep",cat:"games"},{name:"Camouflage Hide and Seek",month:"Sep",cat:"games"},{name:"Forest Scavenger Hunt",month:"Sep",cat:"games"},{name:"Team Log Rolling",month:"Sep",cat:"games"},{name:"Nature Bingo",month:"Oct",cat:"games"},{name:"Shadow Conga",month:"Oct",cat:"games"},{name:"King of the Hill",month:"Oct",cat:"games"},{name:"Obstacle Course",month:"Oct",cat:"games"},{name:"Blindfolded Obstacle Course",month:"Nov",cat:"games"},{name:"Fox Hunt",month:"Nov",cat:"games"},{name:"Nature Freeze Tag",month:"Nov",cat:"games"},{name:"Pinecone Toss Challenge",month:"Nov",cat:"games"},{name:"Sneaky Animal Game",month:"Nov",cat:"games"},{name:"Christmas Trees (game)",month:"Dec",cat:"games"},{name:"Winter Nature Treasure Hunt",month:"Dec",cat:"games"},{name:"Tree Circle Tag",month:"Dec",cat:"games"},
+  {name:"Dracula / Zombie tag",month:"Jan",cat:"wide"},{name:"Only Safe If...",month:"Jan",cat:"wide"},{name:"Raiders",month:"Jan",cat:"wide"},{name:"Jays and Squirrels",month:"Jan",cat:"wide"},{name:"Beat the Bear",month:"Feb",cat:"wide"},{name:"Smell Your Friends",month:"Feb",cat:"wide"},{name:"Squirrel Sneak Up",month:"Feb",cat:"wide"},{name:"Hunters and Rabbits",month:"Feb",cat:"wide"},{name:"Green Man and the Pinecones",month:"Mar",cat:"wide"},{name:"Panther Attack",month:"Mar",cat:"wide"},{name:"Zeus' Coming",month:"Mar",cat:"wide"},{name:"Hunters and Rabbits",month:"Mar",cat:"wide"},{name:"Up the Hill",month:"Mar",cat:"wide"},{name:"Laser Maze",month:"Mar",cat:"wide"},{name:"Hands Poses Games",month:"Mar",cat:"wide"},{name:"Simon Says Spring",month:"Apr",cat:"wide"},{name:"Spring scavenger race",month:"Apr",cat:"wide"},{name:"Bunny tail tag",month:"Apr",cat:"wide"},{name:"Human knot and untangle",month:"Apr",cat:"wide"},{name:"Spring charades",month:"Apr",cat:"static"},{name:"Animal Yoga challenge",month:"Apr",cat:"static"},{name:"Panther Attack",month:"Apr",cat:"wide"},{name:"Maypole dash",month:"May",cat:"wide"},{name:"Deer Dance Game",month:"May",cat:"wide"},{name:"Find and Fire",month:"May",cat:"wide"},{name:"Ostrich Tag",month:"May",cat:"wide"},{name:"Find Your Flock",month:"May",cat:"wide"},{name:"Seed scatter tag",month:"May",cat:"wide"},{name:"Roots and shoots tag",month:"May",cat:"wide"},{name:"Meet the Trees",month:"Jun",cat:"wide"},{name:"Spider Tag",month:"Jun",cat:"wide"},{name:"Shoulder and Knee Tag",month:"Jun",cat:"wide"},{name:"Sardines",month:"Jun",cat:"wide"},{name:"Hooray OK No Way",month:"Jun",cat:"wide"},{name:"Go Find It",month:"Jun",cat:"wide"},{name:"Green Man's Coming",month:"Jun",cat:"wide"},{name:"Penguins on the Iceberg",month:"Jun",cat:"wide"},{name:"Attack the Treehouse / Monster Traps",month:"Jul",cat:"wide"},{name:"Pathfinder Race",month:"Jul",cat:"wide"},{name:"Memory match",month:"Jul",cat:"static"},{name:"Harvest relay",month:"Sep",cat:"wide"},{name:"Forest treasure hunt",month:"Jul",cat:"wide"},{name:"Nature Ninja Warrior Course",month:"Aug",cat:"wide"},{name:"Wild Chase",month:"Aug",cat:"wide"},{name:"Capture the Dragon's Tail",month:"Aug",cat:"wide"},{name:"Leaf Races in Stream",month:"Oct",cat:"wide"},{name:"Survivor: Nature Challenges",month:"Aug",cat:"wide"},{name:"Fox Hunt — Up the Hill",month:"Aug",cat:"wide"},{name:"Capture the Flag",month:"Sep",cat:"wide"},{name:"Forest Relay Races",month:"Sep",cat:"wide"},{name:"Tug-of-War",month:"Sep",cat:"wide"},{name:"Camouflage Hide and Seek",month:"Sep",cat:"wide"},{name:"Forest Scavenger Hunt",month:"Sep",cat:"wide"},{name:"Team Log Rolling",month:"Sep",cat:"wide"},{name:"Nature Bingo",month:"Oct",cat:"wide"},{name:"Shadow Conga",month:"Oct",cat:"wide"},{name:"King of the Hill",month:"Oct",cat:"wide"},{name:"Obstacle Course",month:"Oct",cat:"wide"},{name:"Blindfolded Obstacle Course",month:"Nov",cat:"wide"},{name:"Fox Hunt",month:"Nov",cat:"wide"},{name:"Nature Freeze Tag",month:"Nov",cat:"wide"},{name:"Pinecone Toss Challenge",month:"Nov",cat:"wide"},{name:"Sneaky Animal Game",month:"Nov",cat:"wide"},{name:"Christmas Trees (game)",month:"Dec",cat:"wide"},{name:"Winter Nature Treasure Hunt",month:"Dec",cat:"wide"},{name:"Tree Circle Tag",month:"Dec",cat:"wide"},
   {name:"Firelighting refresher & stormproof shelters",month:"Jan",cat:"bushcraft",resources:"EQUIPMENT:\n- Tarpaulins & bungees\n- Rope (various lengths)\n- Fire steel & striker\n- Tinder box\n- Saw for processing wood\nCONSUMABLES:\n- Dry tinder (cotton wool / char cloth)\n- Kindling\n- Small dry logs"},{name:"Knot-tying challenges",month:"Jan",cat:"bushcraft",resources:"EQUIPMENT:\n- Rope lengths (one per child, ~2m)\n- Knot reference cards or printed sheet\nCONSUMABLES:\n- None"},{name:"Building waterproof shelters",month:"Jan",cat:"bushcraft",resources:"EQUIPMENT:\n- Tarpaulins & bungees\n- Rope (various lengths)\n- Wooden stakes\n- Mallet\nCONSUMABLES:\n- None"},{name:"Making clay lanterns",month:"Jan",cat:"bushcraft",resources:"EQUIPMENT:\n- Clay tools & sculpting sticks\n- Water buckets\n- Rolling boards\nCONSUMABLES:\n- Natural clay or air-dry clay\n- Tea lights (battery or wax)"},{name:"Making stretchers & rescue drills",month:"Feb",cat:"bushcraft",resources:"EQUIPMENT:\n- Two long straight poles or branches\n- Rope\nCONSUMABLES:\n- None"},{name:"Setting animal snares (mock-ups)",month:"Feb",cat:"bushcraft",resources:"EQUIPMENT:\n- Wire cutters\n- Pliers\nCONSUMABLES:\n- Galvanised wire\n- Paracord"},{name:"Carving swords from blanks",month:"Feb",cat:"bushcraft",resources:"EQUIPMENT:\n- Whittling knives (per child)\n- Gouges & chisels\n- Mallet\n- Sandpaper (80, 120, 240 grit)\nCONSUMABLES:\n- Pre-cut hazel or willow blanks"},{name:"Fire lighting drills",month:"Feb",cat:"bushcraft",resources:"EQUIPMENT:\n- Fire steel & striker sets (one per pair)\n- Tinder boxes\nCONSUMABLES:\n- Char cloth\n- Dry tinder\n- Kindling"},{name:"Animal tracking",month:"Mar",cat:"bushcraft",resources:"EQUIPMENT:\n- Magnifying glasses\n- Field guide to UK animal tracks\n- Mixing bowls\n- Stirring sticks\nCONSUMABLES:\n- Plaster of Paris\n- Water"},{name:"Primitive firemaking techniques",month:"Mar",cat:"bushcraft",resources:"EQUIPMENT:\n- Bow drill sets (bow, spindle, hearth board, handhold)\nCONSUMABLES:\n- Dry tinder\n- Kindling"},{name:"Flint and steel firelighting",month:"Mar",cat:"bushcraft",resources:"EQUIPMENT:\n- Flint pieces\n- Steel strikers\n- Tinder boxes\nCONSUMABLES:\n- Char cloth\n- Dry tinder\n- Kindling"},{name:"Hammer making with scotch eye auger",month:"Mar",cat:"bushcraft",resources:"EQUIPMENT:\n- Scotch eye auger\n- Whittling knives\n- Mallet\n- Sandpaper\nCONSUMABLES:\n- Seasoned hazel blanks (handle)\n- Suitable heavy wood or stone for head"},{name:"Making simple cordage",month:"Mar",cat:"bushcraft",resources:"EQUIPMENT:\n- Gloves\n- Scissors\nCONSUMABLES:\n- Nettles / bramble strips / long grasses / iris leaves"},{name:"Whittling peg dolls",month:"Mar",cat:"bushcraft",resources:"EQUIPMENT:\n- Whittling knives (per child)\n- Sandpaper (120, 240 grit)\nCONSUMABLES:\n- Straight hazel or willow sticks (~15cm)\n- Wood stain or paint (optional)"},{name:"Building & decorating wooden fairy doors",month:"Apr",cat:"bushcraft",resources:"EQUIPMENT:\n- Small hand saws\n- Whittling knives\n- Sandpaper\n- Paint brushes\n- Hot glue gun\nCONSUMABLES:\n- Thin wood offcuts or bark slabs\n- Watercolour / natural paints\n- Moss, seeds, tiny shells for decoration"},{name:"Whittling simple wands",month:"Apr",cat:"bushcraft",resources:"EQUIPMENT:\n- Whittling knives (per child)\n- Sandpaper\nCONSUMABLES:\n- Straight hazel or willow rods (~30cm)\n- Linseed oil or beeswax (finish)"},{name:"Collaborative dragon lair den build",month:"Apr",cat:"bushcraft",resources:"EQUIPMENT:\n- Tarpaulins & bungees\n- Rope (various lengths)\n- Wooden stakes\nCONSUMABLES:\n- Bracken / large leaves for roofing"},{name:"Mini fairy house village",month:"Apr",cat:"bushcraft",resources:"EQUIPMENT:\n- Hand tools (small saws, whittling knives)\n- Hot glue gun\n- Paint brushes\nCONSUMABLES:\n- Sticks, bark pieces, pine cones\n- Moss, dry leaves\n- Air-dry clay\n- Watercolour paints"},{name:"Fire lighting with flint and steel",month:"May",cat:"bushcraft",resources:"EQUIPMENT:\n- Flint pieces\n- Steel strikers\n- Tinder boxes\nCONSUMABLES:\n- Char cloth\n- Dry tinder\n- Kindling\n- Small logs"},{name:"Building waterproof shelters — bucket test",month:"May",cat:"bushcraft",resources:"EQUIPMENT:\n- Tarpaulins & bungees\n- Rope (various lengths)\n- Mallet, stakes\n- Bucket of water (for the test)\nCONSUMABLES:\n- None"},{name:"Camouflaging shelters",month:"May",cat:"bushcraft",resources:"EQUIPMENT:\n- Tarpaulins & rope (base structure)\nCONSUMABLES:\n- Bracken\n- Leafy branches\n- Grass clumps"},{name:"Sword making workshop",month:"May",cat:"bushcraft",resources:"EQUIPMENT:\n- Bow saw\n- Whittling knives\n- Gouges & chisels\n- Mallet\n- Sandpaper (80, 120, 240 grit)\n- Spokeshave (optional)\nCONSUMABLES:\n- Hazel or ash blanks\n- Linseed oil (finish)"},{name:"Whittling herb labels",month:"May",cat:"bushcraft",resources:"EQUIPMENT:\n- Whittling knives\n- Sandpaper\n- Permanent marker\nCONSUMABLES:\n- Straight hazel or elder sticks"},{name:"Making water filters",month:"May",cat:"bushcraft",resources:"EQUIPMENT:\n- Large scissors or craft knife\n- Plastic bottles (large)\nCONSUMABLES:\n- Clean gravel\n- Coarse sand\n- Fine sand\n- Activated charcoal\n- Cotton wool or cloth"},{name:"Bum Shuffle River Boat Races",month:"Jun",cat:"bushcraft",resources:"EQUIPMENT:\n- None - natural materials only\nCONSUMABLES:\n- None"},{name:"Low ropes obstacle course",month:"Jun",cat:"bushcraft",resources:"EQUIPMENT:\n- Rope (multiple long lengths)\n- Wooden stakes\n- Tarpaulins\nCONSUMABLES:\n- None"},{name:"Camo challenge with big netting",month:"Jun",cat:"bushcraft",resources:"EQUIPMENT:\n- Large camouflage netting\nCONSUMABLES:\n- Bracken, leaves, grasses for additional cover"},{name:"Making elder beads and duck calls",month:"Jun",cat:"bushcraft",resources:"EQUIPMENT:\n- Whittling knives\n- Skewers or thin drill bit\n- Sandpaper\nCONSUMABLES:\n- Elder stems (thumb-thick, freshly cut)\n- Twine or cord for stringing beads"},{name:"Elder Bubble Wands",month:"Jun",cat:"bushcraft",resources:"EQUIPMENT:\n- Whittling knives\n- Skewers\nCONSUMABLES:\n- Elder stems\n- Washing-up liquid\n- Water\n- Small tray"},{name:"Harvesting nettle fibre and making cordage",month:"Jul",cat:"bushcraft",resources:"EQUIPMENT:\n- Thick gloves\n- Scissors or snips\nCONSUMABLES:\n- Mature nettles"},{name:"Constructing a tripod cooking structure",month:"Jul",cat:"bushcraft",resources:"EQUIPMENT:\n- Rope or natural cordage\n- Three long straight poles or branches\nCONSUMABLES:\n- None"},{name:"Navigation using sun and landmarks",month:"Jul",cat:"bushcraft",resources:"EQUIPMENT:\n- Compasses (one per pair)\n- Printed site map\n- Watch or phone for solar navigation\nCONSUMABLES:\n- None"},{name:"Fire-building team challenge",month:"Jul",cat:"bushcraft",resources:"EQUIPMENT:\n- Fire steel & striker sets\n- Tinder boxes\nCONSUMABLES:\n- Char cloth\n- Dry tinder\n- Kindling\n- Small logs"},{name:"Making bow drill sets",month:"Aug",cat:"bushcraft",resources:"EQUIPMENT:\n- Whittling knives\n- Bow saw\n- Sandpaper (80, 120 grit)\n- Vice or wood clamp (optional)\nCONSUMABLES:\n- Hazel or willow rods (for spindle)\n- Willow or hawthorn board (for hearth)\n- Paracord (for bow string)\n- Bark slab (to catch coal)"},{name:"Feather carving with knives",month:"Aug",cat:"bushcraft",resources:"EQUIPMENT:\n- Whittling knives (per child)\n- Sandpaper\nCONSUMABLES:\n- Straight green hazel sticks (~20cm)\n- Linseed oil (optional finish)"},{name:"Create natural dyes from plants",month:"Aug",cat:"bushcraft",resources:"EQUIPMENT:\n- Large pots\n- Campfire or fire pit\n- Strainer & muslin cloth\n- Rubber gloves\n- Buckets\nCONSUMABLES:\n- Dye plants (onion skins / weld / woad / blackberries)\n- Alum mordant\n- White or natural fabric scraps"},{name:"Build a team raft",month:"Aug",cat:"bushcraft",resources:"EQUIPMENT:\n- Rope / lashing cord\n- Floating barrels or large logs\n- Paddles (optional)\nCONSUMABLES:\n- None"},{name:"Whittling sticks for tent pegs",month:"Sep",cat:"bushcraft",resources:"EQUIPMENT:\n- Whittling knives (per child)\nCONSUMABLES:\n- Hazel sticks (~30cm, green wood)"},{name:"Tree climbing with ropes",month:"Sep",cat:"bushcraft",resources:"EQUIPMENT:\n- Climbing ropes\n- Karabiners\n- Helmets (per child)\n- Harnesses\n- Throw bag\nCONSUMABLES:\n- None"},{name:"Setting animal tracking traps",month:"Sep",cat:"bushcraft",resources:"EQUIPMENT:\n- Camera traps (optional)\n- Flat boards or tracking plates\nCONSUMABLES:\n- Flour or fine sand (for prints)\n- Bait (peanut butter / bird seed)"},{name:"Carving simple wooden spoons",month:"Oct",cat:"bushcraft",resources:"EQUIPMENT:\n- Hook knife\n- Straight whittling knife\n- Sandpaper (80, 120, 240 grit)\n- Axe or hatchet (for roughing out)\nCONSUMABLES:\n- Green hazel or willow blanks\n- Food-safe oil finish (raw linseed or walnut oil)"},{name:"Build a bug hotel",month:"Oct",cat:"bushcraft",resources:"EQUIPMENT:\n- Saw\n- Hammer\n- Drill & bits\n- Mallet\nCONSUMABLES:\n- Reclaimed wood / old pallets\n- Bamboo canes (cut to length)\n- Pine cones\n- Moss\n- Straw\n- Corrugated cardboard"},{name:"Shelter building with tarps",month:"Oct",cat:"bushcraft",resources:"EQUIPMENT:\n- Tarpaulins & bungees\n- Rope (various lengths)\n- Wooden stakes\n- Mallet\nCONSUMABLES:\n- None"},{name:"Hammers and nails — building bird feeders",month:"Nov",cat:"bushcraft",resources:"EQUIPMENT:\n- Hammers\n- Saws\n- Sandpaper\n- Tape measure\n- Pencil\nCONSUMABLES:\n- Reclaimed or sawn wood pieces\n- Nails (assorted)\n- Wire or twine for hanging"},{name:"Making fire starters (wax and sawdust)",month:"Nov",cat:"bushcraft",resources:"EQUIPMENT:\n- Double boiler or tin cans in a pot\n- Campfire or fire pit\n- Muffin tin or egg boxes\n- Tongs\nCONSUMABLES:\n- Old candles or paraffin wax\n- Sawdust\n- Egg boxes"},{name:"Bow drill fire",month:"Nov",cat:"bushcraft",resources:"EQUIPMENT:\n- Bow drill sets (bow, spindle, hearth board, handhold)\n- Flat bark slab (to catch coal)\nCONSUMABLES:\n- Dry tinder bundle\n- Kindling"},{name:"Knot challenge by the fire",month:"Dec",cat:"bushcraft",resources:"EQUIPMENT:\n- Rope lengths (one per child)\n- Knot reference cards\nCONSUMABLES:\n- None"},{name:"Winter shelter building",month:"Dec",cat:"bushcraft",resources:"EQUIPMENT:\n- Tarpaulins & bungees\n- Rope (various lengths)\n- Wooden stakes\n- Mallet\nCONSUMABLES:\n- Bracken\n- Dry leaves (for insulation layer)"},{name:"Stormproof fire building",month:"Dec",cat:"bushcraft",resources:"EQUIPMENT:\n- Fire steel & striker\n- Tinder boxes\n- Dry wood store\nCONSUMABLES:\n- Char cloth\n- Dry tinder\n- Kindling\n- Seasoned logs"},
   {name:"Ice Sun Catchers",month:"Jan",cat:"crafts",resources:"EQUIPMENT:\n- Round containers or trays\n- Lengths of string or wool\nCONSUMABLES:\n- Water\n- Natural materials: berries, holly, pine needles, small leaves"},{name:"Bird Seed Cakes",month:"Jan",cat:"crafts",resources:"EQUIPMENT:\n- Mixing bowls\n- Small moulds or yoghurt pots\n- Lengths of string\nCONSUMABLES:\n- Coconut oil or vegetable shortening (instead of suet/lard)\n- Wild bird seed mix\n- Oats\n- Raisins (optional)"},{name:"Twig Snowflakes",month:"Jan",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\n- Hot glue gun\nCONSUMABLES:\n- Thin straight twigs (6 per snowflake)\n- Twine for hanging\n- White paint (optional)"},{name:"Clay Imprints",month:"Jan",cat:"crafts",resources:"EQUIPMENT:\n- Rolling pins\n- Clay tools\n- Boards for rolling\nCONSUMABLES:\n- Air-dry clay\n- Interesting leaves, feathers, seed heads for printing"},{name:"Pinecone Owls",month:"Jan",cat:"crafts",resources:"EQUIPMENT:\n- Hot glue gun\n- Scissors\nCONSUMABLES:\n- Pine cones\n- Felt scraps\n- Googly eyes\n- Feathers"},{name:"Nature Valentines",month:"Feb",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\n- Hole punch\nCONSUMABLES:\n- Card\n- Pressed or dried flowers / leaves\n- PVA glue\n- Natural twine\n- Envelopes"},{name:"Pressed Flower Cards",month:"Apr",cat:"crafts",resources:"EQUIPMENT:\n- Flower press or heavy books\n- Blotting paper\n- Paint brushes\nCONSUMABLES:\n- Freshly picked flowers and leaves\n- Blank card\n- PVA glue"},{name:"Clay Bead Bracelets",month:"Feb",cat:"crafts",resources:"EQUIPMENT:\n- Clay tools\n- Skewers\n- Rolling mat\nCONSUMABLES:\n- Air-dry clay\n- Elastic cord\n- Acrylic paint\n- Varnish"},{name:"Pebble Painting",month:"Feb",cat:"crafts",resources:"EQUIPMENT:\n- Paint brushes (various sizes)\n- Water pots\nCONSUMABLES:\n- Smooth river pebbles\n- Acrylic or watercolour paints\n- Outdoor varnish (optional)"},{name:"Willow Heart Decorations",month:"Feb",cat:"crafts",resources:"EQUIPMENT:\n- Secateurs\n- Bucket of water (for soaking)\nCONSUMABLES:\n- Fresh willow withies\n- Natural twine or raffia"},{name:"Natural inks with berries and charcoal",month:"Mar",cat:"crafts",resources:"EQUIPMENT:\n- Pestles & mortars\n- Strainer & muslin\n- Small glass jars\n- Paint brushes\nCONSUMABLES:\n- Blackberries, sloes or elderberries\n- Charcoal sticks\n- Gum arabic\n- Splash of vinegar\n- Watercolour paper"},{name:"Clay pinch pots",month:"Mar",cat:"crafts",resources:"EQUIPMENT:\n- Clay tools\n- Water bowls\n- Boards for working\nCONSUMABLES:\n- Natural clay or air-dry clay\n- Slip (clay mixed with water)\n- Paint or glaze (optional)"},{name:"Bird nesting rings",month:"Mar",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\nCONSUMABLES:\n- Wire rings (one per child)\n- Natural cotton or jute fibre\n- Dried moss\n- Dry grass or straw\n- Hemp twine scraps"},{name:"Y-stick weaving",month:"Mar",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\nCONSUMABLES:\n- Y-shaped sticks (one per child)\n- Cotton, jute or bamboo yarn\n- Strips of fabric (optional)"},{name:"Easter Egg Dyeing with Natural Dyes",month:"Apr",cat:"crafts",resources:"EQUIPMENT:\n- Pots\n- Campfire or fire pit\n- Strainer\n- Rubber gloves\nCONSUMABLES:\n- Wooden eggs or smooth stones (instead of real eggs)\n- Onion skins (yellow/brown), red cabbage, turmeric\n- Vinegar (mordant, check it is spirit vinegar)\n- Elastic bands or leaves for patterning"},{name:"Spring Flower Crowns",month:"Apr",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\n- Secateurs\nCONSUMABLES:\n- Flexible stems (willow, ivy, honeysuckle)\n- Spring flowers (daffodil, primrose, daisy)\n- Natural twine"},{name:"Wildflower Seed Bombs",month:"Apr",cat:"crafts",resources:"EQUIPMENT:\n- Mixing bowls\n- Rubber gloves\nCONSUMABLES:\n- Air-dry clay or potters clay\n- Wildflower seed mix (preferably UK native)\n- Compost"},{name:"Willow Weaving",month:"Apr",cat:"crafts",resources:"EQUIPMENT:\n- Secateurs\n- Bucket of water (for soaking withies)\nCONSUMABLES:\n- Fresh or soaked willow withies (various thicknesses)"},{name:"Leaf Print Cards",month:"Apr",cat:"crafts",resources:"EQUIPMENT:\n- Paint brushes\n- Foam roller\n- Printing board\nCONSUMABLES:\n- Fresh leaves (varied shapes)\n- Water-based printing ink or thick paint\n- Blank card or paper"},{name:"Moss Art Creations",month:"Apr",cat:"crafts",resources:"EQUIPMENT:\n- Hot glue gun\n- Scissors\n- Paint brushes\nCONSUMABLES:\n- Fresh or dried moss\n- Bark pieces\n- Card or wooden board backing\n- PVA glue"},{name:"Sunflower Seedlings in Eggshells",month:"Apr",cat:"crafts",resources:"EQUIPMENT:\n- Spoons\n- Seed tray for stability\nCONSUMABLES:\n- Small cardboard tubes or peat-free pots (instead of eggshells)\n- Peat-free seed compost\n- Sunflower seeds"},{name:"Blossom Garlands",month:"Apr",cat:"crafts",resources:"EQUIPMENT:\n- Large needle\n- Scissors\nCONSUMABLES:\n- Fresh blossom (cherry, apple, hawthorn)\n- Natural cotton thread or fine twine"},{name:"Twig Bunnies",month:"Apr",cat:"crafts",resources:"EQUIPMENT:\n- Hot glue gun\n- Scissors\nCONSUMABLES:\n- Thin forked twigs\n- Felt scraps\n- Googly eyes\n- Natural twine"},{name:"Beltane Crowns",month:"May",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\n- Secateurs\nCONSUMABLES:\n- Flexible stems (willow, honeysuckle)\n- Seasonal flowers (hawthorn blossom, bluebells, cow parsley)\n- Ribbons"},{name:"Mini maypoles",month:"May",cat:"crafts",resources:"EQUIPMENT:\n- Drill\n- Scissors\n- Small base block (wood)\nCONSUMABLES:\n- Long straight sticks (one per child, ~60cm)\n- Ribbons (multiple colours, ~1.5m each)"},{name:"Hapa Zome — hammer leaf printing",month:"May",cat:"crafts",resources:"EQUIPMENT:\n- Hammers or smooth stones\n- Hard flat boards\nCONSUMABLES:\n- Fresh leaves and flowers (e.g. bracken, cow parsley, clover)\n- Calico or cotton fabric\n- Backing fabric to protect from staining"},{name:"Bunting making",month:"May",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\n- Hole punch or sewing needle\nCONSUMABLES:\n- Fabric scraps or felt\n- Natural twine (for string)\n- Fabric paint (optional)"},{name:"Watercolour painting with natural brushes",month:"May",cat:"crafts",resources:"EQUIPMENT:\n- Water pots\nCONSUMABLES:\n- Feathers, pine needles, moss tied to sticks (natural brushes)\n- Watercolour paints\n- Watercolour paper"},{name:"Nature fans with leaves and willow",month:"May",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\n- Secateurs\nCONSUMABLES:\n- Fresh willow withies or hazel sticks\n- Large flat leaves\n- Natural twine"},{name:"Cross stitch on natural fabric",month:"May",cat:"crafts",resources:"EQUIPMENT:\n- Large blunt needles\n- Embroidery hoops\n- Scissors\nCONSUMABLES:\n- Hessian or calico fabric\n- Embroidery thread (natural or coloured)\n- Simple pattern sheets (printed)"},{name:"Sun catchers using string and sticks",month:"Jun",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\nCONSUMABLES:\n- Sticks (two crossed)\n- Cotton or bamboo coloured yarn (instead of wool)\n- Beads or shells (optional)"},{name:"Nature Weaving",month:"Jun",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\n- Secateurs\nCONSUMABLES:\n- Y-shaped frame or willow loom\n- Cotton, jute or bamboo yarn\n- Leaves, grasses, seed heads"},{name:"Sun Prints",month:"Jun",cat:"crafts",resources:"EQUIPMENT:\n- Water tray\n- Board to lay paper flat\nCONSUMABLES:\n- Cyanotype / sun print paper\n- Natural objects (leaves, feathers, flowers)\n- Water (to fix print)"},{name:"Wildflower Crowns",month:"Jun",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\nCONSUMABLES:\n- Flexible stems (willow, clover, grass)\n- Summer wildflowers (ox-eye daisy, clover, meadowsweet)\n- Natural twine"},{name:"Herb Sachets",month:"Jun",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\n- Needle & thread\nCONSUMABLES:\n- Muslin fabric squares\n- Dried lavender, rosemary, or mint\n- Ribbon or twine to tie"},{name:"Grass Dollies",month:"Jun",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\nCONSUMABLES:\n- Long dry grasses or rushes\n- Natural twine"},{name:"Daisy Chains",month:"Jun",cat:"crafts",resources:"EQUIPMENT:\n- None\nCONSUMABLES:\n- Daisies (picked fresh)"},{name:"Pressing Flowers",month:"Jul",cat:"crafts",resources:"EQUIPMENT:\n- Flower press or heavy books\n- Blotting paper\nCONSUMABLES:\n- Fresh flowers and leaves\n- Blotting paper"},{name:"Nature Masks",month:"Jul",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\n- Hole punch\n- Paint brushes\nCONSUMABLES:\n- Thin card\n- Acrylic paints\n- Leaves, feathers, seeds for decoration\n- PVA glue\n- Elastic"},{name:"Dragonfly Stick Puppets",month:"Jul",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\n- Hot glue gun\nCONSUMABLES:\n- Straight sticks\n- Cellophane or tissue paper (wings)\n- Natural twine\n- Googly eyes"},{name:"Leaf Print Totes",month:"Jul",cat:"crafts",resources:"EQUIPMENT:\n- Paint brushes\n- Foam roller\nCONSUMABLES:\n- Plain canvas tote bags\n- Fabric paint (various colours)\n- Fresh leaves (varied shapes)\n- Paper for test prints"},{name:"Pine Cone Bees",month:"Sep",cat:"crafts",resources:"EQUIPMENT:\n- Hot glue gun\nCONSUMABLES:\n- Pine cones\n- Yellow and black paint\n- Paint brushes\n- Googly eyes\n- Thin wire or pipe cleaners (wings)"},{name:"Sunset Collage with Natural Dyes",month:"Aug",cat:"crafts",resources:"EQUIPMENT:\n- Paint brushes\n- Mixing bowls\n- Water pots\nCONSUMABLES:\n- Thick paper or card\n- Berries, flowers for natural dye\n- PVA glue\n- Natural materials for collage"},{name:"Woven Stick Stars",month:"Aug",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\nCONSUMABLES:\n- Sticks (5 per star, similar length)\n- Cotton or bamboo coloured yarn (instead of wool)"},{name:"Nature Bracelets",month:"Aug",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\nCONSUMABLES:\n- Masking tape (worn sticky-side out)\n- Small natural materials: petals, leaves, moss, tiny seeds"},{name:"Clay Pendants",month:"Aug",cat:"crafts",resources:"EQUIPMENT:\n- Clay tools\n- Skewers\n- Rolling mat\n- Sandpaper\nCONSUMABLES:\n- Air-dry clay\n- Acrylic paint\n- Varnish\n- Hemp cord or cotton cord (instead of leather)"},{name:"Pinecone Bird Feeders",month:"Sep",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\nCONSUMABLES:\n- Pine cones\n- Peanut butter (check no added dairy)\n- Wild bird seed\n- String or twine"},{name:"Leaf Lanterns",month:"Sep",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\n- Glue brush\nCONSUMABLES:\n- Glass jars\n- PVA glue\n- Pressed or fresh autumn leaves\n- Battery tea lights"},{name:"Conker Caterpillars",month:"Sep",cat:"crafts",resources:"EQUIPMENT:\n- Hand drill or skewer\n- Scissors\nCONSUMABLES:\n- Conkers (6-8 per child)\n- Chenille stems or flexible wire\n- Googly eyes\n- Acrylic paint"},{name:"Acorn Necklaces",month:"Sep",cat:"crafts",resources:"EQUIPMENT:\n- Small hand drill or bradawl\n- Sandpaper\nCONSUMABLES:\n- Acorns with caps\n- PVA glue (to fix caps)\n- Hemp cord or waxed cotton cord (instead of leather)"},{name:"Pumpkin Carving",month:"Oct",cat:"crafts",resources:"EQUIPMENT:\n- Carving knives and scoops\n- Marker pens (for drawing design)\n- Newspaper (for mess)\nCONSUMABLES:\n- Pumpkins (one per 2 children)\n- Tea lights or battery candles"},{name:"Apple Stamping",month:"Oct",cat:"crafts",resources:"EQUIPMENT:\n- Knife (adult use, for cutting apples)\n- Paint brushes\n- Paint trays\nCONSUMABLES:\n- Apples (halved)\n- Autumn-coloured paints\n- Paper or fabric"},{name:"Autumn Leaf Garland",month:"Oct",cat:"crafts",resources:"EQUIPMENT:\n- Large needle\n- Scissors\nCONSUMABLES:\n- Autumn leaves (freshly fallen)\n- Natural twine or strong thread"},{name:"Nature Wreaths",month:"Oct",cat:"crafts",resources:"EQUIPMENT:\n- Secateurs\n- Wire cutters\nCONSUMABLES:\n- Willow or hazel wreath base\n- Seasonal foliage (ivy, holly, rosehip)\n- Fine garden wire\n- Ribbon (optional)"},{name:"Cobweb Dreamcatchers",month:"Oct",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\nCONSUMABLES:\n- Willow or twig ring (one per child)\n- Cotton or bamboo yarn (instead of wool)\n- Beads\n- Feathers found on the ground"},{name:"Handmade Lanterns",month:"Nov",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\n- Glue brush\nCONSUMABLES:\n- Card or thick paper\n- Tissue paper (coloured)\n- PVA glue\n- Battery tea lights\n- Sticks for handle"},{name:"Clay Poppies",month:"Nov",cat:"crafts",resources:"EQUIPMENT:\n- Clay tools\n- Rolling mat\n- Paint brushes\nCONSUMABLES:\n- Air-dry clay\n- Red acrylic paint\n- Black acrylic paint\n- Varnish"},{name:"Wax-dipped Leaves",month:"Nov",cat:"crafts",resources:"EQUIPMENT:\n- Double boiler or tin cans in pot\n- Campfire or fire pit\n- Metal tongs\nCONSUMABLES:\n- Soy wax or carnauba wax (instead of beeswax)\n- Autumn leaves (freshly fallen)\n- String for hanging"},{name:"Straw Stars",month:"Dec",cat:"crafts",resources:"EQUIPMENT:\n- Scissors\nCONSUMABLES:\n- Straw or raffia\n- Thread\n- Ribbon for hanging"},{name:"Orange Pomanders",month:"Dec",cat:"crafts",resources:"EQUIPMENT:\n- Cocktail sticks or clove pusher\n- Ribbon\nCONSUMABLES:\n- Oranges\n- Whole cloves\n- Orris root powder (optional, as fixative)\n- Ribbon or twine for hanging"},{name:"Pinecone Gnomes",month:"Dec",cat:"crafts",resources:"EQUIPMENT:\n- Hot glue gun\nCONSUMABLES:\n- Pine cones\n- Felt (various colours for hats)\n- Cotton wool or plant-based fibre (for beard)\n- Small wooden beads (for noses)"},{name:"Wreath Making",month:"Dec",cat:"crafts",resources:"EQUIPMENT:\n- Secateurs\n- Wire cutters\nCONSUMABLES:\n- Willow or hazel wreath base ring\n- Seasonal foliage (holly, ivy, mistletoe, rosemary, eucalyptus)\n- Fine garden wire\n- Ribbon or raffia"},
   {name:"Campfire Bannock Bread",month:"Jan",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Mixing bowl\n- Long green sticks for cooking (or Dutch oven)\nCONSUMABLES:\n- 2 cups plain flour\n- 1 tsp baking powder\n- Pinch of salt\n- 1 tbsp coconut oil or vegan butter\n- Water to mix"},{name:"Roasted Root Vegetables",month:"Jan",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Foil or Dutch oven\nCONSUMABLES:\n- Root vegetables (carrots, parsnips, beetroot)\n- Olive oil\n- Mixed herbs\n- Salt & pepper\n- Foil"},{name:"Campfire Baked Apples",month:"Jan",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Apple corer\n- Foil\nCONSUMABLES:\n- Apples (one per child)\n- Coconut oil or vegan butter\n- Brown sugar\n- Raisins\n- Cinnamon"},{name:"Wild Garlic Dumplings",month:"Mar",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Dutch oven or large pot\n- Mixing bowl\nCONSUMABLES:\n- Fresh wild garlic\n- Self-raising flour\n- Coconut oil or vegan butter\n- Salt\n- Oat milk or other plant milk"},{name:"Dandelion Flower Fritters",month:"Apr",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Deep pan or Dutch oven\n- Mixing bowl\n- Tongs or spider strainer\nCONSUMABLES:\n- Fresh dandelion flower heads\n- Plain flour\n- 1 tbsp ground flaxseed + 3 tbsp water (flax egg)\n- Oat milk\n- Salt\n- Oil for frying"},{name:"Flatbread with foraged herbs",month:"Mar",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Flat stone or griddle pan\n- Mixing bowl\nCONSUMABLES:\n- 2 cups plain flour\n- Pinch of salt\n- Water\n- Olive oil\n- Foraged herbs (wild garlic, wood sorrel, nettles)"},{name:"Wild garlic pesto with bread",month:"Mar",cat:"recipes",resources:"EQUIPMENT:\n- Pestle & mortar (or food processor)\n- Long sticks for bread\n- Campfire\n- Small jars\nCONSUMABLES:\n- Wild garlic leaves\n- Pine nuts or sunflower seeds\n- 3 tbsp nutritional yeast (instead of Parmesan)\n- Olive oil\n- Salt\n- Bread dough (flour, yeast, salt, water)"},{name:"Nettle soup",month:"Mar",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Large pot\n- Ladle\n- Thick rubber gloves\n- Strainer\nCONSUMABLES:\n- Young nettle tips\n- Onion\n- Potato\n- Olive oil or vegan butter\n- Vegetable stock\n- Salt & pepper\n- Oat cream (optional)"},{name:"Bannock bread with cinnamon",month:"Mar",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Long green sticks or Dutch oven\n- Mixing bowl\nCONSUMABLES:\n- 2 cups plain flour\n- 1 tsp baking powder\n- Pinch of salt\n- 1 tbsp coconut oil or vegan butter\n- 1 tsp cinnamon\n- 1 tbsp sugar\n- Water to mix"},{name:"Campfire crumpets",month:"Mar",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Metal crumpet rings\n- Griddle or flat stone\n- Mixing bowls\nCONSUMABLES:\n- 250g plain flour\n- 7g fast-action yeast\n- 1 tsp salt\n- 1 tsp sugar\n- 150ml warm oat milk\n- 150ml warm water"},{name:"Hot Cross Buns on the fire",month:"Apr",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Dutch oven\n- Mixing bowls\nCONSUMABLES:\n- 500g strong white flour\n- 7g yeast\n- 50g sugar\n- 50g vegan butter\n- 1 flax egg (1 tbsp ground flaxseed + 3 tbsp water)\n- 150ml warm oat milk\n- Mixed spice, cinnamon\n- 100g dried fruit\n- Icing sugar for cross"},{name:"Wild Garlic Pesto Pasta",month:"Apr",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Large pot\n- Pestle & mortar\n- Colander\n- Ladle\nCONSUMABLES:\n- Wild garlic leaves\n- Pasta\n- 3 tbsp nutritional yeast (instead of Parmesan)\n- Pine nuts or sunflower seeds\n- Olive oil\n- Salt\n- Water for boiling"},{name:"Breadsticks on a Stick",month:"Apr",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Long green sticks (one per child)\n- Mixing bowl\nCONSUMABLES:\n- 300g plain flour\n- 7g fast-action yeast\n- 1 tsp salt\n- 1 tsp sugar\n- 1 tbsp olive oil\n- 180ml warm water"},{name:"Nettle Pancakes",month:"Apr",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Pan or griddle\n- Mixing bowl\n- Ladle\n- Tongs\nCONSUMABLES:\n- Young nettles (blanched and chopped)\n- 100g plain flour\n- 1 flax egg (1 tbsp ground flaxseed + 3 tbsp water)\n- 200ml oat milk\n- Coconut oil for frying\n- Salt\n- Lemon and maple syrup to serve"},{name:"Fire-toasted oatcakes with jam",month:"May",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Flat stone or griddle\n- Mixing bowl\nCONSUMABLES:\n- 200g oats\n- 50g coconut oil or vegan butter\n- Pinch of salt\n- Hot water to bind\n- Jam to serve"},{name:"Stinging nettle pakoras",month:"May",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Deep pan or Dutch oven\n- Thick gloves for nettles\n- Spider strainer or tongs\n- Paper towels\nCONSUMABLES:\n- Young nettle tips (blanched)\n- 150g chickpea flour\n- Cumin, coriander, turmeric, chilli flakes, salt\n- Water to mix\n- Oil for frying"},{name:"Elderflower Cordial",month:"May",cat:"recipes",resources:"EQUIPMENT:\n- Large pot\n- Campfire or fire pit\n- Strainer & muslin cloth\n- Sterilised bottles or jars\nCONSUMABLES:\n- 20 elderflower heads\n- 1.5kg sugar\n- 2 lemons (sliced)\n- 50g citric acid\n- 1.5 litres water"},{name:"Wild Garlic Butter Rolls",month:"Apr",cat:"recipes",resources:"EQUIPMENT:\n- Campfire or Dutch oven\n- Mixing bowl\nCONSUMABLES:\n- 500g strong white flour\n- 7g yeast\n- 1 tsp salt\n- 100g vegan butter (softened)\n- Large bunch wild garlic (finely chopped)\n- 300ml warm water"},{name:"Campfire Cornbread",month:"Jun",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Dutch oven or cast-iron pan\n- Mixing bowl\nCONSUMABLES:\n- 200g cornmeal\n- 100g plain flour\n- 1 flax egg (1 tbsp ground flaxseed + 3 tbsp water)\n- 240ml oat milk\n- 50g coconut oil or vegan butter\n- 1 tsp baking powder\n- 1 tsp salt\n- 1 tbsp maple syrup"},{name:"Rose Petal Jam",month:"Jun",cat:"recipes",resources:"EQUIPMENT:\n- Large pot\n- Campfire\n- Sterilised jars with lids\n- Jam thermometer\n- Strainer\nCONSUMABLES:\n- Fragrant rose petals (unsprayed, white base removed)\n- Preserving sugar\n- Lemon juice\n- Water"},{name:"Elderflower & Lemon Scones",month:"Jun",cat:"recipes",resources:"EQUIPMENT:\n- Campfire or pizza oven\n- Dutch oven\n- Mixing bowl\n- Pastry cutter\nCONSUMABLES:\n- 350g self-raising flour\n- 85g cold vegan butter\n- 3 tbsp elderflower cordial\n- Zest of 1 lemon\n- 175ml oat milk\n- Pinch of salt\n- Vegan cream and jam to serve"},{name:"Lavender Shortbread",month:"Jun",cat:"recipes",resources:"EQUIPMENT:\n- Pizza oven or Dutch oven\n- Mixing bowls\n- Rolling pin\n- Cookie cutters\nCONSUMABLES:\n- 200g plain flour\n- 100g vegan butter (cold)\n- 50g caster sugar\n- 1 tbsp dried culinary lavender\n- Pinch of salt"},{name:"Wild Cherry & Almond Muffins",month:"Jul",cat:"recipes",resources:"EQUIPMENT:\n- Dutch oven or pizza oven\n- Muffin cases\n- Mixing bowls\nCONSUMABLES:\n- Wild cherries (pitted)\n- 200g plain flour\n- 100g sugar\n- 75g vegan butter\n- 2 flax eggs (2 tbsp ground flaxseed + 6 tbsp water)\n- 100ml oat milk\n- 50g ground almonds\n- 1 tsp baking powder"},{name:"Meadowsweet Cordial",month:"Jul",cat:"recipes",resources:"EQUIPMENT:\n- Large pot\n- Campfire\n- Strainer & muslin cloth\n- Sterilised bottles\nCONSUMABLES:\n- 15 meadowsweet flower heads\n- 1kg sugar\n- 2 lemons (sliced)\n- 30g citric acid\n- 1 litre water"},{name:"Campfire Peach Cobbler",month:"Jul",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Dutch oven\n- Mixing bowl\nCONSUMABLES:\n- Peaches (tinned or fresh)\n- 150g plain flour\n- 100g sugar\n- 75g vegan butter\n- 1 tsp baking powder\n- 100ml oat milk\n- Cinnamon"},{name:"Banana Boats",month:"Jul",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Foil\n- Tongs\nCONSUMABLES:\n- Bananas (one per child)\n- Vegan dark chocolate chips\n- Vegan marshmallows (e.g. Freedom or Dandies brand)"},{name:"Sweetcorn & herb parcels on coals",month:"Aug",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Foil\n- Tongs\nCONSUMABLES:\n- Sweetcorn cobs (one per child)\n- Vegan butter\n- Garlic\n- Mixed herbs\n- Salt & pepper"},{name:"Fire-roasted apples with cinnamon",month:"Sep",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Apple corer\n- Foil\n- Tongs\nCONSUMABLES:\n- Apples (one per child)\n- Coconut oil or vegan butter\n- Brown sugar\n- Cinnamon\n- Raisins or sultanas"},{name:"Apple & Cinnamon Crumble",month:"Sep",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Dutch oven\n- Mixing bowl\n- Peeler and knife\nCONSUMABLES:\n- Apples (peeled and sliced)\n- Brown sugar\n- Cinnamon\n- 100g plain flour\n- 75g oats\n- 75g cold vegan butter\n- 50g sugar"},{name:"Wild Mushroom Soup",month:"Sep",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Large pot\n- Ladle\n- Knife & chopping board\nCONSUMABLES:\n- Mixed mushrooms\n- Onion\n- Garlic\n- Olive oil\n- Vegetable stock\n- Oat cream or coconut cream\n- Salt & pepper\n- Bread to serve"},{name:"Blackberry Jam",month:"Sep",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Large pot\n- Sterilised jars with lids\n- Jam thermometer\nCONSUMABLES:\n- Blackberries\n- Preserving sugar\n- Lemon juice"},{name:"Roasted Chestnuts",month:"Oct",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Chestnut pan or foil parcel\n- Knife (for scoring)\n- Thick gloves\nCONSUMABLES:\n- Sweet chestnuts (scored with an X)"},{name:"Pumpkin & Sage Risotto",month:"Oct",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Large pot or Dutch oven\n- Ladle\n- Knife & chopping board\nCONSUMABLES:\n- Pumpkin or squash (cubed)\n- Arborio rice\n- Onion\n- Garlic\n- Olive oil\n- 3 tbsp nutritional yeast (instead of Parmesan)\n- Vegetable stock\n- Fresh sage"},{name:"Blackberry & Apple Pie",month:"Sep",cat:"recipes",resources:"EQUIPMENT:\n- Campfire or pizza oven\n- Dutch oven\n- Rolling pin\n- Mixing bowl\nCONSUMABLES:\n- Blackberries\n- Apples (peeled and sliced)\n- 200g plain flour\n- 100g cold vegan butter\n- 50g sugar\n- 3-4 tbsp cold water (to bind pastry)"},{name:"S'mores",month:"Oct",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Long roasting sticks (one per child)\nCONSUMABLES:\n- Vegan marshmallows (e.g. Freedom or Dandies brand)\n- Digestive biscuits (check label - most are vegan)\n- Vegan dark chocolate bars"},{name:"Campfire Toad-in-the-Hole",month:"Nov",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Dutch oven or cast-iron pan\n- Mixing bowl\nCONSUMABLES:\n- Vegan sausages\n- 100g plain flour\n- 2 tbsp ground flaxseed + 6 tbsp water (flax eggs)\n- 200ml oat milk\n- Oil\n- Salt"},{name:"Harvest Stew",month:"Nov",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Large pot\n- Ladle\n- Knife & chopping board\nCONSUMABLES:\n- Seasonal vegetables (squash, root veg, leeks, kale)\n- Onion\n- Garlic\n- Vegetable stock\n- Tinned tomatoes\n- Herbs (thyme, rosemary)\n- Oil\n- Salt & pepper"},{name:"Stollen",month:"Dec",cat:"recipes",resources:"EQUIPMENT:\n- Pizza oven or Dutch oven\n- Mixing bowls\n- Baking parchment\nCONSUMABLES:\n- 500g strong white flour\n- 7g yeast\n- 75g vegan butter\n- 75g sugar\n- 200ml warm oat milk\n- 200g mixed dried fruit and peel\n- 100g marzipan (check label - most is vegan)\n- Mixed spice, cinnamon, nutmeg\n- Icing sugar to finish"},{name:"Gingerbread Men",month:"Dec",cat:"recipes",resources:"EQUIPMENT:\n- Pizza oven or Dutch oven\n- Mixing bowls\n- Rolling pin\n- Gingerbread cutter\nCONSUMABLES:\n- 350g plain flour\n- 175g vegan butter\n- 100g soft brown sugar\n- 4 tbsp golden syrup\n- 2 tsp ground ginger\n- 1 tsp mixed spice\n- 2 tbsp oat milk (to bind)\n- Icing for decoration"},{name:"Campfire Chocolate Fondue",month:"Dec",cat:"recipes",resources:"EQUIPMENT:\n- Campfire\n- Small Dutch oven or tin can\n- Long skewers or sticks\nCONSUMABLES:\n- Vegan dark chocolate\n- Oat cream or coconut cream\n- Vegan marshmallows (e.g. Freedom or Dandies brand)\n- Banana slices\n- Bread cubes or plain biscuits for dipping"},
@@ -4641,37 +4640,37 @@ const MENU_ITEMS_BASE = [
   {name:"Circle of Life / Forest is Our Home",month:"Jun",cat:"seasonal",resources:"EQUIPMENT:\\n• Campfire or candles\\n\\nCONSUMABLES:\\n• Seasonal materials as needed (ribbons, candles, flowers)"},
   {name:"Ostara Story",month:"Mar",cat:"seasonal",resources:"EQUIPMENT:\\n• Printed or memorised story\\n• Optional: simple props\\n\\nCONSUMABLES:\\n• None"},
   {name:"Ostara Story Game",month:"Mar",cat:"seasonal",resources:"EQUIPMENT:\\n• None needed\\n\\nCONSUMABLES:\\n• Printed story cards or props\\n• Optional: small eggs or seeds as game tokens"},
-  {name:"Dungeons & Dragons (roleplay)",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
-  {name:"Animal Court",month:"May",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Ambush Game — Defend the woodland",month:"Sep",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Apple bobbing and harvest games",month:"Oct",cat:"games",resources:"EQUIPMENT:\\n• Large bowl or bucket\\n\\nCONSUMABLES:\\n• Apples\\n• Water"},
-  {name:"Battle Game — final spring showdown in the woods",month:"May",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Blindfolded Race",month:"Apr",cat:"games",resources:"EQUIPMENT:\\n• Blindfolds (one per pair)\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Build an autumn den",month:"Oct",cat:"games",resources:"EQUIPMENT:\\n• Rope (various lengths)\\n• Tarpaulin\\n\\nCONSUMABLES:\\n• Natural materials gathered on site"},
-  {name:"Deer Trail Challenge — find and follow the signs",month:"Oct",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Fox and Hare",month:"May",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Heads or tails coins — nature themed",month:"Mar",cat:"games",resources:"EQUIPMENT:\\n• Large painted stones (heads/tails) — one per round\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Hedgerow Harvest Hunt — hide and seek for natural items",month:"Sep",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Hide and Seek the Summer Spirits — blend into nature",month:"Jun",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Hunter and Rabbits",month:"Mar",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Hunter and Rabbits — summer spirit edition",month:"Jun",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Identifying and mapping wild edible plants",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Wild plant ID guide\\n• Clipboards\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed ID sheets or bingo cards"},
-  {name:"Journey Sticks — tying on objects from our walk",month:"Sep",cat:"games",resources:"EQUIPMENT:\\n• None\\n\\nCONSUMABLES:\\n• One sturdy stick per child (~40cm)\\n• String or elastic band\\n• Natural objects found on the walk"},
-  {name:"Kubb Tournament",month:"Jun",cat:"games",resources:"EQUIPMENT:\\n• Kubb set (wooden kubbs, batons, king piece)\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Mystery Investigation",month:"Apr",cat:"games",resources:"EQUIPMENT:\\n• Printed clue sheets or mystery cards\\n• Magnifying glass\\n\\nCONSUMABLES:\\n• Printed clues\\n• Optional: small 'evidence' props"},
-  {name:"Pollinator roleplay — collect 'pollen' and cross-pollinate",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Yellow pom-poms or cotton balls (pollen)\\n• Paper flower cut-outs\\n\\nCONSUMABLES:\\n• Yellow pom-poms or cotton balls"},
-  {name:"Pricklenut Tree",month:"Oct",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Robin Relay — team race with natural tasks",month:"Nov",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Roleplay: Protect the last egg of the forest dragon",month:"Apr",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Roleplay: Woodland creatures prepare for a spring festival",month:"Apr",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Snowflake Tag",month:"Jan",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Stealth Game — hiding and retrieving an object",month:"Oct",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Worm Wriggle Chase — mimic soil creatures underground",month:"Mar",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Woodland Creature Parade — act out your favourite animal",month:"Apr",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Forest Treasure Hunt",month:"Jul",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Deer Dance Game (second round)",month:"May",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Maypole Dash (second round)",month:"May",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Spring Charades",month:"Apr",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Dungeons & Dragons (roleplay)",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
+  {name:"Animal Court",month:"May",cat:"static",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Ambush Game — Defend the woodland",month:"Sep",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Apple bobbing and harvest games",month:"Oct",cat:"wide",resources:"EQUIPMENT:\\n• Large bowl or bucket\\n\\nCONSUMABLES:\\n• Apples\\n• Water"},
+  {name:"Battle Game — final spring showdown in the woods",month:"May",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Blindfolded Race",month:"Apr",cat:"wide",resources:"EQUIPMENT:\\n• Blindfolds (one per pair)\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Build an autumn den",month:"Oct",cat:"wide",resources:"EQUIPMENT:\\n• Rope (various lengths)\\n• Tarpaulin\\n\\nCONSUMABLES:\\n• Natural materials gathered on site"},
+  {name:"Deer Trail Challenge — find and follow the signs",month:"Oct",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Fox and Hare",month:"May",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Heads or tails coins — nature themed",month:"Mar",cat:"static",resources:"EQUIPMENT:\\n• Large painted stones (heads/tails) — one per round\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Hedgerow Harvest Hunt — hide and seek for natural items",month:"Sep",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Hide and Seek the Summer Spirits — blend into nature",month:"Jun",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Hunter and Rabbits",month:"Mar",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Hunter and Rabbits — summer spirit edition",month:"Jun",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Identifying and mapping wild edible plants",month:"May",cat:"wide",resources:"EQUIPMENT:\\n• Wild plant ID guide\\n• Clipboards\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed ID sheets or bingo cards"},
+  {name:"Journey Sticks — tying on objects from our walk",month:"Sep",cat:"wide",resources:"EQUIPMENT:\\n• None\\n\\nCONSUMABLES:\\n• One sturdy stick per child (~40cm)\\n• String or elastic band\\n• Natural objects found on the walk"},
+  {name:"Kubb Tournament",month:"Jun",cat:"static",resources:"EQUIPMENT:\\n• Kubb set (wooden kubbs, batons, king piece)\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Mystery Investigation",month:"Apr",cat:"static",resources:"EQUIPMENT:\\n• Printed clue sheets or mystery cards\\n• Magnifying glass\\n\\nCONSUMABLES:\\n• Printed clues\\n• Optional: small 'evidence' props"},
+  {name:"Pollinator roleplay — collect 'pollen' and cross-pollinate",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Yellow pom-poms or cotton balls (pollen)\\n• Paper flower cut-outs\\n\\nCONSUMABLES:\\n• Yellow pom-poms or cotton balls"},
+  {name:"Pricklenut Tree",month:"Oct",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Robin Relay — team race with natural tasks",month:"Nov",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Roleplay: Protect the last egg of the forest dragon",month:"Apr",cat:"static",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Roleplay: Woodland creatures prepare for a spring festival",month:"Apr",cat:"static",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Snowflake Tag",month:"Jan",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Stealth Game — hiding and retrieving an object",month:"Oct",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Worm Wriggle Chase — mimic soil creatures underground",month:"Mar",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Woodland Creature Parade — act out your favourite animal",month:"Apr",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Forest Treasure Hunt",month:"Jul",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Deer Dance Game (second round)",month:"May",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Maypole Dash (second round)",month:"May",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Spring Charades",month:"Apr",cat:"static",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
   {name:"Auld Lang Syne",month:"Dec",cat:"songs",resources:"EQUIPMENT:\\n• Printed or memorised song sheets\\n• Optional: guitar, drum or percussion\\n\\nCONSUMABLES:\\n• None"},
   {name:"Bonny Portmore",month:"Nov",cat:"songs",resources:"EQUIPMENT:\\n• Printed or memorised song sheets\\n• Optional: guitar, drum or percussion\\n\\nCONSUMABLES:\\n• None"},
   {name:"Burns Night — Scottish poetry and song",month:"Jan",cat:"songs",resources:"EQUIPMENT:\\n• Printed poem and song sheets\\n• Optional: candles or fire\\n\\nCONSUMABLES:\\n• None"},
@@ -4706,26 +4705,26 @@ const MENU_ITEMS_BASE = [
   {name:"Foraging and identifying Stinging Nettles",month:"Mar",cat:"foraging",resources:"EQUIPMENT:\\n• Thick leather gloves\\n• Baskets or paper bags\\n• Field guide\\n\\nCONSUMABLES:\\n• None"},
   {name:"Designing a May Day map of camp",month:"May",cat:"crafts",resources:"EQUIPMENT:\\n• Pencils\\n• Rulers\\n\\nCONSUMABLES:\\n• Large paper or card\\n• Coloured pens"},
   {name:"Creating a safe trail for younger explorers",month:"Apr",cat:"woodland",resources:"EQUIPMENT:\\n• Spade\\n• Rake\\n• Pegs\\n\\nCONSUMABLES:\\n• Woodchip\\n• Small signs or markers"},
-  {name:"Hunting and Rabbits",month:"Mar",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Hunting and Rabbits",month:"Mar",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
   {name:"Burying time capsules — end of year offerings",month:"Jul",cat:"seasonal",resources:"EQUIPMENT:\\n• Spade or trowel\\n\\nCONSUMABLES:\\n• Small waterproof box or jar\\n• Paper and pens (for children's notes)\\n• Waterproof bag or wax (to seal)"}
 ,
-  {name:"DnD / treasure hunting with pickers",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
-  {name:"DnD \\u2014 Dragons Egg quest",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
-  {name:"DnD \\u2014 Dragons Egg quest (continued)",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
-  {name:"DnD \\u2014 Summer finale session",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
-  {name:"DnD \\u2014 earlier session!",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
-  {name:"DnD \\u2014 earlier session! Summer special",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
-  {name:"DnD \\u2014 exploring new summer storyline",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
-  {name:"DnD \\u2014 final summer chapter",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
-  {name:"DnD \\u2014 summer campaign",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
-  {name:"DnD campaign (continued)",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
-  {name:"DnD campaign \\u2014 new chapter",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
-  {name:"DnD treasure hunting with pickers",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
-  {name:"Dragons Egg quest variant",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
-  {name:"Dungeons & Dragons \\u2014 introducing new characters",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
-  {name:"Dungeons & Dragons \\u2014 new chapter",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
-  {name:"Dungeons & Dragons \\u2014 new spring storyline",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
-  {name:"Dungeons & Dragons \\u2014 resolving mysteries",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"}
+  {name:"DnD / treasure hunting with pickers",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
+  {name:"DnD \\u2014 Dragons Egg quest",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
+  {name:"DnD \\u2014 Dragons Egg quest (continued)",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
+  {name:"DnD \\u2014 Summer finale session",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
+  {name:"DnD \\u2014 earlier session!",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
+  {name:"DnD \\u2014 earlier session! Summer special",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
+  {name:"DnD \\u2014 exploring new summer storyline",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
+  {name:"DnD \\u2014 final summer chapter",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
+  {name:"DnD \\u2014 summer campaign",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
+  {name:"DnD campaign (continued)",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
+  {name:"DnD campaign \\u2014 new chapter",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
+  {name:"DnD treasure hunting with pickers",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
+  {name:"Dragons Egg quest variant",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
+  {name:"Dungeons & Dragons \\u2014 introducing new characters",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
+  {name:"Dungeons & Dragons \\u2014 new chapter",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
+  {name:"Dungeons & Dragons \\u2014 new spring storyline",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"},
+  {name:"Dungeons & Dragons \\u2014 resolving mysteries",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20) — one set per group\\n• Character sheets (printed)\\n• Dungeon Master guide or printed adventure\\n• Pencils\\n\\nCONSUMABLES:\\n• Printed character sheets\\n• Printed adventure map or scenario"}
 ,
   {name:"A Midsummer's Carol / Early One Morning",month:"Jul",cat:"songs",resources:"EQUIPMENT:\\n• Printed song sheets\\n• Optional: guitar, drum or percussion\\n\\nCONSUMABLES:\\n• None"},
   {name:"A Midsummer's Carol / Midsummer celebration",month:"Jun",cat:"songs",resources:"EQUIPMENT:\\n• Printed song sheets\\n• Optional: guitar, drum or percussion\\n\\nCONSUMABLES:\\n• None"},
@@ -4741,7 +4740,7 @@ const MENU_ITEMS_BASE = [
   {name:"John Barleycorn / The Haymakers Song",month:"Aug",cat:"songs",resources:"EQUIPMENT:\\n• Printed song sheets\\n• Optional: guitar, drum or percussion\\n\\nCONSUMABLES:\\n• None"},
   {name:"Lavender's Blue / Summer is Icumen In",month:"Jun",cat:"songs",resources:"EQUIPMENT:\\n• Printed song sheets\\n• Optional: guitar, drum or percussion\\n\\nCONSUMABLES:\\n• None"},
   {name:"Let's Go Fly a Kite / Goodbye Song",month:"Jul",cat:"songs",resources:"EQUIPMENT:\\n• Printed song sheets\\n• Optional: guitar, drum or percussion\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Molke / Kubb Tournament",month:"Jun",cat:"games",resources:"EQUIPMENT:\\n• Molkky set\\n• Kubb set\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Molke / Kubb Tournament",month:"Jun",cat:"static",resources:"EQUIPMENT:\\n• Molkky set\\n• Kubb set\\n\\nCONSUMABLES:\\n• None"},
   {name:"Oak King Song / The Earth is Waking",month:"Jun",cat:"songs",resources:"EQUIPMENT:\\n• Printed song sheets\\n• Optional: guitar, drum or percussion\\n\\nCONSUMABLES:\\n• None"},
   {name:"One May Morning Early / Wild Mountain Thyme",month:"May",cat:"songs",resources:"EQUIPMENT:\\n• Printed song sheets\\n• Optional: guitar, drum or percussion\\n\\nCONSUMABLES:\\n• None"},
   {name:"Spring is Coming / The Earth is Waking Up",month:"Mar",cat:"songs",resources:"EQUIPMENT:\\n• Printed song sheets\\n• Optional: guitar, drum or percussion\\n\\nCONSUMABLES:\\n• None"},
@@ -4760,7 +4759,7 @@ const MENU_ITEMS_BASE = [
   {name:"Wild Rose Song / Summer Winds",month:"Aug",cat:"songs",resources:"EQUIPMENT:\\n• Printed song sheets\\n• Optional: guitar, drum or percussion\\n\\nCONSUMABLES:\\n• None"},
   {name:"Wildwood Flower / The First of May",month:"May",cat:"songs",resources:"EQUIPMENT:\\n• Printed song sheets\\n• Optional: guitar, drum or percussion\\n\\nCONSUMABLES:\\n• None"},
   {name:"Yellow Bird / Skye Boat Song",month:"Jun",cat:"songs",resources:"EQUIPMENT:\\n• Printed song sheets\\n• Optional: guitar, drum or percussion\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Animal Yoga Challenge",month:"Apr",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Animal Yoga Challenge",month:"Apr",cat:"static",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
   {name:"Animal tracking — reading signs in mud and bark",month:"Mar",cat:"bushcraft",resources:"EQUIPMENT:\\n• Whittling knives (per child)\\n• Thumb guards\\n• Folding saw\\n\\nCONSUMABLES:\\n• Dry wood blanks or natural materials"},
   {name:"Auld Lang Syne (early practice!)",month:"Dec",cat:"songs",resources:"EQUIPMENT:\\n• Printed song sheets\\n• Optional: guitar, drum or percussion\\n\\nCONSUMABLES:\\n• None"},
   {name:"Banana Boats with chocolate & marshmallows",month:"Jul",cat:"recipes",resources:"VEGAN RECIPE\\n\\nEQUIPMENT:\\n• Campfire\\n• Foil\\n• Tongs\\n\\nCONSUMABLES:\\n• Bananas (1 per child)\\n• Vegan dark chocolate chips\\n• Vegan mini marshmallows\\n• Berries or dried fruit (optional)"},
@@ -4769,7 +4768,7 @@ const MENU_ITEMS_BASE = [
   {name:"Bow drill fire before winter sets in",month:"Nov",cat:"bushcraft",resources:"EQUIPMENT:\\n• Bow drill set\\n• Fire safety bucket\\n\\nCONSUMABLES:\\n• Dry spindle and hearth board\\n• Dry tinder bundle\\n• Kindling"},
   {name:"Brigid ceremony — sacred flame",month:"Feb",cat:"seasonal",resources:"EQUIPMENT:\\n• Campfire or candles\\n\\nCONSUMABLES:\\n• Seasonal materials as needed (ribbons, candles, flowers)"},
   {name:"Build a team raft using logs and rope",month:"Aug",cat:"bushcraft",resources:"EQUIPMENT:\\n• Rope (various lengths)\\n• Life jackets\\n\\nCONSUMABLES:\\n• Large plastic bottles or sealed drums\\n• Wooden poles or pallets"},
-  {name:"Building a forest obstacle course",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Rope\\n• Tarpaulins\\n• Logs\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Building a forest obstacle course",month:"May",cat:"wide",resources:"EQUIPMENT:\\n• Rope\\n• Tarpaulins\\n• Logs\\n\\nCONSUMABLES:\\n• None"},
   {name:"Building insect and small creature habitats",month:"Mar",cat:"woodland",resources:"EQUIPMENT:\\n• Bow saw\\n• Scissors\\n\\nCONSUMABLES:\\n• Bamboo canes\\n• Old logs\\n• Straw\\n• Stones and bark\\n• Dry leaves"},
   {name:"Building waterproof shelters — tested with bucket of water!",month:"May",cat:"bushcraft",resources:"EQUIPMENT:\\n• Tarpaulins and bungees\\n• Rope\\n• Mallet and tent pegs\\n• Buckets\\n\\nCONSUMABLES:\\n• Water (for bucket test)"},
   {name:"Bum Shuffle River Boat Races (return leg!)",month:"Jun",cat:"bushcraft",resources:"EQUIPMENT:\\n• None (stream or shallow water needed)\\n\\nCONSUMABLES:\\n• Natural materials for boats: sticks, leaves, bark, clay"},
@@ -4798,55 +4797,55 @@ const MENU_ITEMS_BASE = [
   {name:"Den build — final decoration",month:"Oct",cat:"crafts",resources:"EQUIPMENT:\\n• Scissors\\n• PVA glue\\n• Paintbrushes\\n\\nCONSUMABLES:\\n• Natural materials as appropriate"},
   {name:"Den build — finishing touches",month:"Oct",cat:"crafts",resources:"EQUIPMENT:\\n• Scissors\\n• PVA glue\\n• Paintbrushes\\n\\nCONSUMABLES:\\n• Natural materials as appropriate"},
   {name:"Design a May Day map of camp",month:"May",cat:"crafts",resources:"EQUIPMENT:\\n• Pencils\\n• Rulers\\n\\nCONSUMABLES:\\n• Large paper or card\\n• Coloured pens"},
-  {name:"DnD campaign — new chapter",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
-  {name:"DnD — Dragons Egg quest",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
-  {name:"DnD — Dragons Egg quest (continued)",month:"May",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
-  {name:"DnD — Summer finale session",month:"Jul",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
-  {name:"DnD — earlier session!",month:"Apr",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
-  {name:"DnD — earlier session! Summer special",month:"Jun",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
-  {name:"DnD — exploring new summer storyline",month:"Jun",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
-  {name:"DnD — final summer chapter",month:"Jul",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
-  {name:"DnD — summer campaign",month:"Jun",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
-  {name:"Dungeons & Dragons — introducing new characters",month:"Feb",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
-  {name:"Dungeons & Dragons — new chapter",month:"Mar",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
-  {name:"Dungeons & Dragons — new spring storyline",month:"Apr",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
-  {name:"Dungeons & Dragons — resolving mysteries",month:"Apr",cat:"games",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
-  {name:"Dracula / Zombie Tag",month:"Jan",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"DnD campaign — new chapter",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
+  {name:"DnD — Dragons Egg quest",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
+  {name:"DnD — Dragons Egg quest (continued)",month:"May",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
+  {name:"DnD — Summer finale session",month:"Jul",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
+  {name:"DnD — earlier session!",month:"Apr",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
+  {name:"DnD — earlier session! Summer special",month:"Jun",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
+  {name:"DnD — exploring new summer storyline",month:"Jun",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
+  {name:"DnD — final summer chapter",month:"Jul",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
+  {name:"DnD — summer campaign",month:"Jun",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
+  {name:"Dungeons & Dragons — introducing new characters",month:"Feb",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
+  {name:"Dungeons & Dragons — new chapter",month:"Mar",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
+  {name:"Dungeons & Dragons — new spring storyline",month:"Apr",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
+  {name:"Dungeons & Dragons — resolving mysteries",month:"Apr",cat:"static",resources:"EQUIPMENT:\\n• Dice set (d4, d6, d8, d10, d12, d20)\\n• Character sheets (printed)\\n• Adventure guide or scenario\\n\\nCONSUMABLES:\\n• Printed character sheets"},
+  {name:"Dracula / Zombie Tag",month:"Jan",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
   {name:"Dragon lair collaborative den",month:"Apr",cat:"bushcraft",resources:"EQUIPMENT:\\n• Rope\\n• Tarpaulins\\n• Bow saw\\n\\nCONSUMABLES:\\n• None"},
   {name:"Elderflower Cordial making",month:"May",cat:"recipes",resources:"VEGAN RECIPE\\n\\nEQUIPMENT:\\n• Large pot\\n• Muslin cloth\\n• Sterilised bottles\\n• Kelly kettle\\n\\nCONSUMABLES:\\n• Elderflower heads\\n• Caster sugar\\n• Water\\n• Citric acid or lemon juice"},
   {name:"Final woodland tidy and care",month:"Jul",cat:"woodland",resources:"EQUIPMENT:\\n• Appropriate tools (saw, spade, gloves, rake)\\n\\nCONSUMABLES:\\n• None"},
   {name:"Final woodland tidy before end of term",month:"Jul",cat:"woodland",resources:"EQUIPMENT:\\n• Appropriate tools (saw, spade, gloves, rake)\\n\\nCONSUMABLES:\\n• None"},
   {name:"Firewood splitting for winter stock",month:"Oct",cat:"woodland",resources:"EQUIPMENT:\\n• Splitting axe or maul\\n• Chopping block\\n• Thick gloves\\n• Safety goggles\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Green Man and the Pine Cones",month:"Mar",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Green Man's Coming — on the den hill",month:"Jun",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Green Man and the Pine Cones",month:"Mar",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Green Man's Coming — on the den hill",month:"Jun",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
   {name:"Halloween camp decorations",month:"Oct",cat:"crafts",resources:"EQUIPMENT:\\n• Scissors\\n• Paintbrushes\\n\\nCONSUMABLES:\\n• Pumpkins\\n• Black and orange paint\\n• Cobweb wool\\n• Candles\\n• Natural materials (sticks, leaves)"},
   {name:"Hang red and white wool charms from tree branches",month:"Feb",cat:"seasonal",resources:"EQUIPMENT:\\n• Scissors\\n\\nCONSUMABLES:\\n• Red and white wool or ribbon\\n• Small sticks (charm frames)"},
   {name:"Hanging forest charms from trees",month:"Jun",cat:"crafts",resources:"EQUIPMENT:\\n• Scissors\\n\\nCONSUMABLES:\\n• Small sticks and twigs\\n• Feathers (found)\\n• Natural twine\\n• Beads or shells"},
   {name:"Hanging red and gold streamers in trees — Beltane fire",month:"May",cat:"seasonal",resources:"EQUIPMENT:\\n• Campfire or candles\\n\\nCONSUMABLES:\\n• Seasonal materials as needed (ribbons, candles, flowers)"},
-  {name:"Harvest Relay",month:"Sep",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Harvest Relay — race to complete tasks with natural materials",month:"Sep",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Harvest Relay",month:"Sep",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Harvest Relay — race to complete tasks with natural materials",month:"Sep",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
   {name:"Hawthorn Blossom & Lemon Tea",month:"May",cat:"tea",resources:"EQUIPMENT:\\n• Kelly kettle or campfire\\n• Cups\\n• Teapot\\n• Sieve\\n\\nCONSUMABLES:\\n• Fresh hawthorn blossoms (gathered)\\n• Lemon slices\\n• Water\\n• Honey (optional)"},
   {name:"Heart garlands for Imbolc",month:"Feb",cat:"crafts",resources:"EQUIPMENT:\\n• Scissors\\n• Craft wire\\n\\nCONSUMABLES:\\n• Red and white ribbon or wool\\n• Fresh or dried flowers\\n• String for hanging"},
   {name:"Holly & Elder Bubble Blowers",month:"Jun",cat:"crafts",resources:"EQUIPMENT:\\n• Folding saw\\n• Whittling knife\\n• Small containers\\n\\nCONSUMABLES:\\n• Elder stems (freshly cut)\\n• Holly leaves (decorative frame)\\n• Washing-up liquid\\n• Water"},
   {name:"Holly and ivy garland",month:"Dec",cat:"crafts",resources:"EQUIPMENT:\\n• Secateurs\\n• Scissors\\n• Gloves\\n\\nCONSUMABLES:\\n• Holly sprigs\\n• Ivy lengths\\n• String or wire"},
   {name:"Honouring Water — offerings to trees, sacred wells",month:"Jun",cat:"seasonal",resources:"EQUIPMENT:\\n• Campfire or candles\\n\\nCONSUMABLES:\\n• Seasonal materials as needed (ribbons, candles, flowers)"},
-  {name:"Human Knot",month:"Apr",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
-  {name:"Human Knot and Untangle",month:"Apr",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Human Knot",month:"Apr",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Human Knot and Untangle",month:"Apr",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
   {name:"Imbolc Fire Ritual — candles and intentions",month:"Feb",cat:"seasonal",resources:"EQUIPMENT:\\n• Campfire or candles\\n\\nCONSUMABLES:\\n• Seasonal materials as needed (ribbons, candles, flowers)"},
   {name:"Making bow drill sets for friction firelighting",month:"Nov",cat:"bushcraft",resources:"EQUIPMENT:\\n• Folding saw\\n• Whittling knife\\n• Sandpaper\\n\\nCONSUMABLES:\\n• Dry softwood spindle (hazel or willow)\\n• Dry hearth board\\n• Natural cordage\\n• Handhold piece"},
   {name:"Making elder beads and duck calls from branches",month:"Jun",cat:"bushcraft",resources:"EQUIPMENT:\\n• Folding saw\\n• Drill\\n• Whittling knife\\n• Sandpaper\\n\\nCONSUMABLES:\\n• Elder stems (freshly cut or dried)\\n• Linseed oil (optional)"},
   {name:"Making simple cordage from natural fibres",month:"Mar",cat:"bushcraft",resources:"EQUIPMENT:\\n• Thick gloves (nettles)\\n• Scissors\\n\\nCONSUMABLES:\\n• Nettle stems or iris leaves\\n• Dried grass (alternative)"},
-  {name:"Memory Match",month:"Jul",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Memory Match",month:"Jul",cat:"static",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
   {name:"Mini fairy house village from natural materials",month:"Apr",cat:"bushcraft",resources:"EQUIPMENT:\\n• Whittling knives\\n• Bow saw\\n• Hammer and nails\\n\\nCONSUMABLES:\\n• Wood offcuts\\n• Moss, bark, pebbles, acorns\\n• Nails or glue"},
   {name:"Mini maypoles with natural materials and wool",month:"May",cat:"crafts",resources:"EQUIPMENT:\\n• Drill\\n• Small wood disc base\\n\\nCONSUMABLES:\\n• Wooden dowels (~40cm)\\n• Wool or ribbon (various colours)\\n• Flowers for top"},
   {name:"Mulching tree bases & saplings against frost",month:"Nov",cat:"woodland",resources:"EQUIPMENT:\\n• Wheelbarrow\\n• Spade\\n• Rake\\n\\nCONSUMABLES:\\n• Wood chip or bark mulch\\n• Cardboard (weed suppressant)"},
-  {name:"Mystery Investigation — solve a nature-based puzzle",month:"Apr",cat:"games",resources:"EQUIPMENT:\\n• Printed clue sheets\\n• Magnifying glass\\n\\nCONSUMABLES:\\n• Printed clues\\n• Optional: small evidence props"},
+  {name:"Mystery Investigation — solve a nature-based puzzle",month:"Apr",cat:"static",resources:"EQUIPMENT:\\n• Printed clue sheets\\n• Magnifying glass\\n\\nCONSUMABLES:\\n• Printed clues\\n• Optional: small evidence props"},
   {name:"Navigation using sun and landmarks (final challenge)",month:"Jun",cat:"bushcraft",resources:"EQUIPMENT:\\n• Compasses\\n• OS map of local area\\n\\nCONSUMABLES:\\n• Paper\\n• Pencils"},
   {name:"Painted stepping stones",month:"Apr",cat:"crafts",resources:"EQUIPMENT:\\n• Paintbrushes\\n\\nCONSUMABLES:\\n• Large flat stones\\n• Exterior acrylic paint\\n• Varnish (weatherproof)"},
   {name:"Painting stones for the camp",month:"Sep",cat:"crafts",resources:"EQUIPMENT:\\n• Paintbrushes\\n\\nCONSUMABLES:\\n• Smooth stones or pebbles\\n• Acrylic paints\\n• Varnish"},
   {name:"Painting trail signs and waymarks",month:"Apr",cat:"woodland",resources:"EQUIPMENT:\\n• Paintbrushes\\n\\nCONSUMABLES:\\n• Flat wood pieces or bark\\n• Exterior paint\\n• Varnish"},
   {name:"Paper Mache Building (continued)",month:"Feb",cat:"crafts",resources:"EQUIPMENT:\\n• Balloons\\n• Bowls\\n\\nCONSUMABLES:\\n• Newspaper strips\\n• PVA glue and water (1:1)\\n• Acrylic paints"},
-  {name:"Penguins on an Iceberg",month:"Jun",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Penguins on an Iceberg",month:"Jun",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
   {name:"Pink Nets (continued)",month:"Jun",cat:"woodland",resources:"EQUIPMENT:\\n• Rope\\n• Carabiners\\n\\nCONSUMABLES:\\n• Coloured netting\\n• Fixings"},
   {name:"Pond glow-up — stones & logs for edge habitats",month:"Feb",cat:"woodland",resources:"EQUIPMENT:\\n• Spade\\n• Wheelbarrow\\n\\nCONSUMABLES:\\n• Stones\\n• Logs for pond edge"},
   {name:"Pond prep for winter animals",month:"Nov",cat:"woodland",resources:"EQUIPMENT:\\n• Pond nets\\n• Long-handled rake\\n• Bucket\\n\\nCONSUMABLES:\\n• None"},
@@ -4855,18 +4854,18 @@ const MENU_ITEMS_BASE = [
   {name:"Preparing the cereal cake (continued)",month:"Oct",cat:"recipes",resources:"VEGAN RECIPE\\n\\nEQUIPMENT:\\n• Large mixing bowl\\n• Saucepan\\n• Wooden spoon\\n• Baking tin\\n\\nCONSUMABLES:\\n• Puffed rice or cornflakes\\n• Vegan dark chocolate\\n• Golden syrup or maple syrup\\n• Coconut oil"},
   {name:"Prophecy den building",month:"Oct",cat:"bushcraft",resources:"EQUIPMENT:\\n• Tarpaulin\\n• Rope\\n• Bow saw\\n\\nCONSUMABLES:\\n• Natural materials gathered on site"},
   {name:"Remembrance woodland silence",month:"Nov",cat:"seasonal",resources:"EQUIPMENT:\\n• None\\n\\nCONSUMABLES:\\n• Poppies (made from clay or paper)"},
-  {name:"Seed Scatter Tag",month:"May",cat:"games",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Seed Scatter Tag",month:"May",cat:"wide",resources:"EQUIPMENT:\\n• No special equipment needed\\n\\nCONSUMABLES:\\n• None"},
   {name:"Setting and using animal tracking traps",month:"Oct",cat:"bushcraft",resources:"EQUIPMENT:\\n• Folding saw\\n• String\\n• Small spade\\n\\nCONSUMABLES:\\n• String or cordage\\n• Small amounts of bait (seeds, berries)"},
   {name:"Shelter building with tarps and natural materials",month:"May",cat:"bushcraft",resources:"EQUIPMENT:\\n• Tarpaulins and bungees\\n• Rope\\n• Mallet and tent pegs\\n\\nCONSUMABLES:\\n• None"},
   {name:"Space and Dolls mini world building",month:"Jun",cat:"crafts",resources:"EQUIPMENT:\\n• Trowel\\n• Scissors\\n\\nCONSUMABLES:\\n• Sand\\n• Stones\\n• Sticks\\n• Small plants or moss"},
   {name:"Spiced Hot Cider",month:"Nov",cat:"recipes",resources:"VEGAN RECIPE\\n\\nEQUIPMENT:\\n• Kelly kettle or campfire stove\\n• Large pot\\n• Ladle\\n• Mugs\\n\\nCONSUMABLES:\\n• Apple juice or pressed cider\\n• Cinnamon sticks\\n• Cloves\\n• Star anise\\n• Orange slices\\n• Ginger (optional)"},
   {name:"Spring equinox bunting",month:"Mar",cat:"crafts",resources:"EQUIPMENT:\\n• Scissors\\n• Hole punch\\n\\nCONSUMABLES:\\n• Fabric or card triangles\\n• String\\n• Spring colours paint"},
-  {name:"Squirrel challenge pads",month:"Oct",cat:"games",resources:"EQUIPMENT:\\n• None needed\\n\\nCONSUMABLES:\\n• Acorns, conkers, seeds (for hiding)"},
+  {name:"Squirrel challenge pads",month:"Oct",cat:"wide",resources:"EQUIPMENT:\\n• None needed\\n\\nCONSUMABLES:\\n• Acorns, conkers, seeds (for hiding)"},
   {name:"Star gazing — winter constellations",month:"Jan",cat:"woodland",resources:"EQUIPMENT:\\n• Star maps (printed)\\n• Red torches (preserve night vision)\\n• Blankets or mats\\n\\nCONSUMABLES:\\n• None"},
   {name:"Star map installation",month:"Jan",cat:"crafts",resources:"EQUIPMENT:\\n• Drill or bradawl\\n• Wire\\n\\nCONSUMABLES:\\n• Dark card or board\\n• Gold or silver paint or tacks\\n• String"},
   {name:"Sun Catchers using string and sticks",month:"Jun",cat:"crafts",resources:"EQUIPMENT:\\n• Scissors\\n\\nCONSUMABLES:\\n• Twigs\\n• Coloured thread or wool\\n• Natural materials (shells, seeds, pressed leaves)"},
   {name:"Sun and moon circle — spring balance discussion",month:"Mar",cat:"seasonal",resources:"EQUIPMENT:\\n• Campfire or candles\\n\\nCONSUMABLES:\\n• Seasonal materials as needed (ribbons, candles, flowers)"},
-  {name:"Swallow Flight — navigate path with logs, ropes and cones",month:"Jun",cat:"games",resources:"EQUIPMENT:\\n• Rope\\n• Cones\\n• Logs\\n\\nCONSUMABLES:\\n• None"},
+  {name:"Swallow Flight — navigate path with logs, ropes and cones",month:"Jun",cat:"wide",resources:"EQUIPMENT:\\n• Rope\\n• Cones\\n• Logs\\n\\nCONSUMABLES:\\n• None"},
   {name:"Tree climbing with ropes (safely supervised)",month:"Sep",cat:"bushcraft",resources:"EQUIPMENT:\\n• Throw line and bag\\n• Climbing rope\\n• Harnesses or climbing saddles\\n• Carabiners\\n• Prussik loops\\n• Helmets\\n\\nCONSUMABLES:\\n• None"},
   {name:"Using clay and letter stamps for protection messages",month:"Oct",cat:"crafts",resources:"EQUIPMENT:\\n• Clay stamps or carved wooden stamps\\n• Rolling pin\\n\\nCONSUMABLES:\\n• Air-dry clay\\n• Paint"},
   {name:"Weaving a sun-shaped altar using sticks",month:"Jun",cat:"seasonal",resources:"EQUIPMENT:\\n• Scissors\\n\\nCONSUMABLES:\\n• Sticks (for frame)\\n• Golden and yellow wool or ribbon\\n• Flowers"},
@@ -5095,8 +5094,7 @@ function loadState() {
     if (migrateSheetToISO(sheet)) anySheetMigrated = true;
   });
 
-  // Fix items saved with category labels instead of IDs (e.g. "Wide Games" → "games")
-  // Must run before base merge so userHasEdited check works correctly
+  // Fix items saved with category labels instead of IDs (e.g. "Wide Games" → "wide")
   const validIds = new Set(CATEGORIES.map(c => c.id));
   const baseNameCatQuick = {};
   if (typeof MENU_ITEMS_BASE !== 'undefined') {
@@ -5113,18 +5111,24 @@ function loadState() {
     }
   });
 
-  // Merge base menu items
-  const baseIds = new Set(state.menuItems.filter(i=>!i.userAdded).map(i=>i.name+'|'+i.month+'|'+i.cat));
-  for (const item of MENU_ITEMS_BASE) {
-    if (!item || !item.name) continue;
-    // Check if user has a saved version of this item (by name)
-    const userHasEdited = state.menuItems.some(i => i.name === item.name && (i.userAdded || i.userEdited));
-    if (userHasEdited) continue; // keep user's version
-    const id = item.name+'|'+item.month+'|'+item.cat;
-    if (!baseIds.has(id)) state.menuItems.push({...item, userAdded:false});
+  // Flat backfill: every activity is stored as an equal, ordinary item —
+  // no origin flag, no "core vs added" distinction. Any base activity not
+  // already present (by name+month) gets added once, plainly, like any other item.
+  let backfilled = false;
+  if (typeof MENU_ITEMS_BASE !== 'undefined') {
+    const keyOf = i => (i && i.name || '') + '|' + (i && i.month || '');
+    const existingKeys = new Set(state.menuItems.filter(i => i && i.name).map(keyOf));
+    MENU_ITEMS_BASE.forEach(item => {
+      if (!item || !item.name) return;
+      const k = keyOf(item);
+      if (existingKeys.has(k)) return;
+      state.menuItems.push({...item});
+      existingKeys.add(k);
+      backfilled = true;
+    });
   }
 
-  if (anySheetMigrated) saveState();
+  if (anySheetMigrated || catFixed || backfilled) saveState();
 }
 
 function showToast(msg, duration = 2200) {
@@ -5145,7 +5149,7 @@ function saveState() {
   const toSave = {
     sheets: state.sheets,
     activeSheetId: state.activeSheetId,
-    menuItems: state.menuItems.filter(i=>i.userAdded || i.userEdited),
+    menuItems: state.menuItems.filter(i => i && i.name),
     importantDates: state.importantDates,
     termDates: state.termDates,
     campTasks: state.campTasks,
@@ -6028,8 +6032,8 @@ function buildAddRowBar(mon, dateCount) {
       </div>
       <div id="addRowActivityOptions_${mon}" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;flex:1;">
         <select class="add-row-input" id="addRowCat_${mon}" style="flex:none;width:auto;min-width:160px;font-size:0.82rem;padding:0.3rem 0.5rem;">
-        ${CATEGORIES.filter(c=>c.id!=='general').map(c=>`<option value="${c.id}">${c.emoji} ${c.label}</option>`).join('')}
-        <option value="general">🎮 Games</option>
+        ${CATEGORIES.filter(c=>c.id!=='static').map(c=>`<option value="${c.id}">${c.emoji} ${c.label}</option>`).join('')}
+        <option value="static">🎮 Static Games</option>
         <option value="any">✨ Any (seasonal mix)</option>
         </select>
         <input class="add-row-input" id="addRowLabel_${mon}" placeholder="Row label e.g. Wide Game (PM)…" style="flex:1;min-width:140px;">
@@ -6173,7 +6177,7 @@ const ROW_TO_CAT = {
   'Morning Circle Question': 'morning',
   'Chat Topics': 'chat',
   'Nature Journaling': 'journaling',
-  'Wide Game': 'games',
+  'Wide Game': 'wide',
   'Active Bushcraft Activity / Role Playing Activity': 'bushcraft',
   'Bushcraft & Skills': 'bushcraft',
   'Low Energy Craft': 'crafts',
@@ -6311,7 +6315,7 @@ function renderMenu() {
       </div>
       <ul class="menu-item-list">
         ${shown.map(item => `
-          <li class="menu-item ${item.userAdded?'user-added':''}" data-name="${escHtml(item.name).replace(/"/g,'&quot;')}" data-cat="${item.cat}">
+          <li class="menu-item" data-name="${escHtml(item.name).replace(/"/g,'&quot;')}" data-cat="${item.cat}">
             <span class="month-tag month-${item.month === 'all' ? 'all' : item.month}">${item.month === 'all' ? 'Year Round' : item.month}</span>
             <span>${escHtml(item.name)}</span>
 
@@ -6440,7 +6444,7 @@ function saveNewIdea() {
   const excludeFromPopulate = document.getElementById('ideaExcludeFromPopulate')?.checked || false;
   const ageRange = document.getElementById('ideaAgeRange')?.value || 'all';
   const resources   = equipment;
-  const newItem = {name, cat, month, link, notes, resources, equipment, consumables, excludeFromPopulate, ageRange, userAdded: true};
+  const newItem = {name, cat, month, link, notes, resources, equipment, consumables, excludeFromPopulate, ageRange};
   state.menuItems.push(newItem);
   saveState();
   renderCatFilters();
@@ -6464,7 +6468,7 @@ function findOrCreateMenuItem(name) {
   let idx = state.menuItems.findIndex(i => i.name === name);
   if (idx === -1) {
     // Create a stub entry so base items become editable
-    const stub = { name, cat: 'games', month: 'Jan', link: '', notes: '', resources: '', userAdded: false };
+    const stub = { name, cat: 'wide', month: 'Jan', link: '', notes: '', resources: '' };
     state.menuItems.push(stub);
     idx = state.menuItems.length - 1;
   }
@@ -6492,7 +6496,6 @@ function openDetailPanel(name, catId) {
   document.getElementById('dpCatBadge').textContent = cat.emoji;
   document.getElementById('dpName').textContent = item.name;
   document.getElementById('dpCatLabel').textContent = cat.label;
-  document.getElementById('dpUserTag').style.display = item.userAdded ? '' : 'none';
   document.getElementById('dpDeleteBtn').style.display = ''; // always show delete
 
   // Month tag
@@ -6576,7 +6579,6 @@ function saveDetailPanel() {
     resources:   document.getElementById('dpEquipmentInput').value.trim(),
     excludeFromPopulate: document.getElementById('dpExcludeFromPopulate').checked,
     ageRange: document.getElementById('dpAgeRange').value,
-    userEdited: true,  // mark as user-modified so it gets saved
   };
 
   // Update header display
@@ -6605,11 +6607,7 @@ function deleteActivityFromPanel() {
   if (!item) return;
 
   confirmCascadeDelete(item.name, () => {
-    if (item.userAdded || item.userEdited) {
-      state.menuItems.splice(idx, 1);
-    } else {
-      state.menuItems[idx] = { ...item, hidden: true, userEdited: true };
-    }
+    state.menuItems[idx] = { ...item, hidden: true };
     saveState();
     renderCatFilters();
     if (document.getElementById('menuView').classList.contains('visible')) renderMenu();
@@ -6802,8 +6800,8 @@ function pickActivityForCell(rowKey, mon) {
   let effectiveCat = explicitCat;
   if (!effectiveCat) {
     const rowKeyLower = rowKey.toLowerCase();
-    if (rowKeyLower.includes('wide')) effectiveCat = 'games';
-    else if (rowKeyLower.includes('game')) effectiveCat = 'general';
+    if (rowKeyLower.includes('wide')) effectiveCat = 'wide';
+    else if (rowKeyLower.includes('game')) effectiveCat = 'static';
     else if (rowKeyLower.includes('bush') || rowKeyLower.includes('skill')) effectiveCat = 'bushcraft';
     else if (rowKeyLower.includes('cook') || rowKeyLower.includes('recipe')) effectiveCat = 'recipes';
     else if (rowKeyLower.includes('woodland')) effectiveCat = 'woodland';
@@ -11068,7 +11066,7 @@ window.addEventListener('resize', () => {
 
 const HOLIDAY_DEFAULT_ROWS = [
   {key:'Morning Circle Question', label:'Morning Circle', icon:'💬', cat:'seasonal'},
-  {key:'Wide Game', label:'Wide Game (AM)', icon:'🦊', cat:'games'},
+  {key:'Wide Game', label:'Wide Game (AM)', icon:'🦊', cat:'wide'},
   {key:'Active Bushcraft Activity / Role Playing Activity', label:'Bushcraft / Activity', icon:'🔥', cat:'bushcraft'},
   {key:'Low Energy Craft', label:'Craft', icon:'🌿', cat:'crafts'},
   {key:'divider_lunch_default', label:'Lunch', icon:'🥪', type:'divider'},
@@ -11515,7 +11513,7 @@ function renderHolidayPlanner(sheet) {
       </div>
       <div id="hcARActivityOpts_${sheet.id}" style="display:flex;align-items:center;gap:0.5rem;flex:1;">
         <select class="add-row-input" id="hcARCat_${sheet.id}" style="flex:none;width:auto;min-width:150px;font-size:0.82rem;padding:0.3rem 0.5rem;">
-          <option value="games">🦊 Wide Games</option>
+          <option value="wide">🦊 Wide Games</option>
           <option value="bushcraft">🔥 Bushcraft &amp; Skills</option>
           <option value="crafts">🌿 Craft Projects</option>
           <option value="recipes">🍞 Recipes &amp; Cooking</option>
@@ -11525,7 +11523,7 @@ function renderHolidayPlanner(sheet) {
           <option value="seasonal">🌙 Seasonal</option>
           <option value="woodland">🌳 Woodland Tasks</option>
           <option value="tea">🍵 Afternoon Tea</option>
-          <option value="general">🎮 Games</option>
+          <option value="static">🎮 Static Games</option>
           <option value="any">✨ Any</option>
         </select>
         <input class="add-row-input" id="hcARLabel_${sheet.id}" placeholder="Row label…" style="flex:1;min-width:120px;">
@@ -11748,63 +11746,14 @@ function openHolidayResourcesPanel(isoDate, sheet) {
 
 // Map CSV category strings (both labels and IDs) to internal category IDs
 function resolveCsvCategory(raw) { return resolveCsvCategoryDynamic(raw); }
-function resolveCsvCategory_old_unused(raw) {
-  if (!raw) return null;
-  const s = raw.trim().toLowerCase();
-  // Label match FIRST (case-insensitive) — "Games" must map to 🎮 Games (id:general),
-  // not accidentally match the ID "games" which belongs to 🦊 Wide Games
-  const byLabel = CATEGORIES.find(c => c.label.toLowerCase() === s);
-  if (byLabel) return byLabel.id;
-  // Alias table covers ambiguous cases
-  const aliases = {
-    'wide games': 'games',
-    'wide game':  'games',
-    'games':      'general',  // plain "games" → 🎮 Games, not Wide Games
-    'game':       'general',
-    'bushcraft':  'bushcraft',
-    'bushcraft & skills': 'bushcraft',
-    'craft':      'crafts',
-    'craft projects': 'crafts',
-    'crafts':     'crafts',
-    'cooking':    'recipes',
-    'recipes':    'recipes',
-    'recipe':     'recipes',
-    'recipes & cooking': 'recipes',
-    'foraging':   'foraging',
-    'forage':     'foraging',
-    'stories':    'stories',
-    'story':      'stories',
-    'storytelling': 'stories',
-    'songs':      'songs',
-    'song':       'songs',
-    'singing':    'songs',
-    'seasonal':   'seasonal',
-    'seasonal & spiritual': 'seasonal',
-    'spiritual':  'seasonal',
-    'woodland':   'woodland',
-    'woodland tasks': 'woodland',
-    'nature':     'woodland',
-    'tea':        'tea',
-    'afternoon tea': 'tea',
-    'afternoon tea club': 'tea',
-    'general':    'general',
-    'any':        'general',
-  };
-  if (aliases[s] !== undefined) return aliases[s];
-  return null;
-}
 
 const CSV_HEADERS = ['name','category','month','equipment','consumables','notes','link'];
-const VALID_CATS = ['games','bushcraft','crafts','recipes','foraging','stories','songs','seasonal','woodland','tea','general'];
+const VALID_CATS = ['wide','bushcraft','crafts','recipes','foraging','stories','songs','seasonal','woodland','tea','static'];
 const VALID_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','all','Year Round'];
 
 // ─── EXPORT ───────────────────────────────────────────────────
 function exportMenuCsv() {
-  // Build rows: base items + user added/edited
   const allItems = state.menuItems.filter(i => i && i.name && !i.hidden);
-
-  // Also include base items not in state (they're baked in)
-  // We export everything currently visible
   const rows = [CSV_HEADERS];
 
   allItems.forEach(item => {
@@ -11818,22 +11767,6 @@ function exportMenuCsv() {
       item.link    || ''
     ].map(csvEscapeField));
   });
-
-  // Also export base items that aren't in state.menuItems (unedited base)
-  if (typeof MENU_ITEMS_BASE !== 'undefined') {
-    const stateNames = new Set(allItems.map(i => i.name));
-    MENU_ITEMS_BASE.forEach(item => {
-      if (!item || !item.name || stateNames.has(item.name) || item.hidden) return;
-      rows.push([
-        item.name    || '',
-        (CATEGORIES.find(c => c.id === item.cat)?.label || item.cat || ''),
-        item.month   || '',
-        (item.resources || '').split('\n').join('\\n'),
-        (item.notes     || '').split('\n').join('\\n'),
-        item.link    || ''
-      ].map(csvEscapeField));
-    });
-  }
 
   const csvContent = rows.map(r => r.join(',')).join('\r\n');
   const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
@@ -11994,7 +11927,7 @@ function parseCsvAndPreview(text) {
     // Validate category — accept both human-readable labels and internal IDs
     let finalCat = resolveCsvCategory(cat);
     if (!finalCat) {
-      finalCat = 'general';
+      finalCat = 'static';
       warnings.push(`Row ${ri+2}: unknown category "${cat}" — set to "Games"`);
     }
 
@@ -12057,7 +11990,7 @@ function parseCsvAndPreview(text) {
         csvConflicts.push({
           name,
           menuItem: existingItem,
-          csvItem: {name, cat: finalCat, month: months[0]||'all', resources, equipment, consumables, notes, link, userAdded: true},
+          csvItem: {name, cat: finalCat, month: months[0]||'all', resources, equipment, consumables, notes, link},
           changes
         });
       } else {
@@ -12072,8 +12005,7 @@ function parseCsvAndPreview(text) {
       if (!existingNames.has(k)) {
         csvParsedRows.push({
           name, cat: finalCat, month: mon,
-          resources, equipment, consumables, notes, link,
-          userAdded: true
+          resources, equipment, consumables, notes, link
         });
         existingNames.add(k);
       }
@@ -12643,8 +12575,8 @@ function openBulkReclassifyModal() {
   fromSel.innerHTML = opts;
   toSel.innerHTML = opts;
   // Default to games → general (the most common confusion)
-  fromSel.value = 'games';
-  toSel.value   = 'general';
+  fromSel.value = 'wide';
+  toSel.value   = 'static';
   document.getElementById('reclassifyPreview').style.display = 'none';
   document.getElementById('reclassifyApplyBtn').style.display = 'none';
   document.getElementById('bulkReclassifyModal').classList.add('open');
@@ -12848,14 +12780,13 @@ function previewReclassify() {
     document.getElementById('reclassifyApplyBtn').style.display = 'none';
     return;
   }
-  // Count userAdded items matching fromCat
-  const matches = state.menuItems.filter(i => i && i.userAdded && i.cat === fromCat);
+  const matches = state.menuItems.filter(i => i && !i.hidden && i.cat === fromCat);
   const fromLabel = CATEGORIES.find(c => c.id === fromCat)?.label || fromCat;
   const toLabel   = CATEGORIES.find(c => c.id === toCat)?.label || toCat;
   const box = document.getElementById('reclassifyPreview');
   box.style.display = 'block';
   if (matches.length === 0) {
-    box.innerHTML = `<span class="csv-preview-warn">No manually-added activities found in ${fromLabel}.</span>`;
+    box.innerHTML = `<span class="csv-preview-warn">No activities found in ${fromLabel}.</span>`;
     document.getElementById('reclassifyApplyBtn').style.display = 'none';
   } else {
     box.innerHTML = `<span class="csv-preview-good">✓ Found ${matches.length} activit${matches.length===1?'y':'ies'} in ${fromLabel} that will move to ${toLabel}.</span><br><span style="font-size:0.78rem;color:var(--bark-light);">${matches.slice(0,5).map(i => escHtml(i.name)).join(', ')}${matches.length > 5 ? ` … and ${matches.length-5} more` : ''}</span>`;
@@ -12868,7 +12799,7 @@ function applyReclassify() {
   const toCat   = document.getElementById('reclassifyTo').value;
   let count = 0;
   state.menuItems.forEach(item => {
-    if (item && item.userAdded && item.cat === fromCat) {
+    if (item && !item.hidden && item.cat === fromCat) {
       item.cat = toCat;
       count++;
     }
@@ -13016,27 +12947,17 @@ function applyAlignChoices() {
     if (choice === 'menu') {
       // Do nothing — keep existing
     } else if (choice === 'csv') {
-      // Overwrite the existing userAdded item, or update if it's userAdded
+      // Update the existing item in place, or add it if it wasn't found
       const existing = state.menuItems.find(i => i && i.name === conflict.name);
-      if (existing && existing.userAdded) {
-        // Update in place
+      if (existing) {
         Object.assign(existing, conflict.csvItem);
-        updatedExisting++;
-      } else if (existing) {
-        // It's a base item — can't edit in place, add a userAdded override
-        // Remove old and add new
-        const idx = state.menuItems.indexOf(existing);
-        if (idx >= 0) state.menuItems.splice(idx, 1);
-        state.menuItems.push({...conflict.csvItem, userAdded: true});
-        updatedExisting++;
       } else {
-        // Wasn't in menuItems — add it
-        state.menuItems.push({...conflict.csvItem, userAdded: true});
-        updatedExisting++;
+        state.menuItems.push({...conflict.csvItem});
       }
+      updatedExisting++;
     } else if (choice === 'both') {
-      // Keep existing AND add CSV version with a slightly different entry
-      const csvItem = {...conflict.csvItem, userAdded: true, name: conflict.csvItem.name};
+      // Keep existing AND add CSV version as a distinct entry
+      const csvItem = {...conflict.csvItem, name: conflict.csvItem.name};
       const key = csvItem.month === 'all' ? csvItem.name.toLowerCase() : (csvItem.name.toLowerCase()+'|'+(csvItem.month||''));
       if (!existingKeys.has(key)) {
         state.menuItems.push(csvItem);
@@ -13186,7 +13107,6 @@ function mSaveEdits() {
   item.resources   = newEquipment;
   item.notes     = newNotes;
   item.link      = newLink;
-  item.userAdded = true;
 
   saveState();
   mFilterMenu();
@@ -14829,17 +14749,18 @@ function resolveCsvCategoryDynamic(raw) {
   if (byLabel) return byLabel.id;
   // Alias table
   const aliases = {
-    'wide games':'games','wide game':'games',
-    'games':'general','game':'general',
-    'bushcraft':'bushcraft','bush craft':'bushcraft',
-    'craft':'crafts','crafts':'crafts',
-    'cooking':'recipes','recipes':'recipes','recipe':'recipes',
-    'foraging':'foraging',
-    'stories':'stories','story':'stories',
+    'wide games':'wide','wide game':'wide',
+    'static games':'static',
+    'games':'static','game':'static','any':'static','general':'static',
+    'bushcraft':'bushcraft','bush craft':'bushcraft','bushcraft & skills':'bushcraft',
+    'craft':'crafts','crafts':'crafts','craft projects':'crafts',
+    'cooking':'recipes','recipes':'recipes','recipe':'recipes','recipes & cooking':'recipes',
+    'foraging':'foraging','forage':'foraging',
+    'stories':'stories','story':'stories','storytelling':'stories',
     'songs':'songs','song':'songs','singing':'songs',
-    'seasonal':'seasonal','spiritual':'seasonal',
-    'woodland':'woodland','woodland tasks':'woodland',
-    'tea':'tea','afternoon tea':'tea',
+    'seasonal':'seasonal','spiritual':'seasonal','seasonal & spiritual':'seasonal',
+    'woodland':'woodland','woodland tasks':'woodland','nature':'woodland',
+    'tea':'tea','afternoon tea':'tea','afternoon tea club':'tea',
     'morning circle':'morning','chat topics':'chat','chat':'chat',
     'nature journaling':'journaling','journaling':'journaling','journal':'journaling',
   };
@@ -14900,7 +14821,6 @@ function migrateMorningCircle() {
           month,
           resources: '', equipment: '', consumables: '',
           notes: '', link: '',
-          userAdded: true,
         });
       });
     });
@@ -15057,50 +14977,6 @@ function renderPairList(pairIds) {
     card.appendChild(names);
     list.appendChild(card);
   });
-}
-
-
-// ── Migrate existing sheet rowDefs to add cat:'morning' to Morning Circle ──
-function migrateMenuItemCats() {
-  // Fix any menu items saved with category labels or aliases instead of IDs
-  // e.g. "Wide Games" → "games", "wide games" → "games", "Games" → "general"
-  // Also fix items with empty cat by matching against base data
-  let changed = false;
-  const validIds = new Set(CATEGORIES.map(c => c.id));
-
-  // Build a name→cat lookup from base items
-  const baseNameCat = {};
-  if (typeof MENU_ITEMS_BASE !== 'undefined') {
-    MENU_ITEMS_BASE.forEach(i => { if (i && i.name && i.cat) baseNameCat[i.name] = i.cat; });
-  }
-
-  state.menuItems.forEach(item => {
-    // Case 1: cat is a label string or alias rather than an ID
-    if (item.cat && !validIds.has(item.cat)) {
-      const resolved = resolveCsvCategory(item.cat);
-      if (resolved) { item.cat = resolved; changed = true; }
-    }
-    // Case 2: cat is empty — try to recover from base data by name
-    if (!item.cat && baseNameCat[item.name]) {
-      item.cat = baseNameCat[item.name];
-      changed = true;
-    }
-  });
-  if (changed) saveState();
-}
-
-function migrateMorningCircleRowCat() {
-  let changed = false;
-  state.sheets.forEach(sheet => {
-    if (!sheet.rowDefs) return;
-    sheet.rowDefs.forEach(row => {
-      if ((row.key === 'Morning Circle Question' || row.label === 'Morning Circle') && !row.cat) {
-        row.cat = 'morning';
-        changed = true;
-      }
-    });
-  });
-  if (changed) saveState();
 }
 
 
@@ -15555,7 +15431,7 @@ function renderPlannerCurrentMonth() {
         </div>
         <div id="hcActivityInputs" style="display:flex;gap:0.4rem;flex:1;align-items:center;">
           <select id="hcCat" style="font-family:'Lora',serif;font-size:0.78rem;padding:0.28rem 0.4rem;border:1.5px solid rgba(107,66,38,0.25);border-radius:6px;background:#fff;">
-            <option value="games">🦊 Wide Games</option>
+            <option value="wide">🦊 Wide Games</option>
             <option value="bushcraft">🔥 Bushcraft &amp; Skills</option>
             <option value="crafts">🌿 Craft Projects</option>
             <option value="recipes">🍞 Recipes &amp; Cooking</option>
@@ -15565,7 +15441,7 @@ function renderPlannerCurrentMonth() {
             <option value="seasonal">🌙 Seasonal</option>
             <option value="woodland">🌳 Woodland Tasks</option>
             <option value="tea">🍵 Afternoon Tea</option>
-            <option value="general">🎮 Games</option>
+            <option value="static">🎮 Static Games</option>
             <option value="any">✨ Any</option>
           </select>
           <input id="hcRowLabel" placeholder="Row label (optional)" style="flex:1;font-family:'EB Garamond',serif;font-size:0.82rem;padding:0.28rem 0.5rem;border:1.5px solid rgba(107,66,38,0.25);border-radius:6px;">
