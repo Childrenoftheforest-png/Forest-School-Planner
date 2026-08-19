@@ -4923,8 +4923,19 @@ function keyYearNum(key, sheet) {
   if (keyIsISO(key)) return parseInt(key.split('-')[0], 10);
   if (!sheet) return null;
   const monIdx = SHORT_MONTHS_GLOBAL.indexOf(keyMonthAbbr(key));
-  const startMonIdx = SHORT_MONTHS_GLOBAL.indexOf(sheet.startMonth);
-  return monIdx >= startMonIdx ? sheet.startYear : sheet.endYear;
+  if (sheet.startMonth && sheet.startYear) {
+    const startMonIdx = SHORT_MONTHS_GLOBAL.indexOf(sheet.startMonth);
+    return monIdx >= startMonIdx ? sheet.startYear : (sheet.endYear || sheet.startYear);
+  }
+  // Wizard-created sheets only store startISO/endISO, not startMonth/startYear —
+  // derive the same answer from those instead of silently failing to resolve.
+  if (sheet.startISO) {
+    const startYear = parseInt(sheet.startISO.slice(0,4), 10);
+    const startMonIdx = parseInt(sheet.startISO.slice(5,7), 10) - 1;
+    const endYear = sheet.endISO ? parseInt(sheet.endISO.slice(0,4), 10) : startYear + 1;
+    return monIdx >= startMonIdx ? startYear : endYear;
+  }
+  return null;
 }
 // Normalises any session key (ISO or legacy) to a true ISO 'YYYY-MM-DD' string
 function keyToISO(key, sheet) {
@@ -5100,48 +5111,55 @@ function loadState() {
     if (migrateSheetToISO(sheet)) anySheetMigrated = true;
   });
 
-  // One-off cleanup (Aug 2026): the Home Ed sheet's legacy starter sessions
-  // were being re-injected every load using day-of-month only, so once the
-  // calendar rolled onto a year where those numbers land on different
-  // weekdays, stray columns appeared before the real term start (and
-  // sometimes a second column on the same date as a properly-generated
-  // session). Now that real term dates are configured, trim anything that
-  // falls outside every configured term — and if two sessions ever resolved
-  // to the exact same calendar date, merge their contents rather than
-  // silently dropping either side. Safe to leave running: once nothing is
-  // out of range, it's a no-op.
+  // One-off cleanup (Aug 2026): a gap in keyToISO meant sheets built via the
+  // creation wizard (which only store startISO/endISO, not startMonth/
+  // startYear) could never resolve a stray legacy-format session key onto
+  // its real ISO date — so it just sat there forever as a separate entry
+  // from the genuine one, showing as a duplicate date column. Now that
+  // keyYearNum has a fallback for that case, merge any two sessions that
+  // resolve to the same calendar date (never drops content, only combines),
+  // and quietly remove any *empty* session that falls outside every
+  // configured term — anything with real activities is left alone. Runs
+  // across every sheet. Safe to leave running: once nothing needs it, it's
+  // a no-op.
   let sessionsPruned = false;
   {
     const validTerms = (state.termDates || []).filter(t => t.label && t.start && t.end);
-    const homeSheet = (state.sheets || []).find(s => s.id === DEFAULT_SHEET_ID);
-    if (homeSheet && homeSheet.sessions && validTerms.length) {
-      // Merge any keys that resolve to the same ISO date first, so nothing is lost
+    const isEmptyDay = day => Object.keys(day || {}).every(rk => rk === '_notes' ? !day[rk] : !(day[rk] || []).length);
+
+    (state.sheets || []).forEach(sheet => {
+      if (!sheet || !sheet.sessions) return;
+
+      // Merge any keys that resolve to the same ISO date, so nothing is lost
       const byISO = {};
-      Object.keys(homeSheet.sessions).forEach(key => {
-        const iso = keyIsISO(key) ? key : keyToISO(key, homeSheet);
+      Object.keys(sheet.sessions).forEach(key => {
+        const iso = keyIsISO(key) ? key : keyToISO(key, sheet);
         if (!keyIsISO(iso)) return;
         if (!byISO[iso]) {
           byISO[iso] = key;
         } else if (byISO[iso] !== key) {
-          // a different key already claimed this date — merge missing rows in, then drop this one
-          const primary = homeSheet.sessions[byISO[iso]];
-          const dupe = homeSheet.sessions[key];
+          const primary = sheet.sessions[byISO[iso]];
+          const dupe = sheet.sessions[key];
           Object.keys(dupe || {}).forEach(rowKey => {
             if (primary[rowKey] === undefined) primary[rowKey] = dupe[rowKey];
           });
-          delete homeSheet.sessions[key];
+          delete sheet.sessions[key];
           sessionsPruned = true;
         }
       });
-      // Then drop anything outside every configured term
-      Object.keys(homeSheet.sessions).forEach(key => {
-        const inAnyTerm = validTerms.some(t => sessionDateInTerm(key, t));
-        if (!inAnyTerm) {
-          delete homeSheet.sessions[key];
-          sessionsPruned = true;
-        }
-      });
-    }
+
+      // Then quietly drop empty sessions outside every configured term
+      // (non-holiday sheets only — holiday clubs use their own picked dates)
+      if (sheet.type !== 'holiday' && validTerms.length) {
+        Object.keys(sheet.sessions).forEach(key => {
+          const inAnyTerm = validTerms.some(t => sessionDateInTerm(key, t));
+          if (!inAnyTerm && isEmptyDay(sheet.sessions[key])) {
+            delete sheet.sessions[key];
+            sessionsPruned = true;
+          }
+        });
+      }
+    });
   }
 
   // Fix items saved with category labels instead of IDs (e.g. "Wide Games" → "wide")
