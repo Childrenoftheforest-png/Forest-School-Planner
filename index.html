@@ -5125,7 +5125,6 @@ function loadState() {
   let sessionsPruned = false;
   {
     const validTerms = (state.termDates || []).filter(t => t.label && t.start && t.end);
-    const isEmptyDay = day => Object.keys(day || {}).every(rk => rk === '_notes' ? !day[rk] : !(day[rk] || []).length);
 
     (state.sheets || []).forEach(sheet => {
       if (!sheet || !sheet.sessions) return;
@@ -5148,12 +5147,14 @@ function loadState() {
         }
       });
 
-      // Then quietly drop empty sessions outside every configured term
+      // Then drop sessions outside every configured term entirely — those
+      // dates aren't real class days, so it doesn't matter whether Populate
+      // Empty or anything else has since filled them with content.
       // (non-holiday sheets only — holiday clubs use their own picked dates)
       if (sheet.type !== 'holiday' && validTerms.length) {
         Object.keys(sheet.sessions).forEach(key => {
           const inAnyTerm = validTerms.some(t => sessionDateInTerm(key, t));
-          if (!inAnyTerm && isEmptyDay(sheet.sessions[key])) {
+          if (!inAnyTerm) {
             delete sheet.sessions[key];
             sessionsPruned = true;
           }
