@@ -5064,14 +5064,22 @@ function loadState() {
     }
     state.sheets.unshift(defaultSheet);
   } else {
-    // Merge any new base sessions into existing home ed sheet
+    // Merge any new base sessions into existing home ed sheet — but only
+    // while no real term dates are configured. These starter sessions were
+    // written for a fixed academic year (day-of-month only, no year) and
+    // only land correctly by coincidence; once real term dates exist they
+    // should never be re-injected, or they drift onto the wrong weekdays
+    // and outside the actual term as the calendar year moves on.
     const homeSheet = state.sheets.find(s => s.id === DEFAULT_SHEET_ID);
-    for (const date in SESSION_DATA_BASE) {
-      // Check both the raw legacy key and its ISO equivalent — once migrateSheetToISO
-      // has run, the literal 'D-Mon' key won't exist any more even though the date does
-      const isoEquivalent = keyToISO(date, homeSheet);
-      const alreadyExists = homeSheet.sessions[date] || (keyIsISO(isoEquivalent) && homeSheet.sessions[isoEquivalent]);
-      if (!alreadyExists) homeSheet.sessions[date] = SESSION_DATA_BASE[date];
+    const hasRealTerms = (state.termDates || []).some(t => t.label && t.start && t.end);
+    if (!hasRealTerms) {
+      for (const date in SESSION_DATA_BASE) {
+        // Check both the raw legacy key and its ISO equivalent — once migrateSheetToISO
+        // has run, the literal 'D-Mon' key won't exist any more even though the date does
+        const isoEquivalent = keyToISO(date, homeSheet);
+        const alreadyExists = homeSheet.sessions[date] || (keyIsISO(isoEquivalent) && homeSheet.sessions[isoEquivalent]);
+        if (!alreadyExists) homeSheet.sessions[date] = SESSION_DATA_BASE[date];
+      }
     }
     // Ensure rowDefs exist (migrate from v1 if needed)
     if (!homeSheet.rowDefs || homeSheet.rowDefs.length === 0) {
@@ -5091,6 +5099,50 @@ function loadState() {
   (state.sheets || []).forEach(sheet => {
     if (migrateSheetToISO(sheet)) anySheetMigrated = true;
   });
+
+  // One-off cleanup (Aug 2026): the Home Ed sheet's legacy starter sessions
+  // were being re-injected every load using day-of-month only, so once the
+  // calendar rolled onto a year where those numbers land on different
+  // weekdays, stray columns appeared before the real term start (and
+  // sometimes a second column on the same date as a properly-generated
+  // session). Now that real term dates are configured, trim anything that
+  // falls outside every configured term — and if two sessions ever resolved
+  // to the exact same calendar date, merge their contents rather than
+  // silently dropping either side. Safe to leave running: once nothing is
+  // out of range, it's a no-op.
+  let sessionsPruned = false;
+  {
+    const validTerms = (state.termDates || []).filter(t => t.label && t.start && t.end);
+    const homeSheet = (state.sheets || []).find(s => s.id === DEFAULT_SHEET_ID);
+    if (homeSheet && homeSheet.sessions && validTerms.length) {
+      // Merge any keys that resolve to the same ISO date first, so nothing is lost
+      const byISO = {};
+      Object.keys(homeSheet.sessions).forEach(key => {
+        const iso = keyIsISO(key) ? key : keyToISO(key, homeSheet);
+        if (!keyIsISO(iso)) return;
+        if (!byISO[iso]) {
+          byISO[iso] = key;
+        } else if (byISO[iso] !== key) {
+          // a different key already claimed this date — merge missing rows in, then drop this one
+          const primary = homeSheet.sessions[byISO[iso]];
+          const dupe = homeSheet.sessions[key];
+          Object.keys(dupe || {}).forEach(rowKey => {
+            if (primary[rowKey] === undefined) primary[rowKey] = dupe[rowKey];
+          });
+          delete homeSheet.sessions[key];
+          sessionsPruned = true;
+        }
+      });
+      // Then drop anything outside every configured term
+      Object.keys(homeSheet.sessions).forEach(key => {
+        const inAnyTerm = validTerms.some(t => sessionDateInTerm(key, t));
+        if (!inAnyTerm) {
+          delete homeSheet.sessions[key];
+          sessionsPruned = true;
+        }
+      });
+    }
+  }
 
   // Fix items saved with category labels instead of IDs (e.g. "Wide Games" → "wide")
   const validIds = new Set(CATEGORIES.map(c => c.id));
@@ -5319,7 +5371,7 @@ function loadState() {
     if (state.menuItems.length !== beforeDedupeLen) purged = true;
   }
 
-  if (anySheetMigrated || catFixed || backfilled || purged) saveState();
+  if (anySheetMigrated || catFixed || backfilled || purged || sessionsPruned) saveState();
 }
 
 function showToast(msg, duration = 2200) {
