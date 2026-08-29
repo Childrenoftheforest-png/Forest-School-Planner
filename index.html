@@ -3513,6 +3513,7 @@ body {
         <button class="menu-csv-btn import" onclick="openCsvImportModal()" title="Import activities from CSV spreadsheet">⬆ Import CSV</button>
         <button class="menu-csv-btn" onclick="exportMenuCsv()" title="Export all activities as CSV spreadsheet">⬇ Export CSV</button>
         <button class="menu-csv-btn import" onclick="openBulkReclassifyModal()" title="Fix category of multiple activities at once">✏ Fix Categories</button>
+        <button class="menu-csv-btn import" onclick="runTidyLegacyResources()" title="Split old combined Equipment/Consumables text into proper fields, and sort consumables into Purchases vs Foraged">🧹 Tidy Resources</button>
         <button class="menu-csv-btn import" onclick="openRestoreDeletedModal()" title="View and restore deleted activities" id="restoreDeletedBtn" style="display:none;">♻ Restore Deleted</button>
         <button class="menu-csv-btn import" onclick="openCatManager()" title="Add, rename or remove activity categories">⚙ Categories</button>
         <button class="add-idea-btn" onclick="openAddIdeaModal()">＋ Add New Idea</button>
@@ -12437,6 +12438,139 @@ function openHolidayResourcesPanel(isoDate, sheet) {
   document.getElementById('resPanel').classList.add('open');
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// TIDY LEGACY RESOURCES
+// ═══════════════════════════════════════════════════════════════
+// One-time (repeatable, but a no-op once nothing's left to fix) bulk pass
+// over the activity library. Two things happen, of very different character:
+//
+// 1. Mechanical split of the old combined `resources` text into proper
+//    `equipment` / `consumables` fields. Every legacy activity stores this as
+//    plain text with "EQUIPMENT:" / "CONSUMABLES:" markers, in that order,
+//    with no exceptions found across the library — so this is pure
+//    extraction, nothing is being guessed. A leading "VEGAN RECIPE"-style
+//    preamble (found on ~48 recipes) moves into Notes rather than staying
+//    stuck in Equipment. A consumables block that just says "None" becomes
+//    properly empty rather than showing the word "None" as an ingredient.
+//
+// 2. A first-pass keyword split of the freshly-extracted consumables into
+//    Purchases vs Foraged. This part IS a guess — it's a curated whitelist of
+//    wild/foraged ingredient terms; anything not matched defaults to
+//    Purchases. It's meant to be reviewed via CSV export/re-import, not
+//    trusted as final.
+//
+// Only touches activities that haven't already been split (equipment and
+// consumables both still empty) — anything already tidied by hand is left
+// exactly as it is.
+
+const FORAGED_KEYWORDS = [
+  'blackberr','elderflower','elderberr','hazel','willow','pine needle','pinecone','pine cone',
+  'rosehip','rose hip','hawthorn','dandelion','nettle','sweet chestnut','acorn','bracken',
+  'wild garlic','sloe','damson','crab apple','bramble','sorrel','chickweed','plantain','yarrow',
+  'cleavers','ground ivy','wild strawberr','fungi','apple leaves','apple leaf','foraged',
+  'wild-picked','wild picked','freely gathered','self-seeded','reclaimed wood','fallen branch',
+  'pond water','moss','fir cone','conker','leaf mould','wood chip mulch'
+];
+
+function isForagedConsumableLine(line) {
+  const l = line.toLowerCase();
+  return FORAGED_KEYWORDS.some(kw => l.includes(kw));
+}
+
+// Splits the old combined text into equipment/consumables/preamble.
+// Returns null if the EQUIPMENT:/CONSUMABLES: markers aren't both present,
+// so the caller can leave anything unrecognised untouched rather than guess.
+function parseLegacyResourcesText(raw) {
+  if (!raw) return null;
+  const text = raw.replace(/\\n/g, '\n');
+  const eqMatch = text.match(/EQUIPMENT[^:\n]*:/i);
+  const coMatch = text.match(/CONSUMABLES[^:\n]*:/i);
+  if (!eqMatch || !coMatch || coMatch.index < eqMatch.index) return null;
+  const eqIdx = eqMatch.index, eqLen = eqMatch[0].length;
+  const coIdx = coMatch.index, coLen = coMatch[0].length;
+
+  const preamble = text.slice(0, eqIdx).trim();
+  const equipmentBlock = text.slice(eqIdx + eqLen, coIdx).trim();
+  const consumablesBlock = text.slice(coIdx + coLen).trim();
+
+  const cleanLines = block => block
+    .split('\n')
+    .map(l => l.replace(/^[\s\-*•]+/, '').trim())
+    .filter(l => l.length > 0);
+
+  const equipmentLines = cleanLines(equipmentBlock);
+  let consumablesLines = cleanLines(consumablesBlock);
+  if (consumablesLines.length === 1 && /^none$/i.test(consumablesLines[0])) consumablesLines = [];
+
+  return { preamble, equipmentLines, consumablesLines };
+}
+
+function runTidyLegacyResources() {
+  const candidates = state.menuItems.filter(item =>
+    item && item.name && !item.hidden &&
+    !(item.equipment && item.equipment.trim()) &&
+    !(item.consumables && item.consumables.trim()) &&
+    item.resources && item.resources.trim()
+  );
+
+  const parsedCandidates = candidates
+    .map(item => ({ item, parsed: parseLegacyResourcesText(item.resources) }))
+    .filter(c => c.parsed);
+
+  if (parsedCandidates.length === 0) {
+    alert('Nothing to tidy — every activity with old-style resources text has already been split, or has no recognisable Equipment/Consumables markers.');
+    return;
+  }
+
+  const ok = confirm(
+    `This will split ${parsedCandidates.length} activit${parsedCandidates.length !== 1 ? 'ies' : 'y'} into proper Equipment and Purchases fields, and sort likely-foraged ingredients into the Foraged field using a keyword guess.\n\n` +
+    `Nothing already split by hand is touched, and the original text isn't deleted — only these new fields are filled in.\n\n` +
+    `Recommended: export to CSV afterwards to review the Purchases/Foraged split before relying on it. Continue?`
+  );
+  if (!ok) return;
+
+  let equipmentSet = 0, consumablesSet = 0, foragedSet = 0, notesUpdated = 0;
+
+  parsedCandidates.forEach(({ item, parsed }) => {
+    const { preamble, equipmentLines, consumablesLines } = parsed;
+
+    if (equipmentLines.length > 0) {
+      item.equipment = equipmentLines.join('\n');
+      equipmentSet++;
+    }
+
+    const purchaseLines = [];
+    const foragedLines = [];
+    consumablesLines.forEach(line => {
+      if (isForagedConsumableLine(line)) foragedLines.push(line);
+      else purchaseLines.push(line);
+    });
+    if (purchaseLines.length > 0) { item.consumables = purchaseLines.join('\n'); consumablesSet++; }
+    if (foragedLines.length > 0) { item.foraged = foragedLines.join('\n'); foragedSet++; }
+
+    if (preamble) {
+      const existingNotes = (item.notes || '').trim();
+      if (!existingNotes.includes(preamble)) {
+        item.notes = existingNotes ? preamble + '\n\n' + existingNotes : preamble;
+        notesUpdated++;
+      }
+    }
+  });
+
+  saveState();
+  renderMenu();
+  renderCatFilters();
+
+  alert(
+    `🧹 Tidied ${parsedCandidates.length} activit${parsedCandidates.length !== 1 ? 'ies' : 'y'}.\n\n` +
+    `Equipment filled: ${equipmentSet}\n` +
+    `Purchases filled: ${consumablesSet}\n` +
+    `Foraged filled (keyword guess): ${foragedSet}\n` +
+    (notesUpdated > 0 ? `Recipe notes moved to Notes: ${notesUpdated}\n` : '') +
+    `\nExport to CSV to review the Purchases/Foraged split.`
+  );
+}
 
 // ═══════════════════════════════════════════════════════════════
 // CSV IMPORT / EXPORT
