@@ -4117,6 +4117,14 @@ body {
 </div>
 
 <!-- ─── POPULATE MODAL ─── -->
+<div class="modal-overlay" id="borrowConflictModal">
+  <div class="modal" style="max-width:480px;">
+    <button class="modal-close" onclick="closeBorrowConflictModal()">✕</button>
+    <h2>🔗 Borrowed elsewhere</h2>
+    <div id="borrowConflictBody"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="populateModal">
   <div class="modal">
     <button class="modal-close" onclick="closePopulateModal()">✕</button>
@@ -5191,26 +5199,61 @@ function findBorrowCandidate(targetSheet, rowKey, dateKey) {
   return best.candidates[0].act;
 }
 
-// How many assignments elsewhere currently borrow from this act id — used to
-// warn before deleting/clearing something else depends on, rather than
-// silently leaving those borrowers pointing at nothing (resolveAct handles
-// that gracefully with a "no longer exists" message, but a heads-up before
-// the fact is better than discovering it later).
-function countBorrowersOf(actId) {
-  if (!actId) return 0;
-  let count = 0;
+// Every assignment elsewhere that currently borrows from this act id, with
+// enough location info (sheet, date, row) to act on each one — used both to
+// warn before deleting/clearing something else depends on, and to actually
+// carry out whichever resolution is chosen (remove them too, or repoint them
+// to a different source).
+function findBorrowersOf(actId) {
+  const results = [];
+  if (!actId) return results;
   (state.sheets || []).forEach(s => {
     if (!s || !s.sessions) return;
-    Object.values(s.sessions).forEach(sessionData => {
+    Object.keys(s.sessions).forEach(dateKey => {
+      const sessionData = s.sessions[dateKey];
       Object.keys(sessionData || {}).forEach(rk => {
         if (rk === '_notes') return;
         const arr = sessionData[rk];
         if (!Array.isArray(arr)) return;
-        arr.forEach(a => { if (a && a.borrowedFrom === actId) count++; });
+        arr.forEach(a => { if (a && a.borrowedFrom === actId) results.push({ sheet: s, date: dateKey, rowKey: rk, act: a }); });
       });
     });
   });
-  return count;
+  return results;
+}
+function countBorrowersOf(actId) { return findBorrowersOf(actId).length; }
+
+// Same-week alternative source candidates for a borrow-conflict resolution —
+// e.g. deleting Wednesday's Cooking activity offers Thursday's Cooking
+// activity (same sheet or another) as something borrowers could switch to
+// instead. Unlike findBorrowCandidate (used by Populate Empty to pick one
+// best source on another sheet), this deliberately includes the same sheet
+// too, since "another day this week on the same sheet" is exactly the case
+// this exists for, and returns every match rather than picking one, so the
+// person can choose.
+function findAlternativeBorrowSources(sheet, rowKey, dateKey, excludeActId) {
+  const cat = getEffectiveRowCat(sheet, rowKey);
+  if (!cat || cat === 'any' || cat === '_skip') return [];
+  const refDate = keyToDate(dateKey, sheet);
+  const { mon, sun } = weekRangeFor(refDate);
+  const results = [];
+
+  (state.sheets || []).forEach(otherSheet => {
+    if (!otherSheet || !otherSheet.sessions) return;
+    Object.keys(otherSheet.sessions).forEach(otherDateKey => {
+      const d = keyToDate(otherDateKey, otherSheet);
+      if (isNaN(d) || d < mon || d > sun) return;
+      const sessionData = otherSheet.sessions[otherDateKey] || {};
+      (otherSheet.rowDefs || []).forEach(otherRow => {
+        if (getEffectiveRowCat(otherSheet, otherRow.key) !== cat) return;
+        (sessionData[otherRow.key] || []).forEach(act => {
+          if (!act || act.borrowedFrom || !act.id || act.id === excludeActId) return;
+          results.push({ act, date: otherDateKey, sheet: otherSheet, rowLabel: otherRow.label || otherRow.key });
+        });
+      });
+    });
+  });
+  return results;
 }
 
 // Total borrower impact across every assignment of a given activity name —
@@ -5232,6 +5275,150 @@ function countBorrowersForActivityName(name) {
     });
   });
   return total;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BORROW CONFLICT RESOLUTION
+// ═══════════════════════════════════════════════════════════════
+// Single entry point every single-item removal path should call instead of
+// splicing an act out directly. If nothing borrows from it, removes it
+// straight away. If something does, opens a modal offering three ways
+// forward rather than a plain yes/no: remove the borrowers too, replace this
+// slot with a freshly chosen activity (the borrowers follow automatically,
+// since they're linked by this act's id — nothing about them needs to
+// change), or repoint the borrowers at a different same-week activity and
+// then remove this one. onRemoved is called once whichever path finishes, so
+// each call site can refresh its own view without knowing which path ran.
+function requestRemoveAct(sheet, date, rowKey, idx, onRemoved) {
+  const acts = (sheet.sessions[date] || {})[rowKey] || [];
+  const target = acts[idx];
+  if (!target) { onRemoved(); return; }
+
+  const borrowers = target.id ? findBorrowersOf(target.id) : [];
+  if (borrowers.length === 0) {
+    acts.splice(idx, 1);
+    saveState();
+    onRemoved();
+    return;
+  }
+
+  borrowConflictState = { sheet, date, rowKey, idx, target, borrowers, onRemoved };
+  renderBorrowConflictStep('choose');
+  document.getElementById('borrowConflictModal').classList.add('open');
+}
+
+let borrowConflictState = null;
+
+function closeBorrowConflictModal() {
+  document.getElementById('borrowConflictModal').classList.remove('open');
+  borrowConflictState = null;
+}
+
+function renderBorrowConflictStep(step) {
+  const ctx = borrowConflictState;
+  if (!ctx) return;
+  const body = document.getElementById('borrowConflictBody');
+  const name = ctx.target.text || '';
+  const borrowerLabels = ctx.borrowers
+    .map(b => `${b.sheet.name} – ${keyDayNum(b.date)} ${keyMonthAbbr(b.date)}`)
+    .join(', ');
+
+  if (step === 'replace') {
+    body.innerHTML = `
+      <p style="font-family:'Lora',serif;font-size:0.85rem;color:var(--bark-light);margin-bottom:0.8rem;">Pick a replacement for "${escHtml(name)}" — ${ctx.borrowers.length} borrowed session${ctx.borrowers.length !== 1 ? 's' : ''} will automatically pick up whatever you choose.</p>
+      <input type="text" class="form-input" id="borrowConflictSearch" placeholder="Search activities…" oninput="renderBorrowConflictReplaceList()" style="margin-bottom:0.7rem;">
+      <div id="borrowConflictReplaceList" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:0.25rem;"></div>
+      <button class="btn-secondary" onclick="renderBorrowConflictStep('choose')" style="margin-top:0.9rem;">← Back</button>
+    `;
+    renderBorrowConflictReplaceList();
+    return;
+  }
+
+  const alternatives = findAlternativeBorrowSources(ctx.sheet, ctx.rowKey, ctx.date, ctx.target.id);
+  ctx._alternatives = alternatives;
+
+  let html = `<p style="font-family:'Lora',serif;font-size:0.85rem;color:var(--bark-light);margin-bottom:1rem;">"${escHtml(name)}" is borrowed by ${ctx.borrowers.length} session${ctx.borrowers.length !== 1 ? 's' : ''} this week: <strong>${escHtml(borrowerLabels)}</strong>. What would you like to do?</p>`;
+  html += `<div style="display:flex;flex-direction:column;gap:0.5rem;">`;
+  html += `<button class="btn-secondary" onclick="borrowConflictRemoveEverywhere()">🗑 Remove from ${ctx.borrowers.length > 1 ? 'those sessions' : 'that session'} too</button>`;
+  html += `<button class="btn-secondary" onclick="renderBorrowConflictStep('replace')">🔄 Choose a new activity for this slot</button>`;
+  alternatives.forEach((alt, i) => {
+    html += `<button class="btn-secondary" onclick="borrowConflictRepoint(${i})">🔗 Borrow "${escHtml(alt.act.text)}" from ${escHtml(alt.rowLabel)} (${keyDayNum(alt.date)} ${keyMonthAbbr(alt.date)}) instead</button>`;
+  });
+  html += `<button class="btn-secondary" onclick="closeBorrowConflictModal()" style="opacity:0.7;">Cancel — leave everything as it is</button>`;
+  html += `</div>`;
+  body.innerHTML = html;
+}
+
+function renderBorrowConflictReplaceList() {
+  const ctx = borrowConflictState;
+  if (!ctx) return;
+  const q = (document.getElementById('borrowConflictSearch')?.value || '').toLowerCase().trim();
+  const cat = getEffectiveRowCat(ctx.sheet, ctx.rowKey);
+  let monAbbr = keyMonthAbbr(ctx.date);
+  if (/^\d{2}$/.test(monAbbr)) monAbbr = SHORT_MONTHS_GLOBAL[parseInt(monAbbr, 10) - 1] || monAbbr;
+  const adjacentMonths = getAdjacentMonths(monAbbr);
+
+  let items = state.menuItems.filter(item => {
+    if (!item || !item.name || item.hidden) return false;
+    if (q) return item.name.toLowerCase().includes(q);
+    if (cat !== 'any' && item.cat !== cat) return false;
+    if (item.month !== 'all' && !adjacentMonths.includes(item.month)) return false;
+    return true;
+  }).slice(0, 60);
+
+  ctx._replaceCandidates = items;
+  const list = document.getElementById('borrowConflictReplaceList');
+  if (!list) return;
+  if (items.length === 0) {
+    list.innerHTML = '<div style="font-style:italic;color:var(--bark-light);font-family:\'Lora\',serif;font-size:0.82rem;padding:0.4rem;">No matches</div>';
+    return;
+  }
+  list.innerHTML = items.map((item, i) => `<div class="picker-item" style="cursor:pointer;padding:0.4rem 0.5rem;border-radius:4px;" onclick="borrowConflictPickReplacement(${i})">${escHtml(item.name)}</div>`).join('');
+}
+
+function borrowConflictPickReplacement(i) {
+  const ctx = borrowConflictState;
+  const item = ctx && ctx._replaceCandidates && ctx._replaceCandidates[i];
+  if (!ctx || !item) return;
+  // Mutate the existing act in place, keeping its id — every borrower is
+  // linked by that id, so they pick up the new activity automatically.
+  ctx.target.text = item.name;
+  ctx.target.link = item.link || '';
+  saveState();
+  const onRemoved = ctx.onRemoved;
+  closeBorrowConflictModal();
+  onRemoved();
+}
+
+function borrowConflictRemoveEverywhere() {
+  const ctx = borrowConflictState;
+  if (!ctx) return;
+  ctx.borrowers.forEach(b => {
+    const arr = (b.sheet.sessions[b.date] || {})[b.rowKey] || [];
+    const bi = arr.indexOf(b.act);
+    if (bi >= 0) arr.splice(bi, 1);
+  });
+  const acts = (ctx.sheet.sessions[ctx.date] || {})[ctx.rowKey] || [];
+  const ti = acts.indexOf(ctx.target);
+  if (ti >= 0) acts.splice(ti, 1);
+  saveState();
+  const onRemoved = ctx.onRemoved;
+  closeBorrowConflictModal();
+  onRemoved();
+}
+
+function borrowConflictRepoint(i) {
+  const ctx = borrowConflictState;
+  const alt = ctx && ctx._alternatives && ctx._alternatives[i];
+  if (!ctx || !alt) return;
+  ctx.borrowers.forEach(b => { b.act.borrowedFrom = alt.act.id; });
+  const acts = (ctx.sheet.sessions[ctx.date] || {})[ctx.rowKey] || [];
+  const ti = acts.indexOf(ctx.target);
+  if (ti >= 0) acts.splice(ti, 1);
+  saveState();
+  const onRemoved = ctx.onRemoved;
+  closeBorrowConflictModal();
+  onRemoved();
 }
 
 function loadState() {
@@ -6555,20 +6742,8 @@ function renderCellActivities(activities) {
 
 function removeActivityFromCell(date, rowKey, idx) {
   const sheet = getActiveSheet();
-  const acts = (sheet.sessions[date] || {})[rowKey] || [];
-  const target = acts[idx];
-  if (target && target.id) {
-    const borrowerCount = countBorrowersOf(target.id);
-    if (borrowerCount > 0) {
-      const ok = confirm(`This is borrowed by ${borrowerCount} other session${borrowerCount !== 1 ? 's' : ''} elsewhere. Removing it here will show those as "no longer exists" until you fix them up. Remove it anyway?`);
-      if (!ok) return;
-    }
-  }
-  acts.splice(idx, 1);
   if (!sheet.sessions[date]) sheet.sessions[date] = {};
-  sheet.sessions[date][rowKey] = acts;
-  saveState();
-  refreshCell(date, rowKey);
+  requestRemoveAct(sheet, date, rowKey, idx, () => refreshCell(date, rowKey));
 }
 
 function refreshCell(date, rowKey) {
@@ -6639,16 +6814,7 @@ function renderCurrentActivities() {
     });
     div.querySelector('.del-act-btn').addEventListener('click', function() {
       const idx = parseInt(this.dataset.idx);
-      const target = acts[idx];
-      if (target && target.id) {
-        const borrowerCount = countBorrowersOf(target.id);
-        if (borrowerCount > 0) {
-          const ok = confirm(`This is borrowed by ${borrowerCount} other session${borrowerCount !== 1 ? 's' : ''} elsewhere. Removing it here will show those as "no longer exists" until you fix them up. Remove it anyway?`);
-          if (!ok) return;
-        }
-      }
-      acts.splice(idx, 1);
-      renderCurrentActivities();
+      requestRemoveAct(getActiveSheet(), date, rowKey, idx, () => renderCurrentActivities());
     });
     list.appendChild(div);
   });
@@ -13780,19 +13946,7 @@ function mCellRenderCurrentActs() {
 function mCellRemoveAct(idx) {
   const { key, rowKey, sheet } = mCellEditState;
   if (!sheet.sessions[key]) return;
-  const acts = sheet.sessions[key][rowKey] || [];
-  const target = acts[idx];
-  if (target && target.id) {
-    const borrowerCount = countBorrowersOf(target.id);
-    if (borrowerCount > 0) {
-      const ok = confirm(`This is borrowed by ${borrowerCount} other session${borrowerCount !== 1 ? 's' : ''} elsewhere. Removing it here will show those as "no longer exists" until you fix them up. Remove it anyway?`);
-      if (!ok) return;
-    }
-  }
-  acts.splice(idx, 1);
-  sheet.sessions[key][rowKey] = acts;
-  saveState();
-  mCellRenderCurrentActs();
+  requestRemoveAct(sheet, key, rowKey, idx, () => mCellRenderCurrentActs());
 }
 
 function mCellSetCat(cat) {
@@ -15988,11 +16142,12 @@ function renderPlannerCurrentMonth() {
   if (IS_MOBILE()) mInit();
 
   // Wire overlay-click listeners (moved here from end of file)
-  ['populateModal','newSheetModal','editSheetModal','copyFromSheetModal','assignSweepModal'].forEach(id => {
+  ['populateModal','newSheetModal','editSheetModal','copyFromSheetModal','assignSweepModal','borrowConflictModal'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('click', function(e) {
       if (e.target === this) {
         if (id === 'populateModal') closePopulateModal();
+        else if (id === 'borrowConflictModal') closeBorrowConflictModal();
         else closeNewSheetWizard();
       }
     });
