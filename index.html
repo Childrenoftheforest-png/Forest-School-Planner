@@ -922,34 +922,54 @@ body {
 .menu-item { cursor: pointer; }
 
 /* ─── SHEET TABS ─── */
-.sheet-tabs { display: flex; gap: 0.25rem; align-items: center; }
-.sheet-tab {
-  font-family: 'Lora', serif;
-  font-size: 0.74rem;
-  padding: 0.3rem 0.6rem 0.3rem 0.75rem;
-  border-radius: 18px;
+.sheet-tabs { display: flex; gap: 0.4rem; align-items: stretch; }
+.sheet-tab-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-radius: 12px;
   border: 1.5px solid rgba(255,255,255,0.25);
   background: transparent;
-  color: rgba(255,255,255,0.75);
-  cursor: pointer;
+  padding: 0.3rem 0.5rem;
   transition: all 0.15s;
-  white-space: nowrap;
-  max-width: 160px;
-  display: inline-flex;
+}
+.sheet-tab-card.active { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.5); }
+.sheet-tab-name-row {
+  display: flex;
   align-items: center;
   gap: 0.2rem;
-  overflow: visible;
+  white-space: nowrap;
 }
 .sheet-tab-label {
+  font-family: 'Lora', serif;
+  font-size: 0.76rem;
+  color: rgba(255,255,255,0.9);
+  font-weight: 600;
+  cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 130px;
 }
-.sheet-tab:hover { background: rgba(255,255,255,0.1); color: #fff; }
-.sheet-tab.active { background: rgba(255,255,255,0.18); color: #fff; font-weight: 600; border-color: rgba(255,255,255,0.5); }
+.sheet-tab-label:hover { text-decoration: underline; }
+.sheet-tab-view-row { display: flex; gap: 0.3rem; }
+.sheet-tab-view-btn {
+  font-family: 'Lora', serif;
+  font-size: 0.68rem;
+  padding: 0.22rem 0.5rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: transparent;
+  color: rgba(255,255,255,0.7);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.sheet-tab-view-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.sheet-tab-view-btn.active { background: var(--gold); border-color: var(--gold); color: var(--ink); font-weight: 700; }
 .sheet-tab-delete {
   display: inline-flex; align-items: center; justify-content: center;
-  margin-left: 0.35rem; width: 14px; height: 14px;
+  margin-left: 0.15rem; width: 14px; height: 14px;
   border-radius: 50%; border: none;
   background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.7);
   font-size: 0.55rem; cursor: pointer; transition: all 0.15s;
@@ -3463,20 +3483,14 @@ body {
         <div class="holiday-clubs-dropdown" id="archivedDropdown"></div>
       </div>
       <div class="header-tab-divider"></div>
-      <button class="header-tab" onclick="showView('planner')" data-view="planner">📅 Sessions</button>
       <button class="header-tab" onclick="showView('menu')" data-view="menu">🌱 Activity Menu</button>
       <button class="header-tab" onclick="showView('calendar')" data-view="calendar">🗓 Calendar</button>
       <button class="header-tab" onclick="showView('upcoming')" data-view="upcoming">📆 This Week</button>
-      <button class="header-tab" onclick="showView('register')" data-view="register">📋 Register</button>
     </div>
   </header>
 
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
-    <div class="sidebar-section">
-      <h3>Jump to Month</h3>
-      <div class="month-list" id="monthList"></div>
-    </div>
     <div class="sidebar-section" id="catFilterSection" style="display:none;">
       <h3>Filter by Category</h3>
       <input type="text" class="sidebar-search" id="menuSearch" placeholder="Search activities…" oninput="filterMenu()">
@@ -3499,7 +3513,6 @@ body {
           <button class="view-toggle-btn" id="btnViewHalfterm" onclick="setPlannerView('halfterm')">📆 Half term</button>
         </div>
         <button class="toolbar-btn term-dates-btn" id="termDatesBtn" onclick="toggleTermDatesPanel()">🗓 Term dates</button>
-        <button class="toolbar-btn" onclick="cleanupOutOfTermSessions()" title="Remove empty sessions that fall outside your configured term dates">🧹 Clean Up Sessions</button>
       </div>
       <div id="termDatesPanel" style="display:none;"></div>
       <div id="plannerMonthNav"></div>
@@ -3512,8 +3525,6 @@ body {
         <input type="text" class="menu-search-input" id="menuSearchMain" placeholder="🔍  Search all activities…" oninput="filterMenu()">
         <button class="menu-csv-btn import" onclick="openCsvImportModal()" title="Import activities from CSV spreadsheet">⬆ Import CSV</button>
         <button class="menu-csv-btn" onclick="exportMenuCsv()" title="Export all activities as CSV spreadsheet">⬇ Export CSV</button>
-        <button class="menu-csv-btn import" onclick="openBulkReclassifyModal()" title="Fix category of multiple activities at once">✏ Fix Categories</button>
-        <button class="menu-csv-btn import" onclick="runTidyLegacyResources()" title="Split old combined Equipment/Consumables text into proper fields, and sort consumables into Purchases vs Foraged">🧹 Tidy Resources</button>
         <button class="menu-csv-btn import" onclick="openRestoreDeletedModal()" title="View and restore deleted activities" id="restoreDeletedBtn" style="display:none;">♻ Restore Deleted</button>
         <button class="menu-csv-btn import" onclick="openCatManager()" title="Add, rename or remove activity categories">⚙ Categories</button>
         <button class="add-idea-btn" onclick="openAddIdeaModal()">＋ Add New Idea</button>
@@ -5841,7 +5852,10 @@ function saveState() {
 // ═══════════════════════════════════════════════════════════════
 // VIEW SWITCHING
 // ═══════════════════════════════════════════════════════════════
+let currentTopView = 'planner';
+
 function showView(v) {
+  currentTopView = v;
   // Hide register view unless explicitly requested
   const regView = document.getElementById('registerView');
   if (regView) regView.classList.remove('active');
@@ -5854,12 +5868,12 @@ function showView(v) {
     document.getElementById('menuView').classList.remove('visible');
     document.getElementById('calendarView').classList.remove('visible');
     document.getElementById('upcomingView').classList.remove('visible');
-    document.getElementById('monthList').style.display = 'none';
     document.getElementById('catFilterSection').style.display = 'none';
     if (regView) regView.classList.add('active');
     applyAutoDepartures();
     populateRegisterSheetSelect();
     onRegisterSheetChange();
+    renderSheetTabs();
     return;
   }
 
@@ -5870,11 +5884,32 @@ function showView(v) {
   document.querySelectorAll('[data-view]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.view === v);
   });
-  document.getElementById('monthList').style.display = v==='planner'?'':'none';
   document.getElementById('catFilterSection').style.display = v==='menu'?'':'none';
   if (v==='menu') renderMenu();
   if (v==='calendar') renderCalendarView();
   if (v==='upcoming') renderUpcomingView();
+  renderSheetTabs();
+}
+
+// Jump straight to a given sheet's Sessions or Register view — the entry point
+// for the per-sheet Sessions/Register buttons under each sheet's name in the
+// header. Sets the sheet as active everywhere that matters (planner's
+// activeSheetId, and the register view's own sheet selector, which is
+// tracked separately since Register can be checked for a sheet without
+// necessarily planning on it right now).
+function goToSheetView(sheetId, view) {
+  state.activeSheetId = sheetId;
+  saveState();
+  if (view === 'register') {
+    showView('register');
+    const sel = document.getElementById('registerSheetSelect');
+    if (sel) {
+      sel.value = sheetId;
+      onRegisterSheetChange();
+    }
+  } else {
+    showView('planner');
+  }
 }
 
 // ─── SHEET TABS ───
@@ -5884,47 +5919,70 @@ function renderSheetTabs() {
   for (const sheet of state.sheets) {
     if (sheet.type === 'holiday') continue; // holiday clubs shown in dropdown
     // Archived sheets are normally tucked away in the Archived dropdown, but if one
-    // is somehow still the active sheet, keep showing its tab (clearly labelled) —
-    // otherwise you'd be looking at its data with no visible tab at all
+    // is somehow still the active sheet, keep showing its card (clearly labelled) —
+    // otherwise you'd be looking at its data with no visible card at all
     if (sheet.archived && sheet.id !== state.activeSheetId) continue;
-    const btn = document.createElement('button');
-    btn.className = 'sheet-tab' + (sheet.id === state.activeSheetId ? ' active' : '');
+
+    const isActiveSheet = sheet.id === state.activeSheetId;
+    const isOnRegister = currentTopView === 'register' && (regActiveSheetId || sheet.id) === sheet.id;
+    const isOnSessions = currentTopView === 'planner' && isActiveSheet;
+
+    const card = document.createElement('div');
+    card.className = 'sheet-tab-card' + (isActiveSheet ? ' active' : '');
+
+    // Name row: label plus the existing management icon buttons
+    const nameRow = document.createElement('div');
+    nameRow.className = 'sheet-tab-name-row';
     const labelSpan = document.createElement('span');
     labelSpan.className = 'sheet-tab-label';
     const baseLabel = sheet.emoji ? sheet.emoji + ' ' + sheet.name : sheet.name;
     labelSpan.textContent = sheet.archived ? baseLabel + ' (archived)' : baseLabel;
-    btn.appendChild(labelSpan);
-    btn.title = sheet.name;
-    btn.onclick = () => switchSheet(sheet.id);
+    labelSpan.title = sheet.name;
+    labelSpan.onclick = () => goToSheetView(sheet.id, 'planner');
+    nameRow.appendChild(labelSpan);
 
-    // Archive button (available on every sheet, including Home Ed —
-    // archiving just hides it from the bar, unlike delete which is blocked for it)
     const arc = document.createElement('button');
     arc.className = 'sheet-tab-delete';
     arc.title = 'Archive this sheet';
     arc.textContent = '🗄';
     arc.onclick = (e) => { e.stopPropagation(); archiveSheet(sheet.id); };
-    btn.appendChild(arc);
+    nameRow.appendChild(arc);
 
-    // Settings button (age group, etc.)
     const settings = document.createElement('button');
     settings.className = 'sheet-tab-delete';
     settings.title = 'Sheet settings (age group)';
     settings.textContent = '⚙';
     settings.onclick = (e) => { e.stopPropagation(); openEditSheetModal(sheet.id); };
-    btn.appendChild(settings);
+    nameRow.appendChild(settings);
 
-    // Add delete button for non-default sheets
     if (sheet.id !== DEFAULT_SHEET_ID) {
       const del = document.createElement('button');
       del.className = 'sheet-tab-delete';
       del.title = 'Delete this sheet';
       del.textContent = '✕';
       del.onclick = (e) => { e.stopPropagation(); deleteSheet(sheet.id); };
-      btn.appendChild(del);
+      nameRow.appendChild(del);
     }
+    card.appendChild(nameRow);
 
-    container.appendChild(btn);
+    // View row: Sessions / Register, the two things you'd ever want to jump into for this sheet
+    const viewRow = document.createElement('div');
+    viewRow.className = 'sheet-tab-view-row';
+
+    const sessBtn = document.createElement('button');
+    sessBtn.className = 'sheet-tab-view-btn' + (isOnSessions ? ' active' : '');
+    sessBtn.textContent = '📅 Sessions';
+    sessBtn.onclick = () => goToSheetView(sheet.id, 'planner');
+    viewRow.appendChild(sessBtn);
+
+    const regBtn = document.createElement('button');
+    regBtn.className = 'sheet-tab-view-btn' + (isOnRegister ? ' active' : '');
+    regBtn.textContent = '📋 Register';
+    regBtn.onclick = () => goToSheetView(sheet.id, 'register');
+    viewRow.appendChild(regBtn);
+
+    card.appendChild(viewRow);
+    container.appendChild(card);
   }
   // Update subtitle
   const active = getActiveSheet();
@@ -6576,23 +6634,6 @@ function renderPlanner() {
     const SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const curMon = SHORT[now.getMonth()];
     plannerActiveMonth = months.includes(curMon) ? curMon : months[0] || null;
-  }
-
-  // Update sidebar month list (keep for click-to-jump — now just sets active month)
-  const monthList = document.getElementById('monthList');
-  if (monthList) {
-    monthList.innerHTML = '';
-    const monthOrder = ['Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
-    const groups = groupByMonth(sheet.sessions);
-    for (const mon of monthOrder) {
-      if (!groups[mon]) continue;
-      const meta = MONTH_META[mon] || {label:mon, icon:'🌿'};
-      const btn = document.createElement('button');
-      btn.className = 'month-btn' + (mon === plannerActiveMonth ? ' active' : '');
-      btn.innerHTML = '<span>' + meta.icon + '</span> ' + meta.label + ' <span class="session-count">' + groups[mon].length + '</span>';
-      btn.onclick = () => plannerSetMonth(mon);
-      monthList.appendChild(btn);
-    }
   }
 
   // Sync toggle button states
@@ -16269,7 +16310,6 @@ function renderPlannerCurrentMonth() {
   renderPlanner();
   updateRestoreDeletedBtn();
   renderCatFilters();
-  document.getElementById('monthList').style.display = '';
   showView('planner');
 
   // Initialise mobile view if on a small screen
