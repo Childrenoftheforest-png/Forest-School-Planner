@@ -297,6 +297,7 @@ body {
   border-radius: 2px;
 }
 .cell-activity:hover .remove-activity { opacity: 1; }
+.cell-activity-borrow-badge { flex-shrink: 0; font-size: 0.7rem; opacity: 0.75; line-height: 1.35; }
 
 .cell-empty-hint {
   font-family: 'Lora', serif;
@@ -3200,6 +3201,11 @@ body {
     font-family: 'Lora', serif;
     font-style: italic;
   }
+  .m-shop-item-count-badge {
+    font-weight: 700;
+    color: var(--ember);
+    font-size: 0.85rem;
+  }
   .m-shop-item-del {
     background: none;
     border: none;
@@ -4142,6 +4148,13 @@ body {
       </div>
     </div>
 
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-family:'Lora',serif;font-size:0.85rem;">
+        <input type="checkbox" id="popBorrowFromOtherGroups" style="width:16px;height:16px;cursor:pointer;">
+        🔗 Borrow from other groups this week when possible <span style="font-size:0.75rem;color:#888;font-weight:400;">(matches by row category — e.g. fills a Cooking row from another sheet's Cooking row that same week, before picking something new)</span>
+      </label>
+    </div>
+
     <div class="modal-btns">
       <button class="btn-secondary" onclick="closePopulateModal()">Cancel</button>
       <button class="btn-primary" onclick="runPopulate()">Fill Empty Cells</button>
@@ -5046,6 +5059,179 @@ let _actIdCounter = 0;
 function genActId() {
   _actIdCounter++;
   return 'act_' + Date.now().toString(36) + '_' + _actIdCounter.toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+// Resolves a session assignment ("act") to its effective display text/link.
+// A normal act just returns its own text/link. A borrowed act
+// ({borrowedFrom: <id>}) looks up the source assignment by id across every
+// sheet and returns its text/link instead — so editing or renaming the
+// source is reflected everywhere it's borrowed, with no separate copy to
+// keep in sync. Follows a short chain of borrows-of-borrows defensively,
+// though in practice acts are only ever borrowed from a non-borrowed source.
+function resolveAct(act, _depth) {
+  _depth = _depth || 0;
+  if (!act) return { text: '', link: '', isBorrowed: false, orphan: false };
+  if (!act.borrowedFrom) return { text: act.text || '', link: act.link || '', isBorrowed: false, orphan: false, sourceAct: act };
+  if (_depth > 4) return { text: '⚠ Borrowed activity (broken chain)', link: '', isBorrowed: true, orphan: true };
+
+  for (const s of (state.sheets || [])) {
+    if (!s || !s.sessions) continue;
+    for (const dateKey of Object.keys(s.sessions)) {
+      const sessionData = s.sessions[dateKey];
+      for (const rk of Object.keys(sessionData || {})) {
+        if (rk === '_notes') continue;
+        const arr = sessionData[rk];
+        if (!Array.isArray(arr)) continue;
+        const found = arr.find(a => a && a.id === act.borrowedFrom);
+        if (found) {
+          const resolved = resolveAct(found, _depth + 1);
+          return { ...resolved, isBorrowed: true, sourceSheetName: s.name, sourceSheetId: s.id, sourceDate: dateKey };
+        }
+      }
+    }
+  }
+  return { text: '⚠ Borrowed activity no longer exists', link: '', isBorrowed: true, orphan: true };
+}
+
+// Monday–Sunday range containing a given JS Date — same week definition the
+// shopping list already uses, generalised to any reference date rather than
+// always "today", so it can be used to find same-week matches across sheets.
+function weekRangeFor(refDate) {
+  const day = refDate.getDay();
+  const mon = new Date(refDate);
+  mon.setDate(refDate.getDate() - (day === 0 ? 6 : day - 1));
+  mon.setHours(0,0,0,0);
+  const sun = new Date(mon);
+  sun.setDate(mon.getDate() + 6);
+  sun.setHours(23,59,59,999);
+  return { mon, sun };
+}
+
+// The category a row effectively populates from — explicit rowDef.cat wins,
+// then the Holiday Club default for that key, then a heuristic guess from
+// the row's key text. Shared by pickActivityForCell (picking a fresh library
+// item) and findBorrowCandidate (looking for a same-category row on another
+// sheet), so both mean the same thing by "this is a Cooking row".
+function getEffectiveRowCat(sheet, rowKey) {
+  const rowDef = (sheet.rowDefs || []).find(r => r.key === rowKey);
+  let explicitCat = rowDef && rowDef.cat && rowDef.cat !== 'any' ? rowDef.cat : null;
+  if (!explicitCat && sheet && sheet.type === 'holiday') {
+    const defaultRow = HOLIDAY_DEFAULT_ROWS.find(r => r.key === rowKey);
+    if (defaultRow && defaultRow.cat) explicitCat = defaultRow.cat;
+  }
+  if (rowDef && (rowDef.type === 'divider' || rowDef.cat === '_skip')) return '_skip';
+  if (rowKey === '_notes') return '_skip';
+
+  let effectiveCat = explicitCat;
+  if (!effectiveCat) {
+    const rowKeyLower = rowKey.toLowerCase();
+    if (rowKeyLower.includes('wide')) effectiveCat = 'wide';
+    else if (rowKeyLower.includes('game')) effectiveCat = 'static';
+    else if (rowKeyLower.includes('bush') || rowKeyLower.includes('skill')) effectiveCat = 'bushcraft';
+    else if (rowKeyLower.includes('cook') || rowKeyLower.includes('recipe')) effectiveCat = 'recipes';
+    else if (rowKeyLower.includes('woodland')) effectiveCat = 'woodland';
+    else if (rowKeyLower.includes('nature') || rowKeyLower.includes('forag')) effectiveCat = 'woodland';
+    else if (rowKeyLower.includes('craft') || rowKeyLower.includes('art')) effectiveCat = 'crafts';
+    else if (rowKeyLower.includes('tea')) effectiveCat = 'recipes';
+    else if (rowKeyLower.includes('morning') || rowKeyLower.includes('circle')) effectiveCat = 'morning';
+    else if (rowKeyLower.includes('chat') || rowKeyLower.includes('topic')) effectiveCat = 'chat';
+    else if (rowKeyLower.includes('journal')) effectiveCat = 'journaling';
+    else if (rowKeyLower.includes('song') || rowKeyLower.includes('sing')) effectiveCat = 'songs';
+    else effectiveCat = 'any';
+  }
+  return effectiveCat;
+}
+
+// Looks for an existing assignment on another sheet, in a row of the same
+// effective category, on a date in the same Mon–Sun week as (targetSheet,
+// dateKey) — the "borrow from other groups this week" source Populate Empty
+// draws on when the option is switched on. Never borrows from an 'any'-cat
+// row (too generic to mean anything shared) or from another borrowed act
+// (no chains started here — only ever borrows from a real assignment).
+// When more than one other sheet has a match that week, prefers whichever
+// sheet has the most session dates that week (ties broken by sheet order).
+function findBorrowCandidate(targetSheet, rowKey, dateKey) {
+  const cat = getEffectiveRowCat(targetSheet, rowKey);
+  if (!cat || cat === 'any' || cat === '_skip') return null;
+
+  const refDate = keyToDate(dateKey, targetSheet);
+  const { mon, sun } = weekRangeFor(refDate);
+
+  const bySheet = new Map(); // sheetId -> { sheet, sessionDates:Set, candidates:[{act,date}] }
+
+  (state.sheets || []).forEach(otherSheet => {
+    if (!otherSheet || otherSheet.id === targetSheet.id || !otherSheet.sessions) return;
+    Object.keys(otherSheet.sessions).forEach(otherDateKey => {
+      const d = keyToDate(otherDateKey, otherSheet);
+      if (isNaN(d) || d < mon || d > sun) return;
+
+      let entry = bySheet.get(otherSheet.id);
+      if (!entry) { entry = { sheet: otherSheet, sessionDates: new Set(), candidates: [] }; bySheet.set(otherSheet.id, entry); }
+      entry.sessionDates.add(otherDateKey);
+
+      const sessionData = otherSheet.sessions[otherDateKey] || {};
+      (otherSheet.rowDefs || []).forEach(otherRow => {
+        if (getEffectiveRowCat(otherSheet, otherRow.key) !== cat) return;
+        (sessionData[otherRow.key] || []).forEach(act => {
+          if (!act || act.borrowedFrom || !act.id) return;
+          entry.candidates.push({ act, date: otherDateKey });
+        });
+      });
+    });
+  });
+
+  let best = null;
+  bySheet.forEach(entry => {
+    if (entry.candidates.length === 0) return;
+    if (!best || entry.sessionDates.size > best.sessionDates.size) best = entry;
+  });
+  if (!best) return null;
+
+  best.candidates.sort((a, b) => keyToDate(a.date, best.sheet) - keyToDate(b.date, best.sheet));
+  return best.candidates[0].act;
+}
+
+// How many assignments elsewhere currently borrow from this act id — used to
+// warn before deleting/clearing something else depends on, rather than
+// silently leaving those borrowers pointing at nothing (resolveAct handles
+// that gracefully with a "no longer exists" message, but a heads-up before
+// the fact is better than discovering it later).
+function countBorrowersOf(actId) {
+  if (!actId) return 0;
+  let count = 0;
+  (state.sheets || []).forEach(s => {
+    if (!s || !s.sessions) return;
+    Object.values(s.sessions).forEach(sessionData => {
+      Object.keys(sessionData || {}).forEach(rk => {
+        if (rk === '_notes') return;
+        const arr = sessionData[rk];
+        if (!Array.isArray(arr)) return;
+        arr.forEach(a => { if (a && a.borrowedFrom === actId) count++; });
+      });
+    });
+  });
+  return count;
+}
+
+// Total borrower impact across every assignment of a given activity name —
+// used before the Activity Menu's cascade-delete removes all of them by name,
+// since that path (unlike single-cell delete) has no per-act confirmation.
+function countBorrowersForActivityName(name) {
+  let total = 0;
+  (state.sheets || []).forEach(sheet => {
+    if (!sheet.sessions) return;
+    Object.values(sheet.sessions).forEach(sessionData => {
+      Object.keys(sessionData || {}).forEach(rowKey => {
+        const acts = sessionData[rowKey];
+        if (!Array.isArray(acts)) return;
+        acts.forEach(a => {
+          const text = (a && (a.text || a)) || '';
+          if (text === name && a && a.id) total += countBorrowersOf(a.id);
+        });
+      });
+    });
+  });
+  return total;
 }
 
 function loadState() {
@@ -6354,11 +6540,13 @@ function renderCellActivities(activities) {
     return `<div class="cell-activities"><span class="cell-empty-hint">—</span></div><span class="edit-hint">✎</span>`;
   }
   const items = activities.map((a, i) => {
-    const hasLink = a.link && a.link.trim() && a.link.trim().startsWith('http');
+    const r = resolveAct(a);
+    const hasLink = r.link && r.link.trim() && r.link.trim().startsWith('http');
     // Store name in data attribute to avoid JS string escaping issues with apostrophes etc.
-    const nameAttr = escHtml(a.text);
+    const nameAttr = escHtml(r.text);
+    const borrowBadge = r.isBorrowed ? `<span class="cell-activity-borrow-badge" title="Borrowed from ${escHtml(r.sourceSheetName || 'another group')}">🔗</span>` : '';
     return `<div class="cell-activity ${hasLink?'has-link':''}">
-      <span class="cell-activity-name" data-activity-name="${nameAttr}" onclick="event.stopPropagation();openDetailPanel(this.dataset.activityName)" title="View details">${escHtml(a.text)}</span>
+      ${borrowBadge}<span class="cell-activity-name" data-activity-name="${nameAttr}" onclick="event.stopPropagation();openDetailPanel(this.dataset.activityName)" title="View details">${escHtml(r.text)}</span>
       <button class="remove-activity" data-idx="${i}" title="Remove">✕</button>
     </div>`;
   }).join('');
@@ -6368,6 +6556,14 @@ function renderCellActivities(activities) {
 function removeActivityFromCell(date, rowKey, idx) {
   const sheet = getActiveSheet();
   const acts = (sheet.sessions[date] || {})[rowKey] || [];
+  const target = acts[idx];
+  if (target && target.id) {
+    const borrowerCount = countBorrowersOf(target.id);
+    if (borrowerCount > 0) {
+      const ok = confirm(`This is borrowed by ${borrowerCount} other session${borrowerCount !== 1 ? 's' : ''} elsewhere. Removing it here will show those as "no longer exists" until you fix them up. Remove it anyway?`);
+      if (!ok) return;
+    }
+  }
   acts.splice(idx, 1);
   if (!sheet.sessions[date]) sheet.sessions[date] = {};
   sheet.sessions[date][rowKey] = acts;
@@ -6418,18 +6614,40 @@ function renderCurrentActivities() {
   const list = document.getElementById('currentActivitiesList');
   list.innerHTML = '';
   acts.forEach((a, i) => {
+    const r = resolveAct(a);
     const div = document.createElement('div');
     div.className = 'current-activity-item';
+    if (r.isBorrowed) {
+      div.innerHTML = `
+        <span style="flex:1;font-size:0.82rem;">🔗 ${escHtml(r.text)} <span style="font-style:italic;color:var(--bark-light);font-size:0.72rem;">(borrowed from ${escHtml(r.sourceSheetName || 'another group')})</span></span>
+        <button class="del-act-btn" data-idx="${i}" title="Remove">✕</button>
+      `;
+      div.querySelector('.del-act-btn').addEventListener('click', function() {
+        acts.splice(parseInt(this.dataset.idx), 1);
+        renderCurrentActivities();
+      });
+      list.appendChild(div);
+      return;
+    }
     div.innerHTML = `
-      <span style="flex:1;font-size:0.82rem;">${escHtml(a.text)}</span>
-      <input type="url" value="${escHtml(a.link||'')}" placeholder="🔗 Add link…" data-idx="${i}" style="max-width:160px;">
+      <span style="flex:1;font-size:0.82rem;">${escHtml(r.text)}</span>
+      <input type="url" value="${escHtml(r.link||'')}" placeholder="🔗 Add link…" data-idx="${i}" style="max-width:160px;">
       <button class="del-act-btn" data-idx="${i}" title="Remove">✕</button>
     `;
     div.querySelector('input[type="url"]').addEventListener('change', function() {
       acts[parseInt(this.dataset.idx)].link = this.value;
     });
     div.querySelector('.del-act-btn').addEventListener('click', function() {
-      acts.splice(parseInt(this.dataset.idx), 1);
+      const idx = parseInt(this.dataset.idx);
+      const target = acts[idx];
+      if (target && target.id) {
+        const borrowerCount = countBorrowersOf(target.id);
+        if (borrowerCount > 0) {
+          const ok = confirm(`This is borrowed by ${borrowerCount} other session${borrowerCount !== 1 ? 's' : ''} elsewhere. Removing it here will show those as "no longer exists" until you fix them up. Remove it anyway?`);
+          if (!ok) return;
+        }
+      }
+      acts.splice(idx, 1);
       renderCurrentActivities();
     });
     list.appendChild(div);
@@ -7057,6 +7275,8 @@ function openPopulateModal() {
     .map(r => `<option value="${r.key}">${r.icon} ${r.label}</option>`)
     .join('');
   setPopulateScope('all', document.querySelector('.scope-btn[data-scope="all"]'));
+  const borrowCb = document.getElementById('popBorrowFromOtherGroups');
+  if (borrowCb) borrowCb.checked = false;
   document.getElementById('populateModal').classList.add('open');
 }
 
@@ -7087,38 +7307,10 @@ function pickActivityForCell(rowKey, mon) {
   const adjacentMonths = getAdjacentMonths(mon);
   const sheet = getActiveSheet();
 
-  // First: check if the rowDef has an explicit cat stored (user-created rows)
-  const rowDef = (sheet.rowDefs || []).find(r => r.key === rowKey);
-  // For holiday clubs, fall back to HOLIDAY_DEFAULT_ROWS cat if not set
-  let explicitCat = rowDef && rowDef.cat && rowDef.cat !== 'any' ? rowDef.cat : null;
-  if (!explicitCat && sheet && sheet.type === 'holiday') {
-    const defaultRow = HOLIDAY_DEFAULT_ROWS.find(r => r.key === rowKey);
-    if (defaultRow && defaultRow.cat) explicitCat = defaultRow.cat;
-  }
-
   // For divider rows or _skip rows: never populate
-  if (rowDef && rowDef.type === 'divider') return null;
-  if (rowDef && rowDef.cat === '_skip') return null;
   if (rowKey === '_notes') return null;
-
-  // Determine effective cat: explicit rowDef cat wins, then heuristic only for user-created rows with no cat
-  let effectiveCat = explicitCat;
-  if (!effectiveCat) {
-    const rowKeyLower = rowKey.toLowerCase();
-    if (rowKeyLower.includes('wide')) effectiveCat = 'wide';
-    else if (rowKeyLower.includes('game')) effectiveCat = 'static';
-    else if (rowKeyLower.includes('bush') || rowKeyLower.includes('skill')) effectiveCat = 'bushcraft';
-    else if (rowKeyLower.includes('cook') || rowKeyLower.includes('recipe')) effectiveCat = 'recipes';
-    else if (rowKeyLower.includes('woodland')) effectiveCat = 'woodland';
-    else if (rowKeyLower.includes('nature') || rowKeyLower.includes('forag')) effectiveCat = 'woodland';
-    else if (rowKeyLower.includes('craft') || rowKeyLower.includes('art')) effectiveCat = 'crafts';
-    else if (rowKeyLower.includes('tea')) effectiveCat = 'recipes';
-    else if (rowKeyLower.includes('morning') || rowKeyLower.includes('circle')) effectiveCat = 'morning';
-    else if (rowKeyLower.includes('chat') || rowKeyLower.includes('topic')) effectiveCat = 'chat';
-    else if (rowKeyLower.includes('journal')) effectiveCat = 'journaling';
-    else if (rowKeyLower.includes('song') || rowKeyLower.includes('sing')) effectiveCat = 'songs';
-    else effectiveCat = 'any';
-  }
+  const effectiveCat = getEffectiveRowCat(sheet, rowKey);
+  if (effectiveCat === '_skip') return null;
 
   let candidates = state.menuItems.filter(item => {
     if (item.month !== 'all' && !adjacentMonths.includes(item.month)) return false;
@@ -7141,6 +7333,8 @@ function pickActivityForCell(rowKey, mon) {
 function runPopulate() {
   const sheet = getActiveSheet();
   let filled = 0;
+  let borrowed = 0;
+  const borrowEnabled = document.getElementById('popBorrowFromOtherGroups')?.checked || false;
 
   const shouldFill = (date, rowKey) => {
     const activities = (sheet.sessions[date] || {})[rowKey] || [];
@@ -7148,6 +7342,19 @@ function runPopulate() {
   };
 
   const fillCell = (date, rowKey) => {
+    if (!sheet.sessions[date]) sheet.sessions[date] = {};
+    if (!sheet.sessions[date][rowKey]) sheet.sessions[date][rowKey] = [];
+
+    if (borrowEnabled) {
+      const candidateAct = findBorrowCandidate(sheet, rowKey, date);
+      if (candidateAct) {
+        sheet.sessions[date][rowKey].push({ id: genActId(), borrowedFrom: candidateAct.id });
+        filled++;
+        borrowed++;
+        return;
+      }
+    }
+
     // date may be ISO (YYYY-MM-DD) or legacy (D-Mon)
     let mon;
     const parts = date.split('-');
@@ -7158,8 +7365,6 @@ function runPopulate() {
     }
     const item = pickActivityForCell(rowKey, mon);
     if (!item) return;
-    if (!sheet.sessions[date]) sheet.sessions[date] = {};
-    if (!sheet.sessions[date][rowKey]) sheet.sessions[date][rowKey] = [];
     sheet.sessions[date][rowKey].push({id: genActId(), text: item.name, link: item.link || ''});
     filled++;
   };
@@ -7191,8 +7396,10 @@ function runPopulate() {
   saveState();
   renderPlanner();
   closePopulateModal();
-  if (filled > 0) alert(`✨ Filled ${filled} empty cell${filled !== 1 ? 's' : ''} with seasonal activities!`);
-  else alert('No empty cells to fill in the selected scope.');
+  if (filled > 0) {
+    const borrowNote = borrowed > 0 ? ` (${borrowed} borrowed from other groups)` : '';
+    alert(`✨ Filled ${filled} empty cell${filled !== 1 ? 's' : ''} with seasonal activities!${borrowNote}`);
+  } else alert('No empty cells to fill in the selected scope.');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -7672,8 +7879,10 @@ function openResourcesPanel(date, sheet) {
 
     for (const act of activities) {
       anyActivities = true;
+      const r = resolveAct(act);
+      const displayName = (r.isBorrowed ? '🔗 ' : '') + r.text;
       // Look up resources from menu items
-      const menuItem = state.menuItems.find(m => m.name === act.text);
+      const menuItem = state.menuItems.find(m => m.name === r.text);
       const resources = menuItem && menuItem.resources ? menuItem.resources.trim() : '';
       const notes = menuItem && menuItem.notes ? menuItem.notes.trim() : '';
 
@@ -7682,7 +7891,7 @@ function openResourcesPanel(date, sheet) {
 
       const nameEl = document.createElement('div');
       nameEl.className = 'res-activity-name';
-      nameEl.innerHTML = `${row.icon || '•'} ${escHtml(act.text)} <span class="res-activity-row-tag">${escHtml(row.label)}</span>`;
+      nameEl.innerHTML = `${row.icon || '•'} ${escHtml(displayName)} <span class="res-activity-row-tag">${escHtml(row.label)}</span>`;
       block.appendChild(nameEl);
 
       if (resources) {
@@ -7690,7 +7899,7 @@ function openResourcesPanel(date, sheet) {
         resEl.className = 'res-resources-text';
         resEl.innerHTML = escHtml(resources).replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
         block.appendChild(resEl);
-        plainTextLines.push(`${row.icon || '•'} ${act.text} [${row.label}]`);
+        plainTextLines.push(`${row.icon || '•'} ${displayName} [${row.label}]`);
         plainTextLines.push(resources);
         plainTextLines.push('');
       } else if (notes) {
@@ -7699,7 +7908,7 @@ function openResourcesPanel(date, sheet) {
         resEl.className = 'res-resources-text';
         resEl.innerHTML = escHtml(notes).replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
         block.appendChild(resEl);
-        plainTextLines.push(`${row.icon || '•'} ${act.text} [${row.label}]`);
+        plainTextLines.push(`${row.icon || '•'} ${displayName} [${row.label}]`);
         plainTextLines.push(notes);
         plainTextLines.push('');
       } else {
@@ -7707,7 +7916,7 @@ function openResourcesPanel(date, sheet) {
         noRes.className = 'res-no-resources';
         noRes.textContent = 'No resources listed';
         block.appendChild(noRes);
-        plainTextLines.push(`${row.icon || '•'} ${act.text} [${row.label}] — no resources listed`);
+        plainTextLines.push(`${row.icon || '•'} ${displayName} [${row.label}] — no resources listed`);
         plainTextLines.push('');
       }
 
@@ -10711,11 +10920,12 @@ function renderUpcomingView() {
           rowDiv.appendChild(em);
         } else {
           for (const act of activities) {
+            const r = resolveAct(act);
             const a = document.createElement('span');
             a.className = 'upcoming-activity';
-            a.textContent = act.text;
+            a.textContent = (r.isBorrowed ? '🔗 ' : '') + r.text;
             a.title = 'View details';
-            a.onclick = () => openDetailPanel(act.text);
+            a.onclick = () => openDetailPanel(r.text);
             rowDiv.appendChild(a);
           }
         }
@@ -10882,7 +11092,7 @@ function mRenderSession() {
     rowDiv.className = 'm-activity-row';
     rowDiv.dataset.rowKey = row.key;
     rowDiv.onclick = () => {
-      if (activities.length >= 1) mOpenActivityPanel(activities[0].text);
+      if (activities.length >= 1) mOpenActivityPanel(resolveAct(activities[0]).text);
     };
 
     const lbl = document.createElement('div');
@@ -10897,18 +11107,19 @@ function mRenderSession() {
       rowDiv.appendChild(em);
     } else {
       activities.forEach((act, i) => {
-        const menuItem = state.menuItems.find(m => m.name === act.text);
+        const r = resolveAct(act);
+        const menuItem = state.menuItems.find(m => m.name === r.text);
         const hasRes = menuItem && (menuItem.resources || menuItem.notes);
         const span = document.createElement('span');
         span.className = 'm-activity-name';
-        span.textContent = act.text;
+        span.textContent = (r.isBorrowed ? '🔗 ' : '') + r.text;
         if (hasRes) {
           const dot = document.createElement('span');
           dot.className = 'm-has-resources';
           dot.textContent = ' 📝';
           span.appendChild(dot);
         }
-        span.onclick = (e) => { e.stopPropagation(); mOpenActivityPanel(act.text); };
+        span.onclick = (e) => { e.stopPropagation(); mOpenActivityPanel(r.text); };
         rowDiv.appendChild(span);
       });
     }
@@ -11019,7 +11230,7 @@ function mRenderWeek() {
     const preview = [];
     for (const row of rows) {
       const acts = foundSession[row.key] || [];
-      if (acts.length > 0) preview.push(acts[0].text);
+      if (acts.length > 0) preview.push(resolveAct(acts[0]).text);
       if (preview.length >= 3) break;
     }
     if (preview.length > 0) {
@@ -11270,7 +11481,8 @@ function mOpenDayList() {
   for (const row of rows) {
     const activities = sessionData[row.key] || [];
     for (const act of activities) {
-      const menuItem = state.menuItems.find(m => m && m.name === act.text);
+      const r = resolveAct(act);
+      const menuItem = state.menuItems.find(m => m && m.name === r.text);
       const res = menuItem && menuItem.resources ? menuItem.resources.replace(/\\n/g, '\n') : '';
       const notes = menuItem && menuItem.notes ? menuItem.notes.replace(/\\n/g, '\n') : '';
       if (!res && !notes) continue;
@@ -11284,7 +11496,7 @@ function mOpenDayList() {
 
       const lbl = document.createElement('div');
       lbl.className = 'm-panel-section-label';
-      lbl.textContent = (row.icon || '') + ' ' + act.text;
+      lbl.textContent = (row.icon || '') + ' ' + (r.isBorrowed ? '🔗 ' : '') + r.text;
       block.appendChild(lbl);
 
       if (res) {
@@ -12004,7 +12216,9 @@ function openHolidayResourcesPanel(isoDate, sheet) {
 
     for (const act of activities) {
       anyActivities = true;
-      const menuItem = state.menuItems.find(m => m.name === act.text);
+      const r = resolveAct(act);
+      const displayName = (r.isBorrowed ? '🔗 ' : '') + r.text;
+      const menuItem = state.menuItems.find(m => m.name === r.text);
       const resources = menuItem && menuItem.resources ? menuItem.resources.trim() : '';
       const notes = menuItem && menuItem.notes ? menuItem.notes.trim() : '';
 
@@ -12013,7 +12227,7 @@ function openHolidayResourcesPanel(isoDate, sheet) {
 
       const nameEl = document.createElement('div');
       nameEl.className = 'res-activity-name';
-      nameEl.innerHTML = `${row.icon || '•'} ${escHtml(act.text)} <span class="res-activity-row-tag">${escHtml(row.label)}</span>`;
+      nameEl.innerHTML = `${row.icon || '•'} ${escHtml(displayName)} <span class="res-activity-row-tag">${escHtml(row.label)}</span>`;
       block.appendChild(nameEl);
 
       if (resources) {
@@ -12021,7 +12235,7 @@ function openHolidayResourcesPanel(isoDate, sheet) {
         resEl.className = 'res-resources-text';
         resEl.innerHTML = escHtml(resources).replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
         block.appendChild(resEl);
-        plainTextLines.push(`${row.icon || '•'} ${act.text} [${row.label}]`);
+        plainTextLines.push(`${row.icon || '•'} ${displayName} [${row.label}]`);
         plainTextLines.push(resources);
         plainTextLines.push('');
       } else if (notes) {
@@ -12029,7 +12243,7 @@ function openHolidayResourcesPanel(isoDate, sheet) {
         resEl.className = 'res-resources-text';
         resEl.innerHTML = escHtml(notes).replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
         block.appendChild(resEl);
-        plainTextLines.push(`${row.icon || '•'} ${act.text} [${row.label}]`);
+        plainTextLines.push(`${row.icon || '•'} ${displayName} [${row.label}]`);
         plainTextLines.push(notes);
         plainTextLines.push('');
       } else {
@@ -12037,7 +12251,7 @@ function openHolidayResourcesPanel(isoDate, sheet) {
         noRes.className = 'res-no-resources';
         noRes.textContent = 'No resources listed';
         block.appendChild(noRes);
-        plainTextLines.push(`${row.icon || '•'} ${act.text} [${row.label}] — no resources listed`);
+        plainTextLines.push(`${row.icon || '•'} ${displayName} [${row.label}] — no resources listed`);
         plainTextLines.push('');
       }
 
@@ -12467,7 +12681,10 @@ function buildPrintHtml(dateLabel, sheetName, rows, sessionData, logoSrc) {
     if (acts.length === 0) {
       cellContent = '<div class="blank-line"></div>';
     } else {
-      cellContent = acts.map(a => `<div class="activity-item">${escHtml(a.text)}</div>`).join('');
+      cellContent = acts.map(a => {
+        const r = resolveAct(a);
+        return `<div class="activity-item">${r.isBorrowed ? '🔗 ' : ''}${escHtml(r.text)}</div>`;
+      }).join('');
     }
     rowsHtml += `
       <tr>
@@ -12483,7 +12700,9 @@ function buildPrintHtml(dateLabel, sheetName, rows, sessionData, logoSrc) {
     if (row.key === '_notes' || row.type === 'divider') continue;
     const acts = (sessionData[row.key] || []);
     for (const act of acts) {
-      const menuItem = state.menuItems.find(m => m.name === act.text);
+      const r = resolveAct(act);
+      const displayName = (r.isBorrowed ? '🔗 ' : '') + r.text;
+      const menuItem = state.menuItems.find(m => m.name === r.text);
       if (menuItem) {
         const eq = (menuItem.equipment || menuItem.resources || '').replace(/\\n/g,' · ').replace(/\n/g,' · ').trim();
         const co = (menuItem.consumables || '').replace(/\\n/g,' · ').replace(/\n/g,' · ').trim();
@@ -12493,7 +12712,7 @@ function buildPrintHtml(dateLabel, sheetName, rows, sessionData, logoSrc) {
           if (eq) resStr += '🔧 ' + escHtml(eq);
           if (co) resStr += (resStr ? '  |  ' : '') + '🛒 ' + escHtml(co);
           if (fo) resStr += (resStr ? '  |  ' : '') + '🌿 ' + escHtml(fo);
-          resourceLines.push('<strong>' + escHtml(act.text) + ':</strong> ' + resStr);
+          resourceLines.push('<strong>' + escHtml(displayName) + ':</strong> ' + resStr);
         }
       }
     }
@@ -13080,6 +13299,21 @@ function doBulkClear() {
   const sheet = getActiveSheet();
   if (!sheet) return;
 
+  // Warn once if any activity about to be wiped is borrowed by another sheet —
+  // clearing it here would leave those borrowers pointing at nothing.
+  let borrowedElsewhereCount = 0;
+  dates.forEach(date => {
+    rowKeys.forEach(rk => {
+      ((sheet.sessions[date] || {})[rk] || []).forEach(act => {
+        if (act && act.id && countBorrowersOf(act.id) > 0) borrowedElsewhereCount++;
+      });
+    });
+  });
+  if (borrowedElsewhereCount > 0) {
+    const ok = confirm(`${borrowedElsewhereCount} of the activities being cleared ${borrowedElsewhereCount === 1 ? 'is' : 'are'} borrowed by other groups elsewhere. Clearing them here will show those as "no longer exists" until fixed up. Continue?`);
+    if (!ok) return;
+  }
+
   dates.forEach(date => {
     if (!sheet.sessions[date]) sheet.sessions[date] = {};
     rowKeys.forEach(rk => {
@@ -13530,9 +13764,10 @@ function mCellRenderCurrentActs() {
     return;
   }
   acts.forEach((act, i) => {
+    const r = resolveAct(act);
     const chip = document.createElement('span');
     chip.className = 'm-cell-act-chip';
-    chip.innerHTML = escHtml(act.text);
+    chip.innerHTML = (r.isBorrowed ? '🔗 ' : '') + escHtml(r.text);
     const removeBtn = document.createElement('button');
     removeBtn.className = 'm-cell-act-chip-remove';
     removeBtn.textContent = '✕';
@@ -13546,6 +13781,14 @@ function mCellRemoveAct(idx) {
   const { key, rowKey, sheet } = mCellEditState;
   if (!sheet.sessions[key]) return;
   const acts = sheet.sessions[key][rowKey] || [];
+  const target = acts[idx];
+  if (target && target.id) {
+    const borrowerCount = countBorrowersOf(target.id);
+    if (borrowerCount > 0) {
+      const ok = confirm(`This is borrowed by ${borrowerCount} other session${borrowerCount !== 1 ? 's' : ''} elsewhere. Removing it here will show those as "no longer exists" until you fix them up. Remove it anyway?`);
+      if (!ok) return;
+    }
+  }
   acts.splice(idx, 1);
   sheet.sessions[key][rowKey] = acts;
   saveState();
@@ -13755,7 +13998,9 @@ async function mBuildShoppingList() {
   document.getElementById('mShopWeekLabel').textContent = 'Week of ' + fmt(mon) + ' – ' + fmt(sun);
 
   const CAL_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const seen = new Set();
+  const itemCounts = new Map();  // itemKey -> count
+  const itemSources = new Map(); // itemKey -> Set of source activity names
+  const itemText = new Map();    // itemKey -> original-case display text
   mShopItems = [];
 
   state.sheets.forEach(sheet => {
@@ -13777,19 +14022,34 @@ async function mBuildShoppingList() {
       (sheet.rowDefs || []).forEach(row => {
         if (row.type === 'divider' || row.key === '_notes') return;
         (sessionData[row.key] || []).forEach(act => {
-          const menuItem = state.menuItems.find(m => m && m.name === act.text);
+          const r = resolveAct(act);
+          if (r.orphan) return; // dangling borrow — nothing real to shop for
+          const menuItem = state.menuItems.find(m => m && m.name === r.text);
           if (!menuItem) return;
           const consumables = menuItem.consumables
             ? menuItem.consumables.replace(/\\n/g,'\n').split(/[\n•·]+/).map(s=>s.replace(/^[\s\-*]+/,'').trim()).filter(s=>s.length>1)
             : [];
           consumables.forEach(c => {
             const itemKey = c.toLowerCase().trim();
-            if (seen.has(itemKey) || mShopDeleted[itemKey]) return;
-            seen.add(itemKey);
-            mShopItems.push({ text:c, source:act.text, checked:!!mShopChecked[itemKey], custom:false, key:itemKey });
+            if (mShopDeleted[itemKey]) return;
+            itemCounts.set(itemKey, (itemCounts.get(itemKey) || 0) + 1);
+            if (!itemText.has(itemKey)) itemText.set(itemKey, c);
+            if (!itemSources.has(itemKey)) itemSources.set(itemKey, new Set());
+            itemSources.get(itemKey).add(r.text);
           });
         });
       });
+    });
+  });
+
+  itemCounts.forEach((count, itemKey) => {
+    mShopItems.push({
+      text: itemText.get(itemKey),
+      source: [...itemSources.get(itemKey)].join(', '),
+      count,
+      checked: !!mShopChecked[itemKey],
+      custom: false,
+      key: itemKey
     });
   });
 
@@ -13831,6 +14091,12 @@ function mShopRender() {
       const text = document.createElement('div');
       text.className = 'm-shop-item-text';
       text.textContent = item.text;
+      if (item.count > 1) {
+        const badge = document.createElement('span');
+        badge.className = 'm-shop-item-count-badge';
+        badge.textContent = ' ×' + item.count;
+        text.appendChild(badge);
+      }
       textWrap.appendChild(text);
       if (item.source) {
         const src = document.createElement('div');
@@ -15462,10 +15728,14 @@ function confirmCascadeDelete(itemName, onDeleteMenu) {
   if (!confirm('Remove "' + itemName + '" from the Activity Menu?')) return;
 
   // Step 2: ask about sessions
+  const borrowerImpact = countBorrowersForActivityName(itemName);
+  const borrowerNote = borrowerImpact > 0
+    ? `\n\n⚠ ${borrowerImpact} borrowed session${borrowerImpact !== 1 ? 's' : ''} elsewhere point at this activity and will show "no longer exists" if you remove it from sessions.`
+    : '';
   const cascadeChoice = confirm(
     'Also remove "' + itemName + '" from all session plans?\n\n' +
     'OK = Yes, remove from sessions too\n' +
-    'Cancel = No, keep it in existing sessions'
+    'Cancel = No, keep it in existing sessions' + borrowerNote
   );
 
   // Run menu deletion
