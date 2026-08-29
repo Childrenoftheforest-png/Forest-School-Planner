@@ -3940,8 +3940,12 @@ body {
       <textarea class="form-textarea" id="ideaEquipment" placeholder="e.g. Kelly kettle, tarpaulin, scissors…"></textarea>
     </div>
     <div class="form-group">
-      <label class="form-label">🛒 Consumables <span style="font-size:0.75rem;color:#888;font-weight:400;">(used up / needs buying)</span></label>
+      <label class="form-label">🛒 Purchases <span style="font-size:0.75rem;color:#888;font-weight:400;">(used up / needs buying)</span></label>
       <textarea class="form-textarea" id="ideaConsumables" placeholder="e.g. 2 cups flour, matches, clay…"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">🌿 Foraged <span style="font-size:0.75rem;color:#888;font-weight:400;">(freely gathered, not bought)</span></label>
+      <textarea class="form-textarea" id="ideaForaged" placeholder="e.g. Blackberries, hazel poles, pine needles…"></textarea>
     </div>
     <div class="form-group">
       <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-family:'Lora',serif;font-size:0.85rem;">
@@ -4041,8 +4045,12 @@ body {
       <textarea class="detail-textarea resources" id="dpEquipmentInput" placeholder="e.g.&#10;• Kelly kettle&#10;• Tarpaulin&#10;• Scissors"></textarea>
     </div>
     <div class="detail-section">
-      <label class="detail-section-label">🛒 Consumables <span style="font-size:0.7rem;color:var(--bark-light);font-weight:400;font-style:italic;">(used up / needs buying)</span></label>
+      <label class="detail-section-label">🛒 Purchases <span style="font-size:0.7rem;color:var(--bark-light);font-weight:400;font-style:italic;">(used up / needs buying)</span></label>
       <textarea class="detail-textarea resources" id="dpConsumablesInput" placeholder="e.g.&#10;• 2 cups flour&#10;• Matches&#10;• Clay (500g)"></textarea>
+    </div>
+    <div class="detail-section">
+      <label class="detail-section-label">🌿 Foraged <span style="font-size:0.7rem;color:var(--bark-light);font-weight:400;font-style:italic;">(freely gathered, not bought)</span></label>
+      <textarea class="detail-textarea resources" id="dpForagedInput" placeholder="e.g.&#10;• Blackberries&#10;• Hazel poles&#10;• Pine needles"></textarea>
     </div>
   </div>
 
@@ -5030,6 +5038,16 @@ function getActiveSheet() {
   return state.sheets.find(s => s.id === state.activeSheetId) || state.sheets[0];
 }
 
+// Stable id for a single activity assignment (an "act" inside a session cell).
+// Needed so a reference elsewhere (e.g. a borrowed activity) can point at this
+// exact assignment rather than matching on name/link, which breaks on rename
+// or when the same activity appears twice in one week.
+let _actIdCounter = 0;
+function genActId() {
+  _actIdCounter++;
+  return 'act_' + Date.now().toString(36) + '_' + _actIdCounter.toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
 function loadState() {
   try {
     const saved = localStorage.getItem('forestSchoolPlanner_v2');
@@ -5109,6 +5127,26 @@ function loadState() {
   let anySheetMigrated = false;
   (state.sheets || []).forEach(sheet => {
     if (migrateSheetToISO(sheet)) anySheetMigrated = true;
+  });
+
+  // Migrate: every activity assignment (an "act" inside a session cell) gets
+  // a stable id, so a reference elsewhere (e.g. a borrowed activity) can
+  // point at this exact assignment rather than matching on name/link — which
+  // breaks the moment the source is renamed or the same activity appears
+  // twice in one week. Stamped once per act; safe to leave running, since
+  // it's a no-op once every act already has one.
+  (state.sheets || []).forEach(sheet => {
+    if (!sheet || !sheet.sessions) return;
+    Object.values(sheet.sessions).forEach(sessionData => {
+      Object.keys(sessionData || {}).forEach(rowKey => {
+        if (rowKey === '_notes') return;
+        const acts = sessionData[rowKey];
+        if (!Array.isArray(acts)) return;
+        acts.forEach(act => {
+          if (act && typeof act === 'object' && !act.id) act.id = genActId();
+        });
+      });
+    });
   });
 
   // One-off cleanup (Aug 2026): a gap in keyToISO meant sheets built via the
@@ -5841,7 +5879,7 @@ function assignCampTask(taskId) {
   const sheet = getActiveSheet();
   if (!sheet.sessions[date]) sheet.sessions[date] = {};
   if (!sheet.sessions[date][rowKey]) sheet.sessions[date][rowKey] = [];
-  sheet.sessions[date][rowKey].push({ text: task.title, link: '', campTaskId: taskId });
+  sheet.sessions[date][rowKey].push({ id: genActId(), text: task.title, link: '', campTaskId: taskId });
 
   // Move to in progress, increment count
   if (task.status === 'todo') task.status = 'inprogress';
@@ -6405,7 +6443,7 @@ function addTypedActivity() {
   const sheet = getActiveSheet();
   if (!sheet.sessions[date]) sheet.sessions[date] = {};
   if (!sheet.sessions[date][rowKey]) sheet.sessions[date][rowKey] = [];
-  sheet.sessions[date][rowKey].push({text: val, link: ''});
+  sheet.sessions[date][rowKey].push({id: genActId(), text: val, link: ''});
   document.getElementById('freeTextInput').value = '';
   renderCurrentActivities();
 }
@@ -6539,7 +6577,7 @@ function addFromPicker(item) {
   const sheet = getActiveSheet();
   if (!sheet.sessions[date]) sheet.sessions[date] = {};
   if (!sheet.sessions[date][rowKey]) sheet.sessions[date][rowKey] = [];
-  sheet.sessions[date][rowKey].push({text: item.name, link: item.link||''});
+  sheet.sessions[date][rowKey].push({id: genActId(), text: item.name, link: item.link||''});
   renderCurrentActivities();
   document.getElementById('pickerSearch').value = '';
   initPickerTabs(rowKey);
@@ -6680,8 +6718,10 @@ function openAddIdeaModal() {
   document.getElementById('ideaNotes').value = '';
   const eq = document.getElementById('ideaEquipment');
   const co = document.getElementById('ideaConsumables');
+  const fo = document.getElementById('ideaForaged');
   if (eq) eq.value = '';
   if (co) co.value = '';
+  if (fo) fo.value = '';
   const excl = document.getElementById('ideaExcludeFromPopulate');
   if (excl) excl.checked = false;
   const ageSel = document.getElementById('ideaAgeRange');
@@ -6703,10 +6743,11 @@ function saveNewIdea() {
   const notes = document.getElementById('ideaNotes').value.trim();
   const equipment   = document.getElementById('ideaEquipment')?.value.trim() || '';
   const consumables = document.getElementById('ideaConsumables')?.value.trim() || '';
+  const foraged     = document.getElementById('ideaForaged')?.value.trim() || '';
   const excludeFromPopulate = document.getElementById('ideaExcludeFromPopulate')?.checked || false;
   const ageRange = document.getElementById('ideaAgeRange')?.value || 'all';
   const resources   = equipment;
-  const newItem = {name, cat, month, link, notes, resources, equipment, consumables, excludeFromPopulate, ageRange};
+  const newItem = {name, cat, month, link, notes, resources, equipment, consumables, foraged, excludeFromPopulate, ageRange};
   state.menuItems.push(newItem);
   saveState();
   renderCatFilters();
@@ -6773,6 +6814,7 @@ function openDetailPanel(name, catId) {
   document.getElementById('dpNotesInput').value = (item.notes || '').replace(/\\n/g, '\n');
   document.getElementById('dpEquipmentInput').value   = (item.equipment   || item.resources || '').replace(/\\n/g, '\n');
   document.getElementById('dpConsumablesInput').value = (item.consumables || '').replace(/\\n/g, '\n');
+  document.getElementById('dpForagedInput').value     = (item.foraged     || '').replace(/\\n/g, '\n');
   document.getElementById('dpExcludeFromPopulate').checked = !!item.excludeFromPopulate;
   document.getElementById('dpAgeRange').value = item.ageRange || 'all';
 
@@ -6789,7 +6831,7 @@ function openDetailPanel(name, catId) {
   document.getElementById('dpUnsavedDot').classList.remove('visible');
 
   // Wire up change listeners to show unsaved dot
-  ['dpNameInput','dpMonthInput','dpCatInput','dpLinkInput','dpNotesInput','dpEquipmentInput','dpConsumablesInput','dpExcludeFromPopulate','dpAgeRange'].forEach(id => {
+  ['dpNameInput','dpMonthInput','dpCatInput','dpLinkInput','dpNotesInput','dpEquipmentInput','dpConsumablesInput','dpForagedInput','dpExcludeFromPopulate','dpAgeRange'].forEach(id => {
     const el = document.getElementById(id);
     const evt = (id === 'dpExcludeFromPopulate' || id === 'dpAgeRange') ? 'onchange' : 'oninput';
     el[evt] = () => {
@@ -6838,6 +6880,7 @@ function saveDetailPanel() {
     notes: document.getElementById('dpNotesInput').value.trim(),
     equipment:   document.getElementById('dpEquipmentInput').value.trim(),
     consumables: document.getElementById('dpConsumablesInput').value.trim(),
+    foraged:     document.getElementById('dpForagedInput').value.trim(),
     resources:   document.getElementById('dpEquipmentInput').value.trim(),
     excludeFromPopulate: document.getElementById('dpExcludeFromPopulate').checked,
     ageRange: document.getElementById('dpAgeRange').value,
@@ -7117,7 +7160,7 @@ function runPopulate() {
     if (!item) return;
     if (!sheet.sessions[date]) sheet.sessions[date] = {};
     if (!sheet.sessions[date][rowKey]) sheet.sessions[date][rowKey] = [];
-    sheet.sessions[date][rowKey].push({text: item.name, link: item.link || ''});
+    sheet.sessions[date][rowKey].push({id: genActId(), text: item.name, link: item.link || ''});
     filled++;
   };
 
@@ -11116,10 +11159,11 @@ function mOpenActivityPanel(name) {
   body.innerHTML = '';
 
   if (item) {
-    // Equipment + Consumables (separate fields)
-    const eq    = (item.equipment   || item.resources || '').replace(/\\n/g, '\n');
-    const cons  = (item.consumables || '').replace(/\\n/g, '\n');
-    const notes = (item.notes || '').replace(/\\n/g, '\n');
+    // Equipment + Consumables + Foraged (separate fields)
+    const eq      = (item.equipment   || item.resources || '').replace(/\\n/g, '\n');
+    const cons    = (item.consumables || '').replace(/\\n/g, '\n');
+    const foraged = (item.foraged     || '').replace(/\\n/g, '\n');
+    const notes   = (item.notes || '').replace(/\\n/g, '\n');
 
     if (eq) {
       const sec = document.createElement('div');
@@ -11140,10 +11184,24 @@ function mOpenActivityPanel(name) {
       sec.className = 'm-panel-section';
       const lbl = document.createElement('div');
       lbl.className = 'm-panel-section-label';
-      lbl.textContent = '🛒 Consumables';
+      lbl.textContent = '🛒 Purchases';
       const txt = document.createElement('div');
       txt.className = 'm-panel-resources';
       txt.textContent = cons;
+      sec.appendChild(lbl);
+      sec.appendChild(txt);
+      body.appendChild(sec);
+    }
+
+    if (foraged) {
+      const sec = document.createElement('div');
+      sec.className = 'm-panel-section';
+      const lbl = document.createElement('div');
+      lbl.className = 'm-panel-section-label';
+      lbl.textContent = '🌿 Foraged';
+      const txt = document.createElement('div');
+      txt.className = 'm-panel-resources';
+      txt.textContent = foraged;
       sec.appendChild(lbl);
       sec.appendChild(txt);
       body.appendChild(sec);
@@ -12008,7 +12066,7 @@ function openHolidayResourcesPanel(isoDate, sheet) {
 // Map CSV category strings (both labels and IDs) to internal category IDs
 function resolveCsvCategory(raw) { return resolveCsvCategoryDynamic(raw); }
 
-const CSV_HEADERS = ['name','category','month','equipment','consumables','notes','link'];
+const CSV_HEADERS = ['name','category','month','equipment','consumables','foraged','notes','link'];
 const VALID_CATS = ['wide','bushcraft','crafts','recipes','foraging','stories','songs','seasonal','woodland','static'];
 const VALID_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','all','Year Round'];
 
@@ -12024,6 +12082,7 @@ function exportMenuCsv() {
       item.month   || '',
       (item.equipment   || item.resources || '').split('\n').join('\\n'),
       (item.consumables || '').split('\n').join('\\n'),
+      (item.foraged     || '').split('\n').join('\\n'),
       (item.notes       || '').split('\n').join('\\n'),
       item.link    || ''
     ].map(csvEscapeField));
@@ -12140,6 +12199,7 @@ function parseCsvAndPreview(text) {
   const resourceIdx = header.indexOf('resources');
   const equipIdx    = header.indexOf('equipment');
   const consumIdx   = header.indexOf('consumables');
+  const foragedIdx  = header.indexOf('foraged');
   const notesIdx    = header.indexOf('notes');
   const linkIdx     = header.indexOf('link');
 
@@ -12180,7 +12240,8 @@ function parseCsvAndPreview(text) {
     const month = (row[monthIdx]    || '').trim();
     const legacyRes   = resourceIdx >= 0 ? (row[resourceIdx] || '').replace(/\\n/g, '\n') : '';
     const equipment   = equipIdx  >= 0 ? (row[equipIdx]  || '').replace(/\\n/g, '\n') : legacyRes;
-    const consumables = consumIdx >= 0 ? (row[consumIdx] || '').replace(/\\n/g, '\n') : '';
+    const consumables = consumIdx  >= 0 ? (row[consumIdx]  || '').replace(/\\n/g, '\n') : '';
+    const foraged     = foragedIdx >= 0 ? (row[foragedIdx] || '').replace(/\\n/g, '\n') : '';
     const resources   = legacyRes || equipment;
     const notes       = (row[notesIdx] || '').replace(/\\n/g, '\n');
     const link        = row[linkIdx]   || '';
@@ -12241,7 +12302,10 @@ function parseCsvAndPreview(text) {
         changes.push({field:'Equipment', menuVal: (existingItem.equipment||existingItem.resources||'').slice(0,30)||'(none)', csvVal: equipment.slice(0,30)});
       }
       if (consumables && consumables !== (existingItem.consumables || '')) {
-        changes.push({field:'Consumables', menuVal: (existingItem.consumables||'').slice(0,30)||'(none)', csvVal: consumables.slice(0,30)});
+        changes.push({field:'Purchases', menuVal: (existingItem.consumables||'').slice(0,30)||'(none)', csvVal: consumables.slice(0,30)});
+      }
+      if (foraged && foraged !== (existingItem.foraged || '')) {
+        changes.push({field:'Foraged', menuVal: (existingItem.foraged||'').slice(0,30)||'(none)', csvVal: foraged.slice(0,30)});
       }
       if (notes && notes !== (existingItem.notes || '')) {
         changes.push({field:'Notes', menuVal: (existingItem.notes||'').slice(0,30)||'(none)', csvVal: notes.slice(0,30)});
@@ -12251,7 +12315,7 @@ function parseCsvAndPreview(text) {
         csvConflicts.push({
           name,
           menuItem: existingItem,
-          csvItem: {name, cat: finalCat, month: months[0]||'all', resources, equipment, consumables, notes, link},
+          csvItem: {name, cat: finalCat, month: months[0]||'all', resources, equipment, consumables, foraged, notes, link},
           changes
         });
       } else {
@@ -12266,7 +12330,7 @@ function parseCsvAndPreview(text) {
       if (!existingNames.has(k)) {
         csvParsedRows.push({
           name, cat: finalCat, month: mon,
-          resources, equipment, consumables, notes, link
+          resources, equipment, consumables, foraged, notes, link
         });
         existingNames.add(k);
       }
@@ -12423,10 +12487,12 @@ function buildPrintHtml(dateLabel, sheetName, rows, sessionData, logoSrc) {
       if (menuItem) {
         const eq = (menuItem.equipment || menuItem.resources || '').replace(/\\n/g,' · ').replace(/\n/g,' · ').trim();
         const co = (menuItem.consumables || '').replace(/\\n/g,' · ').replace(/\n/g,' · ').trim();
-        if (eq || co) {
+        const fo = (menuItem.foraged || '').replace(/\\n/g,' · ').replace(/\n/g,' · ').trim();
+        if (eq || co || fo) {
           let resStr = '';
           if (eq) resStr += '🔧 ' + escHtml(eq);
           if (co) resStr += (resStr ? '  |  ' : '') + '🛒 ' + escHtml(co);
+          if (fo) resStr += (resStr ? '  |  ' : '') + '🌿 ' + escHtml(fo);
           resourceLines.push('<strong>' + escHtml(act.text) + ':</strong> ' + resStr);
         }
       }
@@ -12633,7 +12699,7 @@ function runBackfill() {
         if (!sheet.sessions[key][rowKey]) sheet.sessions[key][rowKey] = [];
         // Avoid exact duplicate in same cell
         if (!sheet.sessions[key][rowKey].find(a => a.text === item.name)) {
-          sheet.sessions[key][rowKey].push({ text: item.name, link: item.link || '' });
+          sheet.sessions[key][rowKey].push({ id: genActId(), text: item.name, link: item.link || '' });
           totalAdded++;
         }
       });
@@ -12660,7 +12726,7 @@ function runBackfill() {
         rowKeys.forEach(rowKey => {
           if (!sheet.sessions[key][rowKey]) sheet.sessions[key][rowKey] = [];
           if (!sheet.sessions[key][rowKey].find(a => a.text === item.name)) {
-            sheet.sessions[key][rowKey].push({ text: item.name, link: item.link || '' });
+            sheet.sessions[key][rowKey].push({ id: genActId(), text: item.name, link: item.link || '' });
             totalAdded++;
           }
         });
@@ -12753,7 +12819,7 @@ function applyToSession(dateKey, sheet) {
     targetRowKeys.forEach(rowKey => {
       if (!sheet.sessions[dateKey][rowKey]) sheet.sessions[dateKey][rowKey] = [];
       if (!sheet.sessions[dateKey][rowKey].find(a => a.text === item.name)) {
-        sheet.sessions[dateKey][rowKey].push({ text: item.name, link: item.link || '' });
+        sheet.sessions[dateKey][rowKey].push({ id: genActId(), text: item.name, link: item.link || '' });
         addedCount++;
       }
     });
@@ -12814,7 +12880,7 @@ function applyToSessionRow(dateKey, sheetId, rowKey) {
   if (!sheet.sessions[dateKey]) sheet.sessions[dateKey] = {};
   if (!sheet.sessions[dateKey][rowKey]) sheet.sessions[dateKey][rowKey] = [];
   if (!sheet.sessions[dateKey][rowKey].find(a => a.text === item.name)) {
-    sheet.sessions[dateKey][rowKey].push({ text: item.name, link: item.link || '' });
+    sheet.sessions[dateKey][rowKey].push({ id: genActId(), text: item.name, link: item.link || '' });
   }
   saveState();
   renderPlanner();
@@ -13324,8 +13390,12 @@ function mEnterEditMode() {
         <textarea class="m-edit-textarea" id="mEditEquipment" rows="3" placeholder="Kelly kettle, scissors…">${escHtml((item.equipment || item.resources || '').replace(/\\\\n/g,'\n'))}</textarea>
       </div>
       <div class="m-edit-field-group">
-        <label>🛒 Consumables</label>
+        <label>🛒 Purchases</label>
         <textarea class="m-edit-textarea" id="mEditConsumables" rows="3" placeholder="Flour, matches, clay…">${escHtml((item.consumables || '').replace(/\\\\n/g,'\n'))}</textarea>
+      </div>
+      <div class="m-edit-field-group">
+        <label>🌿 Foraged</label>
+        <textarea class="m-edit-textarea" id="mEditForaged" rows="3" placeholder="Blackberries, hazel poles, pine needles…">${escHtml((item.foraged || '').replace(/\\\\n/g,'\n'))}</textarea>
       </div>
       <div class="m-edit-field-group">
         <label>Notes</label>
@@ -13353,6 +13423,7 @@ function mSaveEdits() {
   const newCat       = document.getElementById('mEditCat')?.value;
   const newEquipment   = document.getElementById('mEditEquipment')?.value.replace(/\n/g, '\\n') || '';
   const newConsumables = document.getElementById('mEditConsumables')?.value.replace(/\n/g, '\\n') || '';
+  const newForaged     = document.getElementById('mEditForaged')?.value.replace(/\n/g, '\\n') || '';
   const newResources   = newEquipment;
   const newNotes     = document.getElementById('mEditNotes')?.value.replace(/\n/g, '\\n');
   const newLink      = document.getElementById('mEditLink')?.value.trim();
@@ -13365,6 +13436,7 @@ function mSaveEdits() {
   item.cat       = newCat;
   item.equipment   = newEquipment;
   item.consumables = newConsumables;
+  item.foraged     = newForaged;
   item.resources   = newEquipment;
   item.notes     = newNotes;
   item.link      = newLink;
@@ -13545,7 +13617,7 @@ function mCellAddActivity(name, link) {
   if (!sheet.sessions[key][rowKey]) sheet.sessions[key][rowKey] = [];
   // Avoid exact duplicate
   if (!sheet.sessions[key][rowKey].find(a => a.text === name)) {
-    sheet.sessions[key][rowKey].push({ text: name, link: link || '' });
+    sheet.sessions[key][rowKey].push({ id: genActId(), text: name, link: link || '' });
     saveState();
   }
   mCellRenderCurrentActs();
@@ -15080,7 +15152,7 @@ function migrateMorningCircle() {
           name: text,
           cat: 'morning',
           month,
-          resources: '', equipment: '', consumables: '',
+          resources: '', equipment: '', consumables: '', foraged: '',
           notes: '', link: '',
         });
       });
