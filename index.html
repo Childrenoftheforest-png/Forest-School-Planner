@@ -6584,7 +6584,7 @@ function renderPlannerHalfTerm() {
       });
       ribbonRow.appendChild(ribbonTh);
     });
-    if (state.importantDates.length > 0) thead.appendChild(ribbonRow);
+    if (state.importantDates.some(d => isImportantDateVisibleForSheet(d, getActiveSheet()?.id))) thead.appendChild(ribbonRow);
 
     // Date header row
     const headRow = document.createElement('tr');
@@ -7897,14 +7897,26 @@ function createNewSheet() {
 const CAL_TYPE_ICONS = { birthday:'🎂', festival:'🎉', seasonal:'🍂', custom:'⭐' };
 function typeIcon(t) { return CAL_TYPE_ICONS[t] || '⭐'; }
 
+// Whether an important date should appear on a given sheet's calendar/ribbon.
+// Dates with no groupIds (seasonal festivals, general custom entries) are
+// shared across every sheet, same as always. Dates that DO carry groupIds —
+// currently just auto-generated birthdays — only show on the sheet(s) that
+// person is actually registered to, so a Home Ed child's birthday doesn't
+// bleed onto Young Families' calendar just because they share one roster.
+function isImportantDateVisibleForSheet(d, sheetId) {
+  if (!d.groupIds || d.groupIds.length === 0) return true;
+  return d.groupIds.includes(sheetId);
+}
+
 // Find which important dates should appear as ribbons on a given session date.
 // Logic: each important date is assigned to the nearest session date within the same month,
 // or if none in that month, the nearest session date in the adjacent months.
 function getImportantDatesForSession(sessionDate, allSessionDatesInMonth, mon, monthOrder) {
   const results = [];
-  const sessionDayNum = keyDayNum(sessionDate);
+  const activeSheetId = getActiveSheet()?.id;
+  const visibleDates = state.importantDates.filter(d => isImportantDateVisibleForSheet(d, activeSheetId));
 
-  for (const d of state.importantDates) {
+  for (const d of visibleDates) {
     // Find the best session for this important date
     const bestSession = findNearestSession(d, allSessionDatesInMonth, mon);
     if (bestSession === sessionDate) results.push(d);
@@ -11089,6 +11101,7 @@ function renderUpcomingView() {
 
       const allKeys = weekDays.map(d => dateToSessionKey(d));
       const ribbons = state.importantDates.filter(id => {
+        if (!isImportantDateVisibleForSheet(id, sheet.id)) return false;
         const best = findNearestSession(id, allKeys, keyMonthAbbr(key));
         return best === key;
       });
@@ -11277,6 +11290,7 @@ function mRenderSession() {
   // Ribbons (important dates)
   const ribbonEl = document.getElementById('mSessionRibbon');
   const sessionRibbons = state.importantDates.filter(d => {
+    if (!isImportantDateVisibleForSheet(d, sheet.id)) return false;
     const best = findNearestSession(d, [key], keyMonthAbbr(key));
     return best === key;
   });
@@ -14854,6 +14868,7 @@ function applyCopyFromSheet() {
     if (!person.groupIds.includes(targetId)) person.groupIds.push(targetId);
   });
   saveRegister();
+  syncRegisterBirthdays();
   switchManageTab(manageActiveTab);
   renderRegisterTable();
   closeCopyFromSheetModal();
@@ -14906,6 +14921,7 @@ function applyAssignSweep() {
     person.groupIds = [targetId];
   });
   saveRegister();
+  syncRegisterBirthdays();
   switchManageTab(manageActiveTab);
   renderRegisterTable();
   closeAssignSweepModal();
@@ -14953,6 +14969,7 @@ function switchManageTab(tab) {
           person.groupIds = person.groupIds.filter(g => g !== regActiveSheetId);
         }
         saveRegister();
+        syncRegisterBirthdays();
         renderRegisterTable();
       };
       btnWrap.appendChild(label);
@@ -14968,7 +14985,7 @@ function switchManageTab(tab) {
       restoreBtn.textContent = '↩ Restore';
       restoreBtn.onclick = () => {
         const person = regState.people.find(x => x.id === p.id);
-        if (person) { person.left = false; saveRegister(); switchManageTab(manageActiveTab); renderRegisterTable(); }
+        if (person) { person.left = false; saveRegister(); syncRegisterBirthdays(); switchManageTab(manageActiveTab); renderRegisterTable(); }
       };
       btnWrap.appendChild(restoreBtn);
     }
@@ -15122,6 +15139,7 @@ function markPersonLeft() {
   person.left = true;
   person.leftDate = person.leftDate || ukDateNow();
   saveRegister();
+  syncRegisterBirthdays();
   renderLeftSection(person);
   switchManageTab(manageActiveTab);
   renderRegisterTable();
@@ -15133,6 +15151,7 @@ function restorePersonActive() {
   if (!person) return;
   person.left = false;
   saveRegister();
+  syncRegisterBirthdays();
   renderLeftSection(person);
   switchManageTab(manageActiveTab);
   renderRegisterTable();
@@ -15988,6 +16007,7 @@ function syncRegisterBirthdays() {
   const endYear   = sheet?.endYear   || startYear + 1;
 
   regState.people.forEach(person => {
+    if (person.left) return; // no longer with the group — don't keep surfacing their birthday
     const nameField = person.type === 'child' ? 'dob' : 'dob';
     const dobRaw    = person.dob || person.dateOfBirth || '';
     const dob       = parseDOB(dobRaw);
@@ -16022,6 +16042,7 @@ function syncRegisterBirthdays() {
       type:  'birthday',
       notes: '',
       autoRegister: true, // mark as auto-generated so we can remove/re-sync
+      groupIds: (person.groupIds || []).slice(), // only show on the sheet(s) this person is actually registered to
     });
   });
 
@@ -16214,7 +16235,7 @@ function renderPlannerCurrentMonth() {
     });
     ribbonRow.appendChild(ribbonTh);
   });
-  if (state.importantDates.length > 0) thead.appendChild(ribbonRow);
+  if (state.importantDates.some(d => isImportantDateVisibleForSheet(d, getActiveSheet()?.id))) thead.appendChild(ribbonRow);
 
   // Date header row
   const headRow = document.createElement('tr');
