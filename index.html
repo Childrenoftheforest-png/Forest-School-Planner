@@ -5885,6 +5885,7 @@ function showView(v) {
     btn.classList.toggle('active', btn.dataset.view === v);
   });
   document.getElementById('catFilterSection').style.display = v==='menu'?'':'none';
+  if (v==='planner') renderPlanner();
   if (v==='menu') renderMenu();
   if (v==='calendar') renderCalendarView();
   if (v==='upcoming') renderUpcomingView();
