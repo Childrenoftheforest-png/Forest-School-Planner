@@ -3445,6 +3445,7 @@ body {
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 </head>
 <body>
 
@@ -4316,8 +4317,9 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-const db   = firebase.firestore();
-const auth = firebase.auth();
+const db      = firebase.firestore();
+const auth    = firebase.auth();
+const storage = firebase.storage();
 const DOC_REF = db.collection('planner').doc('main');
 
 let saveDebounceTimer = null;
@@ -14947,7 +14949,13 @@ function switchManageTab(tab) {
     row.className = 'manage-person-row';
     let sub = escHtml(p.fullName||'') + (p.type==='staff'&&p.role?' · '+escHtml(p.role):'');
     if (isFormer) sub += p.leftDate ? ' · Left ' + escHtml(formatRegisterDateShort(p.leftDate)) : ' · Left';
-    row.innerHTML = '<div><div class="manage-person-name">'+escHtml(p.preferredName||p.fullName||'—')+'</div>'+
+    let qualBadge = '';
+    if (p.type === 'staff' && !isFormer && (p.qualifications||[]).length) {
+      const statuses = p.qualifications.map(q => qualStatus(q.expiryDate).status);
+      if (statuses.includes('expired')) qualBadge = ' <span title="A qualification has expired" style="color:#b23a2e;">⚠</span>';
+      else if (statuses.includes('soon')) qualBadge = ' <span title="A qualification is expiring within 30 days" style="color:var(--gold);">⚠</span>';
+    }
+    row.innerHTML = '<div><div class="manage-person-name">'+escHtml(p.preferredName||p.fullName||'—')+qualBadge+'</div>'+
       '<div class="manage-person-sub">'+sub+'</div></div>';
     const btnWrap = document.createElement('div');
     btnWrap.style.display = 'flex'; btnWrap.style.alignItems = 'center'; btnWrap.style.gap = '0.6rem';
@@ -15035,6 +15043,7 @@ const STAFF_FIELDS = [
 
 function openNewPersonProfile() {
   profileEditingId = null;
+  qualEditingId = null;
   const defaultGroup = regActiveSheetId ? [regActiveSheetId] : [];
   renderProfileForm({groupIds: defaultGroup}, profileEditingType);
   document.getElementById('personProfilePanel').classList.add('open');
@@ -15043,6 +15052,7 @@ function openPersonProfileById(id) {
   const p = regState.people.find(x => x.id === id);
   if (!p) return;
   profileEditingId = id; profileEditingType = p.type;
+  qualEditingId = null;
   renderProfileForm(p, p.type);
   document.getElementById('personProfilePanel').classList.add('open');
 }
@@ -15092,6 +15102,7 @@ function renderProfileForm(p, type) {
   });
   renderGroupsSection(p);
   renderLeftSection(p);
+  renderQualsSection(p);
 }
 
 function renderGroupsSection(p) {
@@ -15164,6 +15175,202 @@ function updateLeftDate(val) {
   person.leftDate = val;
   saveRegister();
 }
+
+// ═══════════════════════════════ QUALIFICATIONS & CERTIFICATES ═══════════════════════════════
+// Staff-only. Lives directly on the person record: person.qualifications = [{id, qualType,
+// customType, issueDate, expiryDate, notes, certUrl, certPath, certFileName}]. Each qualification
+// saves to Firestore the moment it's added/edited/deleted (same instant-save pattern as
+// Mark as Left and Groups), rather than batching into the main Save Changes button — a certificate
+// upload needs a stable person.id and qualification.id to attach to, so this section only appears
+// once the staff member has been saved at least once.
+
+const QUAL_TYPES = ['First Aid','Paediatric First Aid','DBS Check','Forest School Level 3','Food Hygiene','Safeguarding Training','Custom'];
+
+let qualEditingId = null;          // id of the qualification currently being added/edited inline, or null
+let qualCertUploadTargetId = null; // which qualification a chosen file should attach to
+
+function currentProfilePerson() {
+  return regState.people.find(x => x.id === profileEditingId);
+}
+
+// No expiry date set = 'none'. Overdue = 'expired'. Within 30 days = 'soon'. Otherwise 'ok'.
+function qualStatus(expiryDate) {
+  if (!expiryDate) return {status:'none', daysUntil:null};
+  const today = new Date(ukDateNow()+'T00:00:00');
+  const exp = new Date(expiryDate+'T00:00:00');
+  const daysUntil = Math.round((exp - today) / 86400000);
+  if (daysUntil < 0) return {status:'expired', daysUntil};
+  if (daysUntil <= 30) return {status:'soon', daysUntil};
+  return {status:'ok', daysUntil};
+}
+
+function renderQualsSection(p) {
+  const section = document.getElementById('profileQualsSection');
+  const list = document.getElementById('profileQualsList');
+  if (!section || !list) return;
+  if (profileEditingType !== 'staff' || !profileEditingId) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  list.innerHTML = '';
+  const quals = (p.qualifications || []).slice().sort((a,b) => (a.expiryDate||'9999-99-99').localeCompare(b.expiryDate||'9999-99-99'));
+
+  quals.forEach(q => {
+    list.appendChild(qualEditingId === q.id ? buildQualEditor(q) : buildQualRow(q));
+  });
+
+  if (qualEditingId === 'new') {
+    list.appendChild(buildQualEditor({id:'new', qualType:QUAL_TYPES[0]}));
+  } else {
+    const addBtn = document.createElement('button');
+    addBtn.className = 'register-btn';
+    addBtn.textContent = '＋ Add Qualification';
+    addBtn.onclick = () => { qualEditingId = 'new'; renderQualsSection(currentProfilePerson()); };
+    list.appendChild(addBtn);
+  }
+}
+
+function buildQualRow(q) {
+  const row = document.createElement('div');
+  row.style.cssText = 'border:1px solid rgba(0,0,0,0.08);border-radius:8px;padding:0.5rem 0.7rem;font-family:"Lora",serif;font-size:0.82rem;';
+  const st = qualStatus(q.expiryDate);
+  const statusColor = st.status==='expired' ? '#b23a2e' : st.status==='soon' ? 'var(--gold)' : 'var(--bark-light)';
+  let statusText = '';
+  if (st.status==='expired') statusText = ' · ⚠ Expired ' + Math.abs(st.daysUntil) + ' day(s) ago';
+  else if (st.status==='soon') statusText = ' · ⚠ Expires in ' + st.daysUntil + ' day(s)';
+  else if (st.status==='ok') statusText = ' · Expires ' + formatRegisterDateShort(q.expiryDate);
+  const typeLabel = q.qualType === 'Custom' ? (q.customType || 'Custom') : q.qualType;
+  const certLine = q.certUrl
+    ? '<a href="'+escHtml(q.certUrl)+'" target="_blank" rel="noopener" style="color:var(--moss);">📎 '+escHtml(q.certFileName||'View certificate')+'</a>'
+    : '<span style="color:var(--bark-light);font-style:italic;">No certificate uploaded</span>';
+  row.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;">'+
+      '<div>'+
+        '<div style="font-weight:600;">'+escHtml(typeLabel)+'</div>'+
+        '<div style="font-size:0.75rem;color:'+statusColor+';">'+
+          (q.issueDate ? 'Issued '+formatRegisterDateShort(q.issueDate) : 'Issue date not set')+statusText+
+        '</div>'+
+        '<div style="font-size:0.75rem;margin-top:0.2rem;">'+certLine+'</div>'+
+        (q.notes ? '<div style="font-size:0.75rem;color:var(--bark-light);margin-top:0.2rem;">'+escHtml(q.notes)+'</div>' : '')+
+      '</div>'+
+      '<div class="qual-row-actions" style="display:flex;flex-direction:column;gap:0.3rem;"></div>'+
+    '</div>';
+  const btnWrap = row.querySelector('.qual-row-actions');
+  const mk = (label, fn) => { const b = document.createElement('button'); b.className='register-btn'; b.style.fontSize='0.72rem'; b.textContent=label; b.onclick=fn; return b; };
+  btnWrap.appendChild(mk('Edit', () => { qualEditingId = q.id; renderQualsSection(currentProfilePerson()); }));
+  btnWrap.appendChild(mk(q.certUrl ? 'Replace Cert' : 'Upload Cert', () => triggerQualCertUpload(q.id)));
+  if (q.certUrl) btnWrap.appendChild(mk('Remove Cert', () => removeQualCert(q.id)));
+  btnWrap.appendChild(mk('Delete', () => deleteQualification(q.id)));
+  return row;
+}
+
+function buildQualEditor(q) {
+  const box = document.createElement('div');
+  box.style.cssText = 'border:1px solid var(--moss);border-radius:8px;padding:0.6rem 0.7rem;background:rgba(61,90,46,0.04);';
+  const isCustom = !!q.qualType && !QUAL_TYPES.includes(q.qualType);
+  const customVal = q.customType || (isCustom ? q.qualType : '');
+  box.innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:0.4rem;">'+
+      '<select id="qEdType" class="profile-field-input">'+
+        QUAL_TYPES.map(t => '<option value="'+escHtml(t)+'"'+((q.qualType===t||(isCustom&&t==='Custom'))?' selected':'')+'>'+escHtml(t)+'</option>').join('')+
+      '</select>'+
+      '<input type="text" id="qEdCustomType" class="profile-field-input" placeholder="Custom qualification name" style="display:'+((q.qualType==='Custom'||isCustom)?'':'none')+';" value="'+escHtml(customVal)+'">'+
+      '<div style="display:flex;gap:0.5rem;">'+
+        '<div style="flex:1;"><label style="font-size:0.72rem;color:var(--bark-light);">Issued</label><input type="date" id="qEdIssue" class="profile-field-input" value="'+escHtml(q.issueDate||'')+'"></div>'+
+        '<div style="flex:1;"><label style="font-size:0.72rem;color:var(--bark-light);">Expires</label><input type="date" id="qEdExpiry" class="profile-field-input" value="'+escHtml(q.expiryDate||'')+'"></div>'+
+      '</div>'+
+      '<textarea id="qEdNotes" class="profile-field-textarea" rows="2" placeholder="Notes (optional)">'+escHtml(q.notes||'')+'</textarea>'+
+      '<div style="display:flex;gap:0.5rem;justify-content:flex-end;">'+
+        '<button class="register-btn" id="qEdCancelBtn">Cancel</button>'+
+        '<button class="register-btn primary" id="qEdSaveBtn">Save</button>'+
+      '</div>'+
+    '</div>';
+  box.querySelector('#qEdType').onchange = (e) => {
+    box.querySelector('#qEdCustomType').style.display = e.target.value === 'Custom' ? '' : 'none';
+  };
+  box.querySelector('#qEdCancelBtn').onclick = () => { qualEditingId = null; renderQualsSection(currentProfilePerson()); };
+  box.querySelector('#qEdSaveBtn').onclick = () => saveQualEditor(q.id);
+  return box;
+}
+
+function saveQualEditor(id) {
+  const person = currentProfilePerson();
+  if (!person) return;
+  if (!person.qualifications) person.qualifications = [];
+  const qualType = document.getElementById('qEdType').value;
+  const customType = document.getElementById('qEdCustomType').value.trim();
+  const issueDate = document.getElementById('qEdIssue').value;
+  const expiryDate = document.getElementById('qEdExpiry').value;
+  const notes = document.getElementById('qEdNotes').value.trim();
+  if (qualType === 'Custom' && !customType) { alert('Please name the custom qualification.'); return; }
+  if (id === 'new') {
+    person.qualifications.push({
+      id: 'q_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+      qualType, customType, issueDate, expiryDate, notes,
+      certUrl:null, certPath:null, certFileName:null
+    });
+  } else {
+    const q = person.qualifications.find(x => x.id === id);
+    if (!q) return;
+    Object.assign(q, {qualType, customType, issueDate, expiryDate, notes});
+  }
+  qualEditingId = null;
+  saveRegister();
+  renderQualsSection(person);
+  switchManageTab(manageActiveTab); // refresh expiry badges in the manage list behind the panel
+}
+
+function deleteQualification(id) {
+  const person = currentProfilePerson();
+  if (!person) return;
+  const q = (person.qualifications||[]).find(x => x.id === id);
+  if (!confirm('Delete this qualification record'+(q&&q.certUrl?' and its uploaded certificate':'')+'?')) return;
+  if (q && q.certPath) storage.ref(q.certPath).delete().catch(()=>{}); // best-effort — don't block on Storage cleanup errors
+  person.qualifications = (person.qualifications||[]).filter(x => x.id !== id);
+  saveRegister();
+  renderQualsSection(person);
+  switchManageTab(manageActiveTab);
+}
+
+function triggerQualCertUpload(qualId) {
+  qualCertUploadTargetId = qualId;
+  const input = document.getElementById('qualCertFileInput');
+  input.value = '';
+  input.click();
+}
+
+async function handleQualCertFileChosen(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const person = currentProfilePerson();
+  if (!person || !qualCertUploadTargetId) return;
+  const q = (person.qualifications||[]).find(x => x.id === qualCertUploadTargetId);
+  if (!q) return;
+  const path = 'certificates/'+person.id+'/'+q.id+'_'+Date.now()+'_'+file.name;
+  try {
+    const ref = storage.ref(path);
+    await ref.put(file);
+    const url = await ref.getDownloadURL();
+    const oldPath = q.certPath;
+    q.certUrl = url; q.certPath = path; q.certFileName = file.name;
+    saveRegister();
+    renderQualsSection(person);
+    if (oldPath && oldPath !== path) storage.ref(oldPath).delete().catch(()=>{}); // clean up the file it's replacing
+  } catch (err) {
+    alert('Upload failed: ' + (err && err.message ? err.message : err));
+  }
+}
+
+function removeQualCert(qualId) {
+  const person = currentProfilePerson();
+  if (!person) return;
+  const q = (person.qualifications||[]).find(x => x.id === qualId);
+  if (!q || !q.certUrl) return;
+  if (!confirm('Remove the uploaded certificate for this qualification?')) return;
+  if (q.certPath) storage.ref(q.certPath).delete().catch(()=>{});
+  q.certUrl = null; q.certPath = null; q.certFileName = null;
+  saveRegister();
+  renderQualsSection(person);
+}
+
 function savePersonProfile() {
   const fields = profileEditingType==='child' ? CHILD_FIELDS : STAFF_FIELDS;
   const data = { type: profileEditingType };
@@ -15191,6 +15398,7 @@ function deletePersonProfile() {
 function closePersonProfile() {
   document.getElementById('personProfilePanel').classList.remove('open');
   profileEditingId = null;
+  qualEditingId = null;
 }
 
 // ═══════════════════════════════ MOBILE REGISTER ═══════════════════════════════
@@ -16547,6 +16755,11 @@ function renderPlannerCurrentMonth() {
         <input type="date" id="profileLeftDateInput" class="profile-field-input" style="display:none;max-width:170px;" onchange="updateLeftDate(this.value)">
         <button class="register-btn" id="profileLeftBtn">Mark as Left</button>
       </div>
+    </div>
+    <div class="profile-field-group" id="profileQualsSection" style="display:none;">
+      <label>Qualifications &amp; Certificates <span style="font-size:0.75rem;color:#888;font-weight:400;">(training records, DBS, expiry tracking)</span></label>
+      <div id="profileQualsList" style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.4rem;"></div>
+      <input type="file" id="qualCertFileInput" style="display:none;" accept=".pdf,.jpg,.jpeg,.png" onchange="handleQualCertFileChosen(event)">
     </div>
     <div class="profile-actions">
       <button class="profile-delete-btn" id="profileDeleteBtn" onclick="deletePersonProfile()">Delete</button>
