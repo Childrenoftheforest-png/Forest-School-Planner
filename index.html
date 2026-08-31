@@ -15430,26 +15430,7 @@ function checkQualificationAlerts() {
     });
   });
   if (anyChanged) saveRegister();
-  if (alerts.length) { showQualAlertModal(alerts); emailQualAlerts(alerts); }
-}
-
-// Emailing alerts uses Firebase's official "Trigger Email" Extension: it watches the `mail`
-// collection in Firestore and sends whatever plain document lands there, so all this needs to do
-// is write one — no SMTP code, no Cloud Function, lives entirely in Firebase's own console.
-// Set QUAL_ALERT_EMAIL_TO below once the extension is installed and configured (see setup notes).
-const QUAL_ALERT_EMAIL_TO = 'childrenoftheforest@outlook.com'; // <-- set this to the address alerts should go to
-
-function emailQualAlerts(alerts) {
-  if (!QUAL_ALERT_EMAIL_TO || QUAL_ALERT_EMAIL_TO.indexOf('CHANGE-ME') === 0) return; // not configured yet
-  const lines = alerts.map(a => '- ' + a.personName + ' — ' + a.qualLabel + ': ' + a.message);
-  const subject = alerts.length === 1
-    ? 'CotF Planning: qualification alert for ' + alerts[0].personName
-    : 'CotF Planning: ' + alerts.length + ' qualification alerts';
-  const text = 'The following qualifications need attention:\n\n' + lines.join('\n') + '\n\nOpen CotF Planning to review and upload renewed certificates.';
-  db.collection('mail').add({
-    to: [QUAL_ALERT_EMAIL_TO],
-    message: { subject, text }
-  }).catch(e => console.warn('Qualification alert email failed to queue', e));
+  if (alerts.length) showQualAlertModal(alerts);
 }
 
 function showQualAlertModal(alerts) {
