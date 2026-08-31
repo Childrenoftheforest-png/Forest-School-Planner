@@ -14951,9 +14951,9 @@ function switchManageTab(tab) {
     if (isFormer) sub += p.leftDate ? ' · Left ' + escHtml(formatRegisterDateShort(p.leftDate)) : ' · Left';
     let qualBadge = '';
     if (p.type === 'staff' && !isFormer && (p.qualifications||[]).length) {
-      const statuses = p.qualifications.map(q => qualStatus(q.expiryDate).status);
-      if (statuses.includes('expired')) qualBadge = ' <span title="A qualification has expired" style="color:#b23a2e;">⚠</span>';
-      else if (statuses.includes('soon')) qualBadge = ' <span title="A qualification is expiring within 30 days" style="color:var(--gold);">⚠</span>';
+      const statuses = p.qualifications.map(q => qualStatus(q).status);
+      if (statuses.includes('expired') || statuses.includes('due30')) qualBadge = ' <span title="A qualification is expired or due within 30 days" style="color:var(--ember);">⚠</span>';
+      else if (statuses.includes('due90') || statuses.includes('due180')) qualBadge = ' <span title="A qualification is due for renewal" style="color:var(--gold);">⚠</span>';
     }
     row.innerHTML = '<div><div class="manage-person-name">'+escHtml(p.preferredName||p.fullName||'—')+qualBadge+'</div>'+
       '<div class="manage-person-sub">'+sub+'</div></div>';
@@ -15193,16 +15193,33 @@ function currentProfilePerson() {
   return regState.people.find(x => x.id === profileEditingId);
 }
 
-// No expiry date set = 'none'. Overdue = 'expired'. Within 30 days = 'soon'. Otherwise 'ok'.
-function qualStatus(expiryDate) {
-  if (!expiryDate) return {status:'none', daysUntil:null};
+// Checkpoints (days remaining) that each trigger a one-time popup warning the first time
+// a qualification's countdown crosses them. Ordered loosest-to-tightest.
+const QUAL_ALERT_THRESHOLDS = [180, 90, 30, 0];
+
+// Returns {status, daysUntil}. status is one of:
+// 'none' (marked as not expiring, or no expiry date set yet), 'expired',
+// 'due30' (≤30 days), 'due90' (≤90 days), 'due180' (≤180 days), 'ok' (>180 days)
+function qualStatus(q) {
+  if (!q || q.noExpiry || !q.expiryDate) return {status:'none', daysUntil:null};
   const today = new Date(ukDateNow()+'T00:00:00');
-  const exp = new Date(expiryDate+'T00:00:00');
+  const exp = new Date(q.expiryDate+'T00:00:00');
   const daysUntil = Math.round((exp - today) / 86400000);
   if (daysUntil < 0) return {status:'expired', daysUntil};
-  if (daysUntil <= 30) return {status:'soon', daysUntil};
+  if (daysUntil <= 30) return {status:'due30', daysUntil};
+  if (daysUntil <= 90) return {status:'due90', daysUntil};
+  if (daysUntil <= 180) return {status:'due180', daysUntil};
   return {status:'ok', daysUntil};
 }
+
+const QUAL_STATUS_COLORS = {
+  expired: 'var(--ember)',
+  due30:   'var(--ember)',
+  due90:   'var(--gold)',
+  due180:  'var(--dusk)',
+  ok:      'var(--bark-light)',
+  none:    'var(--bark-light)',
+};
 
 function renderQualsSection(p) {
   const section = document.getElementById('profileQualsSection');
@@ -15231,12 +15248,16 @@ function renderQualsSection(p) {
 function buildQualRow(q) {
   const row = document.createElement('div');
   row.style.cssText = 'border:1px solid rgba(0,0,0,0.08);border-radius:8px;padding:0.5rem 0.7rem;font-family:"Lora",serif;font-size:0.82rem;';
-  const st = qualStatus(q.expiryDate);
-  const statusColor = st.status==='expired' ? '#b23a2e' : st.status==='soon' ? 'var(--gold)' : 'var(--bark-light)';
+  const st = qualStatus(q);
+  const statusColor = QUAL_STATUS_COLORS[st.status];
   let statusText = '';
-  if (st.status==='expired') statusText = ' · ⚠ Expired ' + Math.abs(st.daysUntil) + ' day(s) ago';
-  else if (st.status==='soon') statusText = ' · ⚠ Expires in ' + st.daysUntil + ' day(s)';
-  else if (st.status==='ok') statusText = ' · Expires ' + formatRegisterDateShort(q.expiryDate);
+  if (q.noExpiry) statusText = ' · Does not expire';
+  else if (st.status==='expired') statusText = ' · ⚠ Expired ' + Math.abs(st.daysUntil) + ' day(s) ago';
+  else if (st.status==='due30') statusText = ' · ⚠ ' + st.daysUntil + ' day(s) left — urgent';
+  else if (st.status==='due90') statusText = ' · ⚠ ' + st.daysUntil + ' day(s) left — book renewal';
+  else if (st.status==='due180') statusText = ' · ' + st.daysUntil + ' day(s) left — plan renewal';
+  else if (st.status==='ok') statusText = ' · ' + st.daysUntil + ' day(s) left (expires ' + formatRegisterDateShort(q.expiryDate) + ')';
+  else if (!q.expiryDate) statusText = ' · No expiry date set';
   const typeLabel = q.qualType === 'Custom' ? (q.customType || 'Custom') : q.qualType;
   const certLine = q.certUrl
     ? '<a href="'+escHtml(q.certUrl)+'" target="_blank" rel="noopener" style="color:var(--moss);">📎 '+escHtml(q.certFileName||'View certificate')+'</a>'
@@ -15275,8 +15296,11 @@ function buildQualEditor(q) {
       '<input type="text" id="qEdCustomType" class="profile-field-input" placeholder="Custom qualification name" style="display:'+((q.qualType==='Custom'||isCustom)?'':'none')+';" value="'+escHtml(customVal)+'">'+
       '<div style="display:flex;gap:0.5rem;">'+
         '<div style="flex:1;"><label style="font-size:0.72rem;color:var(--bark-light);">Issued</label><input type="date" id="qEdIssue" class="profile-field-input" value="'+escHtml(q.issueDate||'')+'"></div>'+
-        '<div style="flex:1;"><label style="font-size:0.72rem;color:var(--bark-light);">Expires</label><input type="date" id="qEdExpiry" class="profile-field-input" value="'+escHtml(q.expiryDate||'')+'"></div>'+
+        '<div style="flex:1;"><label style="font-size:0.72rem;color:var(--bark-light);">Expires</label><input type="date" id="qEdExpiry" class="profile-field-input" value="'+escHtml(q.expiryDate||'')+'"'+(q.noExpiry?' disabled':'')+'></div>'+
       '</div>'+
+      '<label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.78rem;color:var(--bark-light);">'+
+        '<input type="checkbox" id="qEdNoExpiry" style="width:15px;height:15px;cursor:pointer;"'+(q.noExpiry?' checked':'')+'> Does not expire (e.g. a one-off induction, not a renewable qualification)'+
+      '</label>'+
       '<textarea id="qEdNotes" class="profile-field-textarea" rows="2" placeholder="Notes (optional)">'+escHtml(q.notes||'')+'</textarea>'+
       '<div style="display:flex;gap:0.5rem;justify-content:flex-end;">'+
         '<button class="register-btn" id="qEdCancelBtn">Cancel</button>'+
@@ -15285,6 +15309,10 @@ function buildQualEditor(q) {
     '</div>';
   box.querySelector('#qEdType').onchange = (e) => {
     box.querySelector('#qEdCustomType').style.display = e.target.value === 'Custom' ? '' : 'none';
+  };
+  box.querySelector('#qEdNoExpiry').onchange = (e) => {
+    box.querySelector('#qEdExpiry').disabled = e.target.checked;
+    if (e.target.checked) box.querySelector('#qEdExpiry').value = '';
   };
   box.querySelector('#qEdCancelBtn').onclick = () => { qualEditingId = null; renderQualsSection(currentProfilePerson()); };
   box.querySelector('#qEdSaveBtn').onclick = () => saveQualEditor(q.id);
@@ -15297,20 +15325,26 @@ function saveQualEditor(id) {
   if (!person.qualifications) person.qualifications = [];
   const qualType = document.getElementById('qEdType').value;
   const customType = document.getElementById('qEdCustomType').value.trim();
+  const noExpiry = document.getElementById('qEdNoExpiry').checked;
   const issueDate = document.getElementById('qEdIssue').value;
-  const expiryDate = document.getElementById('qEdExpiry').value;
+  const expiryDate = noExpiry ? '' : document.getElementById('qEdExpiry').value;
   const notes = document.getElementById('qEdNotes').value.trim();
   if (qualType === 'Custom' && !customType) { alert('Please name the custom qualification.'); return; }
   if (id === 'new') {
     person.qualifications.push({
       id: 'q_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
-      qualType, customType, issueDate, expiryDate, notes,
-      certUrl:null, certPath:null, certFileName:null
+      qualType, customType, issueDate, expiryDate, noExpiry, notes,
+      certUrl:null, certPath:null, certFileName:null,
+      notifiedThresholds: []
     });
   } else {
     const q = person.qualifications.find(x => x.id === id);
     if (!q) return;
-    Object.assign(q, {qualType, customType, issueDate, expiryDate, notes});
+    // A changed expiry (or a switch to/from "does not expire") re-arms the 180/90/30 warnings —
+    // otherwise a renewed certificate would never warn again since the old thresholds stay marked as seen.
+    const expiryChanged = q.expiryDate !== expiryDate || !!q.noExpiry !== noExpiry;
+    Object.assign(q, {qualType, customType, issueDate, expiryDate, noExpiry, notes});
+    if (expiryChanged) q.notifiedThresholds = [];
   }
   qualEditingId = null;
   saveRegister();
@@ -15371,6 +15405,80 @@ function removeQualCert(qualId) {
   renderQualsSection(person);
 }
 
+// Scans every staff member's qualifications for anyone who has just crossed a 180/90/30-day-out
+// or expired checkpoint since the last time this ran, and pops up a one-time consolidated warning.
+// Each checkpoint is only ever shown once per qualification (tracked in q.notifiedThresholds) —
+// otherwise this would nag on every single page load for months at a time.
+function checkQualificationAlerts() {
+  const alerts = []; // {personName, qualLabel, message, urgency}
+  let anyChanged = false;
+  regState.people.filter(p => p.type === 'staff' && !p.left).forEach(person => {
+    (person.qualifications || []).forEach(q => {
+      const st = qualStatus(q);
+      if (st.status === 'none') return; // no expiry, or not set — nothing to warn about
+      if (!q.notifiedThresholds) q.notifiedThresholds = [];
+      const crossed = QUAL_ALERT_THRESHOLDS.filter(t => st.daysUntil <= t && !q.notifiedThresholds.includes(t));
+      if (!crossed.length) return;
+      crossed.forEach(t => q.notifiedThresholds.push(t));
+      anyChanged = true;
+      const typeLabel = q.qualType === 'Custom' ? (q.customType || 'Custom') : q.qualType;
+      const personName = person.preferredName || person.fullName || 'Someone';
+      const message = st.daysUntil < 0
+        ? 'expired ' + Math.abs(st.daysUntil) + ' day(s) ago'
+        : st.daysUntil + ' day(s) left';
+      alerts.push({personName, qualLabel: typeLabel, message, urgency: st.status});
+    });
+  });
+  if (anyChanged) saveRegister();
+  if (alerts.length) { showQualAlertModal(alerts); emailQualAlerts(alerts); }
+}
+
+// Emailing alerts uses Firebase's official "Trigger Email" Extension: it watches the `mail`
+// collection in Firestore and sends whatever plain document lands there, so all this needs to do
+// is write one — no SMTP code, no Cloud Function, lives entirely in Firebase's own console.
+// Set QUAL_ALERT_EMAIL_TO below once the extension is installed and configured (see setup notes).
+const QUAL_ALERT_EMAIL_TO = 'childrenoftheforest@outlook.com'; // <-- set this to the address alerts should go to
+
+function emailQualAlerts(alerts) {
+  if (!QUAL_ALERT_EMAIL_TO || QUAL_ALERT_EMAIL_TO.indexOf('CHANGE-ME') === 0) return; // not configured yet
+  const lines = alerts.map(a => '- ' + a.personName + ' — ' + a.qualLabel + ': ' + a.message);
+  const subject = alerts.length === 1
+    ? 'CotF Planning: qualification alert for ' + alerts[0].personName
+    : 'CotF Planning: ' + alerts.length + ' qualification alerts';
+  const text = 'The following qualifications need attention:\n\n' + lines.join('\n') + '\n\nOpen CotF Planning to review and upload renewed certificates.';
+  db.collection('mail').add({
+    to: [QUAL_ALERT_EMAIL_TO],
+    message: { subject, text }
+  }).catch(e => console.warn('Qualification alert email failed to queue', e));
+}
+
+function showQualAlertModal(alerts) {
+  const existing = document.getElementById('qualAlertOverlay');
+  if (existing) existing.remove();
+  const urgencyOrder = {expired:0, due30:1, due90:2, due180:3};
+  alerts.sort((a,b) => (urgencyOrder[a.urgency]??9) - (urgencyOrder[b.urgency]??9));
+  const overlay = document.createElement('div');
+  overlay.id = 'qualAlertOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:900;display:flex;align-items:center;justify-content:center;padding:1.5rem;';
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  const box = document.createElement('div');
+  box.style.cssText = 'background:var(--parchment);border-radius:10px;padding:1.4rem 1.5rem;max-width:480px;width:100%;max-height:80vh;overflow-y:auto;font-family:"Lora",serif;box-shadow:0 10px 40px var(--shadow-deep);';
+  const rows = alerts.map(a => {
+    const color = QUAL_STATUS_COLORS[a.urgency] || 'var(--bark-light)';
+    return '<div style="border-left:3px solid '+color+';padding:0.3rem 0 0.3rem 0.7rem;">'+
+      '<div style="font-weight:600;">'+escHtml(a.personName)+' — '+escHtml(a.qualLabel)+'</div>'+
+      '<div style="font-size:0.82rem;color:'+color+';">'+escHtml(a.message)+'</div>'+
+    '</div>';
+  }).join('');
+  box.innerHTML =
+    '<div style="font-family:\'EB Garamond\',serif;font-size:1.15rem;font-weight:600;margin-bottom:0.9rem;color:var(--moss);">⚠ Qualification Alerts</div>'+
+    '<div style="display:flex;flex-direction:column;gap:0.6rem;font-size:0.88rem;">'+rows+'</div>'+
+    '<div style="text-align:right;margin-top:1.2rem;"><button class="register-btn primary" id="qualAlertDismissBtn">Got it</button></div>';
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  document.getElementById('qualAlertDismissBtn').onclick = () => overlay.remove();
+}
+
 function savePersonProfile() {
   const fields = profileEditingType==='child' ? CHILD_FIELDS : STAFF_FIELDS;
   const data = { type: profileEditingType };
@@ -15428,6 +15536,7 @@ async function mOpenRegister(sheetId) {
   // Always reload fresh from Firebase so desktop changes show immediately
   await loadRegister();
   applyAutoDepartures();
+  checkQualificationAlerts();
   let sheet = sheetId ? state.sheets.find(s => s.id === sheetId && !s.archived) : null;
   if (!sheet) {
     const today = ukDateNow();
@@ -16504,6 +16613,7 @@ function renderPlannerCurrentMonth() {
   await loadRegister();
   applyAutoDepartures();
   await loadUserCategories();
+  checkQualificationAlerts();
   // Show loading state
   const main = document.getElementById('plannerContent');
   if (main) main.innerHTML = '<div style="padding:3rem;text-align:center;font-family:Lora,serif;font-style:italic;color:var(--bark-light);">🌿 Loading your planner…</div>';
