@@ -55,22 +55,37 @@ body {
   color: var(--parchment);
   padding: 0.9rem 1.6rem;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 1.2rem;
+  row-gap: 0.6rem;
   border-bottom: 3px solid var(--gold);
   position: sticky;
   top: 0;
   z-index: 100;
 }
-.app-header-logo { font-size: 1.6rem; line-height: 1; }
+.app-header-logo { font-size: 1.6rem; line-height: 1; flex-shrink: 0; }
 .app-header-title {
-  font-family: 'Kilura', 'Lora', serif; font-family: 'Kilura', 'Playfair Display', serif; font-size: 1.25rem; line-height: 1.15; letter-spacing: 0.01em; }
+  font-family: 'Kilura', 'Lora', serif; font-family: 'Kilura', 'Playfair Display', serif; font-size: 1.25rem; line-height: 1.15; letter-spacing: 0.01em;
+  flex-shrink: 0;
+}
 .app-header-title small { display: block; font-family: 'Lora', serif; font-size: 0.72rem; font-weight: 400; font-style: italic; opacity: 0.75; }
 
 .header-tabs {
   margin-left: auto;
   display: flex;
+  flex-wrap: wrap;
+  row-gap: 0.4rem;
   gap: 0.4rem;
+  align-items: center;
+  /* Allow this cluster to take the full row on its own when it wraps,
+     rather than getting squeezed into leftover space next to the title. */
+  flex-basis: 100%;
+  justify-content: flex-end;
+}
+@media (min-width: 1180px) {
+  /* Enough room for title + tabs on one line without wrapping/crowding. */
+  .header-tabs { flex-basis: auto; }
 }
 .header-tab {
   font-family: 'Lora', serif;
@@ -356,12 +371,15 @@ body {
 
 .menu-search-bar {
   display: flex;
+  flex-wrap: wrap;
+  row-gap: 0.6rem;
   gap: 0.6rem;
   align-items: center;
   margin-bottom: 1.4rem;
 }
 .menu-search-input {
-  flex: 1;
+  flex: 1 1 200px;
+  min-width: 0;
   font-family: 'Lora', serif;
   font-size: 0.9rem;
   padding: 0.55rem 0.9rem;
@@ -706,6 +724,13 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: rgba(107,66,38,0.4); }
 
 /* ─── RESPONSIVE ─── */
+@media (max-width: 1000px) {
+  /* Narrow the sidebar rather than leaving it at a fixed 260px, which was
+     eating too much of the window on smaller desktop/tablet widths. */
+  .app-shell { grid-template-columns: 190px 1fr; }
+  .sidebar-section { padding: 0.75rem; }
+  .cat-filter-btn, .month-btn { font-size: 0.74rem; padding: 0.24rem 0.45rem; }
+}
 @media (max-width: 700px) {
   .app-shell { grid-template-columns: 1fr; grid-template-areas: "header" "main"; }
   .sidebar { display: none; }
@@ -922,7 +947,7 @@ body {
 .menu-item { cursor: pointer; }
 
 /* ─── SHEET TABS ─── */
-.sheet-tabs { display: flex; gap: 0.4rem; align-items: stretch; }
+.sheet-tabs { display: flex; gap: 0.4rem; align-items: stretch; flex-wrap: wrap; row-gap: 0.4rem; }
 .sheet-tab-card {
   display: flex;
   flex-direction: column;
@@ -3485,6 +3510,7 @@ body {
       </div>
       <div class="header-tab-divider"></div>
       <button class="header-tab" onclick="showView('menu')" data-view="menu">🌱 Activity Menu</button>
+      <button class="header-tab" onclick="showView('rbas')" data-view="rbas">⚠ Risk Assessments</button>
       <button class="header-tab" onclick="showView('calendar')" data-view="calendar">🗓 Calendar</button>
       <button class="header-tab" onclick="showView('upcoming')" data-view="upcoming">📆 This Week</button>
     </div>
@@ -3532,6 +3558,16 @@ body {
       </div>
       <div class="backfill-result-banner" id="backfillOfferBanner" style="display:none;margin-bottom:0.8rem;"></div>
       <div class="menu-grid" id="menuGrid"></div>
+    </div>
+
+    <!-- RISK ASSESSMENTS VIEW -->
+    <div class="menu-view" id="rbaView">
+      <div class="menu-search-bar">
+        <input type="text" class="menu-search-input" id="rbaSearchInput" placeholder="🔍  Search risk assessments…" oninput="filterRbaList()">
+        <button class="add-idea-btn" onclick="openRbaEditor('new')">＋ New Assessment</button>
+      </div>
+      <div class="cal-type-filter" id="rbaCatFilterBar"></div>
+      <div class="menu-grid" id="rbaListGrid"></div>
     </div>
 
     <!-- CALENDAR VIEW -->
@@ -4071,6 +4107,16 @@ body {
       <label class="detail-section-label">🌿 Foraged <span style="font-size:0.7rem;color:var(--bark-light);font-weight:400;font-style:italic;">(freely gathered, not bought)</span></label>
       <textarea class="detail-textarea resources" id="dpForagedInput" placeholder="e.g.&#10;• Blackberries&#10;• Hazel poles&#10;• Pine needles"></textarea>
     </div>
+
+    <div class="detail-section">
+      <label class="detail-section-label">⚠ Risk Assessments <span style="font-size:0.7rem;color:var(--bark-light);font-weight:400;font-style:italic;">(auto-linked from equipment, above)</span></label>
+      <div id="dpRbaLinkedList" style="display:flex;flex-direction:column;gap:0.3rem;margin-bottom:0.4rem;"></div>
+      <button class="register-btn" style="font-size:0.72rem;" onclick="openDpRbaAddPicker()">＋ Link another assessment</button>
+    </div>
+    <div class="detail-section">
+      <label class="detail-section-label">📝 Additional risk notes <span style="font-size:0.7rem;color:var(--bark-light);font-weight:400;font-style:italic;">(anything unique to this activity/combination)</span></label>
+      <textarea class="detail-textarea" id="dpAdditionalRiskNotes" placeholder="e.g. Billhook work near the pond today — mind proximity"></textarea>
+    </div>
   </div>
 
   <div class="detail-panel-footer">
@@ -4081,6 +4127,21 @@ body {
   </div>
 </div>
 
+
+<!-- ─── RBA EDITOR MODAL ─── -->
+<div class="modal-overlay" id="rbaEditorModal" style="z-index:900;">
+  <div class="modal" style="max-width:560px;">
+    <button class="modal-close" onclick="closeRbaEditor()">✕</button>
+    <h2 style="font-family:'EB Garamond',serif;font-size:1.1rem;margin-bottom:1rem;color:var(--moss);">⚠ Risk-Benefit Assessment</h2>
+    <div id="rbaEditorBody"></div>
+    <div class="detail-panel-footer" style="margin-top:1rem;">
+      <button class="btn-danger" onclick="deleteRbaEditor()">🗑 Delete</button>
+      <span style="flex:1;"></span>
+      <button class="btn-secondary" onclick="closeRbaEditor()">Cancel</button>
+      <button class="btn-primary" onclick="saveRbaEditor()">Save</button>
+    </div>
+  </div>
+</div>
 
 <!-- ─── ROW PICKER MODAL ─── -->
 <div class="modal-overlay" id="rowPickerModal" style="z-index:900;">
@@ -5881,6 +5942,7 @@ function showView(v) {
 
   document.getElementById('plannerView').classList.toggle('visible', v==='planner');
   document.getElementById('menuView').classList.toggle('visible', v==='menu');
+  document.getElementById('rbaView').classList.toggle('visible', v==='rbas');
   document.getElementById('calendarView').classList.toggle('visible', v==='calendar');
   document.getElementById('upcomingView').classList.toggle('visible', v==='upcoming');
   document.querySelectorAll('[data-view]').forEach(btn => {
@@ -5889,6 +5951,7 @@ function showView(v) {
   document.getElementById('catFilterSection').style.display = v==='menu'?'':'none';
   if (v==='planner') renderPlanner();
   if (v==='menu') renderMenu();
+  if (v==='rbas') showRbaView();
   if (v==='calendar') renderCalendarView();
   if (v==='upcoming') renderUpcomingView();
   renderSheetTabs();
@@ -7246,6 +7309,8 @@ function openDetailPanel(name, catId) {
   document.getElementById('dpForagedInput').value     = (item.foraged     || '').replace(/\\n/g, '\n');
   document.getElementById('dpExcludeFromPopulate').checked = !!item.excludeFromPopulate;
   document.getElementById('dpAgeRange').value = item.ageRange || 'all';
+  document.getElementById('dpAdditionalRiskNotes').value = (item.additionalRiskNotes || '').replace(/\\n/g, '\n');
+  renderDpRbaLinkedList();
 
   // Link open button
   const linkOpen = document.getElementById('dpLinkOpen');
@@ -7260,7 +7325,7 @@ function openDetailPanel(name, catId) {
   document.getElementById('dpUnsavedDot').classList.remove('visible');
 
   // Wire up change listeners to show unsaved dot
-  ['dpNameInput','dpMonthInput','dpCatInput','dpLinkInput','dpNotesInput','dpEquipmentInput','dpConsumablesInput','dpForagedInput','dpExcludeFromPopulate','dpAgeRange'].forEach(id => {
+  ['dpNameInput','dpMonthInput','dpCatInput','dpLinkInput','dpNotesInput','dpEquipmentInput','dpConsumablesInput','dpForagedInput','dpExcludeFromPopulate','dpAgeRange','dpAdditionalRiskNotes'].forEach(id => {
     const el = document.getElementById(id);
     const evt = (id === 'dpExcludeFromPopulate' || id === 'dpAgeRange') ? 'onchange' : 'oninput';
     el[evt] = () => {
@@ -7271,6 +7336,7 @@ function openDetailPanel(name, catId) {
         linkOpen.href = v || '#';
         linkOpen.style.display = v ? '' : 'none';
       }
+      if (id === 'dpEquipmentInput') renderDpRbaLinkedList();
     };
   });
 
@@ -7313,6 +7379,7 @@ function saveDetailPanel() {
     resources:   document.getElementById('dpEquipmentInput').value.trim(),
     excludeFromPopulate: document.getElementById('dpExcludeFromPopulate').checked,
     ageRange: document.getElementById('dpAgeRange').value,
+    additionalRiskNotes: document.getElementById('dpAdditionalRiskNotes').value.trim(),
   };
 
   // Update header display
@@ -7347,6 +7414,69 @@ function deleteActivityFromPanel() {
     if (document.getElementById('menuView').classList.contains('visible')) renderMenu();
     closeDetailPanel();
   });
+}
+
+// Renders the linked-RBA list inside the activity detail panel — combines live equipment-text
+// matching with the item's manual overrides, using the current (possibly-unsaved) editor field
+// values so the list reacts as the person types or picks resources.
+function renderDpRbaLinkedList() {
+  const wrap = document.getElementById('dpRbaLinkedList');
+  if (!wrap) return;
+  const idx = detailPanelState.itemIndex;
+  const item = idx >= 0 ? state.menuItems[idx] : null;
+  const draftItem = {
+    equipment: document.getElementById('dpEquipmentInput')?.value || '',
+    rbaOverrides: (item && item.rbaOverrides) || {add:[], remove:[]},
+  };
+  const linked = matchRbasForActivity(draftItem);
+  if (!linked.length) {
+    wrap.innerHTML = '<div style="font-size:0.78rem;color:var(--bark-light);font-style:italic;">No risk assessments linked yet.</div>';
+    return;
+  }
+  wrap.innerHTML = linked.map(rba => {
+    const st = rbaStatus(rba);
+    const color = RBA_STATUS_COLORS[st.status];
+    const flag = (st.status==='expired'||st.status==='due30') ? ' <span style="color:'+color+';">'+rbaStatusLabel(st)+'</span>' : '';
+    return '<div style="display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(0,0,0,0.08);border-radius:6px;padding:0.35rem 0.6rem;font-size:0.8rem;">'+
+      '<span style="cursor:pointer;" onclick="openRbaEditor(\''+rba.id+'\')">⚠ '+escHtml(rba.title)+flag+'</span>'+
+      '<button class="register-btn" style="font-size:0.68rem;" onclick="removeDpRbaLink(\''+rba.id+'\')">Remove</button>'+
+    '</div>';
+  }).join('');
+}
+
+// Manual "remove" override — used when an auto-matched RBA doesn't actually apply here.
+function removeDpRbaLink(rbaId) {
+  const idx = detailPanelState.itemIndex;
+  if (idx < 0) return;
+  const item = state.menuItems[idx];
+  if (!item.rbaOverrides) item.rbaOverrides = {add:[], remove:[]};
+  item.rbaOverrides.add = (item.rbaOverrides.add||[]).filter(id => id !== rbaId);
+  if (!item.rbaOverrides.remove.includes(rbaId)) item.rbaOverrides.remove.push(rbaId);
+  saveState();
+  document.getElementById('dpUnsavedDot').classList.add('visible');
+  renderDpRbaLinkedList();
+}
+
+// Lets the person manually link an RBA that doesn't match by equipment text (e.g. a site-feature
+// or weather assessment, or a genuine edge case).
+function openDpRbaAddPicker() {
+  const idx = detailPanelState.itemIndex;
+  if (idx < 0) return;
+  const item = state.menuItems[idx];
+  const draftItem = { equipment: document.getElementById('dpEquipmentInput')?.value || '', rbaOverrides: item.rbaOverrides || {add:[], remove:[]} };
+  const already = new Set(matchRbasForActivity(draftItem).map(r => r.id));
+  const options = rbaState.rbas.filter(r => !already.has(r.id));
+  if (!options.length) { alert('No other risk assessments to link — everything relevant is already linked, or add a new one from the Risk Assessments tab.'); return; }
+  const choice = prompt('Type the exact title of the assessment to link:\n\n' + options.map(r => '• '+r.title).join('\n'));
+  if (!choice) return;
+  const match = options.find(r => r.title.toLowerCase() === choice.trim().toLowerCase());
+  if (!match) { alert('No exact match found for "'+choice+'".'); return; }
+  if (!item.rbaOverrides) item.rbaOverrides = {add:[], remove:[]};
+  item.rbaOverrides.remove = (item.rbaOverrides.remove||[]).filter(id => id !== match.id);
+  if (!item.rbaOverrides.add.includes(match.id)) item.rbaOverrides.add.push(match.id);
+  saveState();
+  document.getElementById('dpUnsavedDot').classList.add('visible');
+  renderDpRbaLinkedList();
 }
 
 // Close modals on overlay click
@@ -14561,6 +14691,348 @@ async function saveRegister() {
   catch(e) { console.warn('Register save failed', e); }
 }
 
+// ═══════════════════════════════ RISK-BENEFIT ASSESSMENTS (RBAs) ═══════════════════════════════
+// A generic hazard/tool/site library, separate from activities. rbaState.rbas = [{id, title,
+// category, linkedResourceNames:[names matched against activity equipment], hazards, whoAtRisk,
+// controls, benefits, reviewDate, reviewIntervalMonths, notifiedThresholds, lastRenewedBy,
+// lastRenewedAt, history:[{hazards,whoAtRisk,controls,benefits,supersededAt,supersededBy,reason}]}].
+// Activities reference these two ways: automatically (an RBA's linkedResourceNames matching a
+// line in the activity's equipment field) or manually (activity.rbaOverrides = {add:[rbaId],
+// remove:[rbaId]}), plus a free-text activity.additionalRiskNotes for one-off combination risks.
+
+let rbaState = { rbas: [] };
+let rbaEditingId = null;       // id of RBA currently open in the editor modal, or 'new', or null
+let rbaCatFilter = 'all';
+let rbaSearchTerm = '';
+
+const RBA_CATEGORIES = [
+  {id:'tool', label:'Tools', emoji:'🔪'},
+  {id:'site-feature', label:'Site Features', emoji:'🌳'},
+  {id:'weather', label:'Weather', emoji:'🌦'},
+  {id:'technique', label:'Techniques', emoji:'🔥'},
+  {id:'material', label:'Materials', emoji:'🧵'},
+];
+
+async function loadRbas() {
+  try {
+    const doc = await db.collection('planner').doc('rbas').get();
+    if (doc.exists) {
+      const d = doc.data();
+      rbaState.rbas = d.rbas || [];
+    }
+  } catch(e) { console.warn('RBA load failed', e); }
+}
+
+async function saveRbas() {
+  try { await db.collection('planner').doc('rbas').set(rbaState); }
+  catch(e) { console.warn('RBA save failed', e); }
+}
+
+const RBA_REVIEW_THRESHOLDS = [180, 90, 30, 0];
+
+// Returns {status, daysUntil}. status: 'expired' | 'due30' | 'due90' | 'due180' | 'ok' | 'none'
+function rbaStatus(rba) {
+  if (!rba || !rba.reviewDate) return {status:'none', daysUntil:null};
+  const today = new Date(ukDateNow()+'T00:00:00');
+  const rev = new Date(rba.reviewDate+'T00:00:00');
+  const daysUntil = Math.round((rev - today) / 86400000);
+  if (daysUntil < 0) return {status:'expired', daysUntil};
+  if (daysUntil <= 30) return {status:'due30', daysUntil};
+  if (daysUntil <= 90) return {status:'due90', daysUntil};
+  if (daysUntil <= 180) return {status:'due180', daysUntil};
+  return {status:'ok', daysUntil};
+}
+
+const RBA_STATUS_COLORS = {
+  expired: 'var(--ember)',
+  due30:   'var(--ember)',
+  due90:   'var(--gold)',
+  due180:  'var(--dusk)',
+  ok:      'var(--bark-light)',
+  none:    'var(--bark-light)',
+};
+
+function rbaStatusLabel(st) {
+  if (st.status==='expired') return '⚠ Review overdue by ' + Math.abs(st.daysUntil) + ' day(s)';
+  if (st.status==='due30') return '⚠ Review due in ' + st.daysUntil + ' day(s)';
+  if (st.status==='due90') return 'Review due in ' + st.daysUntil + ' day(s)';
+  if (st.status==='due180') return 'Review due in ' + st.daysUntil + ' day(s)';
+  if (st.status==='ok') return st.daysUntil + ' day(s) until next review';
+  return 'No review date set';
+}
+
+// Matches an activity's equipment text against RBA linkedResourceNames (case-insensitive,
+// substring match per line), then applies the activity's manual add/remove overrides.
+function matchRbasForActivity(item) {
+  const equipText = (item.equipment || item.resources || '').replace(/\\n/g,'\n').toLowerCase();
+  const equipLines = equipText.split('\n').map(l => l.replace(/^[•\-\s]+/,'').trim()).filter(Boolean);
+  const autoMatched = rbaState.rbas.filter(rba => {
+    const names = rba.linkedResourceNames || [];
+    return names.some(n => {
+      const nl = (n||'').toLowerCase().trim();
+      if (!nl) return false;
+      return equipLines.some(el => el.includes(nl) || nl.includes(el));
+    });
+  }).map(r => r.id);
+  const overrides = item.rbaOverrides || {add:[], remove:[]};
+  const idSet = new Set(autoMatched);
+  (overrides.add||[]).forEach(id => idSet.add(id));
+  (overrides.remove||[]).forEach(id => idSet.delete(id));
+  return Array.from(idSet).map(id => rbaState.rbas.find(r => r.id===id)).filter(Boolean);
+}
+
+// ─── Browse / repository view ───
+
+function showRbaView() {
+  const v = document.getElementById('rbaView');
+  if (v) v.classList.add('visible');
+  renderRbaCatFilter();
+  renderRbaList();
+}
+
+function renderRbaCatFilter() {
+  const wrap = document.getElementById('rbaCatFilterBar');
+  if (!wrap) return;
+  const counts = {};
+  rbaState.rbas.forEach(r => { counts[r.category] = (counts[r.category]||0)+1; });
+  let html = '<button class="cal-type-btn'+(rbaCatFilter==='all'?' active':'')+'" onclick="setRbaCatFilter(\'all\')">🗂 All ('+rbaState.rbas.length+')</button>';
+  RBA_CATEGORIES.forEach(c => {
+    html += '<button class="cal-type-btn'+(rbaCatFilter===c.id?' active':'')+'" onclick="setRbaCatFilter(\''+c.id+'\')">'+c.emoji+' '+escHtml(c.label)+' ('+(counts[c.id]||0)+')</button>';
+  });
+  wrap.innerHTML = html;
+}
+
+function setRbaCatFilter(cat) {
+  rbaCatFilter = cat;
+  renderRbaCatFilter();
+  renderRbaList();
+}
+
+function filterRbaList() {
+  rbaSearchTerm = (document.getElementById('rbaSearchInput')?.value || '').toLowerCase();
+  renderRbaList();
+}
+
+function renderRbaList() {
+  const wrap = document.getElementById('rbaListGrid');
+  if (!wrap) return;
+  let list = rbaState.rbas.slice();
+  if (rbaCatFilter !== 'all') list = list.filter(r => r.category === rbaCatFilter);
+  if (rbaSearchTerm) list = list.filter(r => (r.title||'').toLowerCase().includes(rbaSearchTerm));
+  list.sort((a,b) => (a.title||'').localeCompare(b.title||''));
+  if (!list.length) {
+    wrap.innerHTML = '<div style="padding:2rem;text-align:center;font-family:Lora,serif;font-style:italic;color:var(--bark-light);">No risk assessments here yet. Use "＋ New Assessment" to add one.</div>';
+    return;
+  }
+  wrap.innerHTML = list.map(rba => {
+    const cat = RBA_CATEGORIES.find(c => c.id === rba.category) || {emoji:'📄', label:rba.category||''};
+    const st = rbaStatus(rba);
+    const color = RBA_STATUS_COLORS[st.status];
+    return '<div class="menu-card" style="cursor:pointer;" onclick="openRbaEditor(\''+rba.id+'\')">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;">'+
+        '<div style="font-weight:600;font-family:\'EB Garamond\',serif;color:var(--moss);">'+cat.emoji+' '+escHtml(rba.title||'Untitled')+'</div>'+
+      '</div>'+
+      '<div style="font-size:0.75rem;color:var(--bark-light);margin-top:0.2rem;">'+escHtml(cat.label||'')+'</div>'+
+      '<div style="font-size:0.78rem;color:'+color+';margin-top:0.4rem;">'+(rba.reviewDate ? rbaStatusLabel(st) : 'No review date set')+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+// ─── Editor modal ───
+
+function openRbaEditor(id) {
+  rbaEditingId = id;
+  const rba = id === 'new'
+    ? {id:'new', title:'', category:RBA_CATEGORIES[0].id, linkedResourceNames:[], hazards:'', whoAtRisk:'', controls:'', benefits:'', reviewDate:'', reviewIntervalMonths:12, history:[]}
+    : rbaState.rbas.find(r => r.id === id);
+  if (!rba) return;
+  renderRbaEditorModal(rba);
+  document.getElementById('rbaEditorModal').classList.add('open');
+}
+
+function closeRbaEditor() {
+  document.getElementById('rbaEditorModal').classList.remove('open');
+  rbaEditingId = null;
+}
+
+function renderRbaEditorModal(rba) {
+  const box = document.getElementById('rbaEditorBody');
+  const st = rbaStatus(rba);
+  const isNew = rba.id === 'new';
+  const historyCount = (rba.history||[]).length;
+  box.innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:0.7rem;">'+
+      '<div><label class="detail-section-label">Title</label><input type="text" class="detail-field" id="rbaEdTitle" value="'+escHtml(rba.title||'')+'" placeholder="e.g. Billhook, Fire circle, Wet weather"></div>'+
+      '<div><label class="detail-section-label">Category</label><select class="detail-field" id="rbaEdCategory">'+
+        RBA_CATEGORIES.map(c => '<option value="'+c.id+'"'+(rba.category===c.id?' selected':'')+'>'+c.emoji+' '+escHtml(c.label)+'</option>').join('')+
+      '</select></div>'+
+      '<div><label class="detail-section-label">Linked resource names <span style="font-size:0.7rem;color:var(--bark-light);font-weight:400;">(one per line — matched against activity equipment, e.g. "billhook")</span></label><textarea class="detail-textarea" id="rbaEdLinked" rows="2" placeholder="billhook">'+escHtml((rba.linkedResourceNames||[]).join('\n'))+'</textarea></div>'+
+      '<div><label class="detail-section-label">Hazards</label><textarea class="detail-textarea" id="rbaEdHazards" rows="3">'+escHtml(rba.hazards||'')+'</textarea></div>'+
+      '<div><label class="detail-section-label">Who is at risk</label><textarea class="detail-textarea" id="rbaEdWho" rows="2">'+escHtml(rba.whoAtRisk||'')+'</textarea></div>'+
+      '<div><label class="detail-section-label">Controls / mitigations</label><textarea class="detail-textarea" id="rbaEdControls" rows="3">'+escHtml(rba.controls||'')+'</textarea></div>'+
+      '<div><label class="detail-section-label">Benefits <span style="font-size:0.7rem;color:var(--bark-light);font-weight:400;">(why it\'s worth the risk)</span></label><textarea class="detail-textarea" id="rbaEdBenefits" rows="2">'+escHtml(rba.benefits||'')+'</textarea></div>'+
+      '<div class="detail-row">'+
+        '<div class="detail-section"><label class="detail-section-label">Review date</label><input type="date" class="detail-field" id="rbaEdReviewDate" value="'+escHtml(rba.reviewDate||'')+'"></div>'+
+        '<div class="detail-section"><label class="detail-section-label">Review interval (months)</label><input type="number" class="detail-field" id="rbaEdInterval" value="'+(rba.reviewIntervalMonths||12)+'" min="1"></div>'+
+      '</div>'+
+      (rba.reviewDate ? '<div style="font-size:0.8rem;color:'+RBA_STATUS_COLORS[st.status]+';">'+rbaStatusLabel(st)+'</div>' : '')+
+      (!isNew ? '<div style="font-size:0.75rem;color:var(--bark-light);">📜 '+historyCount+' past version(s)'+(historyCount ? ' — <a href="#" onclick="toggleRbaHistory(event)" style="color:var(--moss);">view history</a>' : '')+'</div>' : '')+
+      '<div id="rbaHistoryPanel" style="display:none;max-height:200px;overflow-y:auto;border:1px solid rgba(0,0,0,0.08);border-radius:6px;padding:0.5rem 0.7rem;"></div>'+
+    '</div>';
+  box.dataset.rbaId = rba.id;
+}
+
+function toggleRbaHistory(e) {
+  e.preventDefault();
+  const rba = rbaState.rbas.find(r => r.id === rbaEditingId);
+  const panel = document.getElementById('rbaHistoryPanel');
+  if (!rba || !panel) return;
+  if (panel.style.display === 'none') {
+    panel.style.display = '';
+    panel.innerHTML = (rba.history||[]).slice().reverse().map(h =>
+      '<div style="border-bottom:1px dotted rgba(0,0,0,0.1);padding:0.4rem 0;font-size:0.78rem;">'+
+        '<div style="font-weight:600;">Superseded '+escHtml(formatRegisterDateShort(h.supersededAt))+(h.reason?' — '+escHtml(h.reason):'')+'</div>'+
+        '<div><strong>Hazards:</strong> '+escHtml(h.hazards||'—')+'</div>'+
+        '<div><strong>Controls:</strong> '+escHtml(h.controls||'—')+'</div>'+
+      '</div>'
+    ).join('') || '<div style="font-style:italic;color:var(--bark-light);">No history yet.</div>';
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
+function readRbaEditorFields() {
+  return {
+    title: document.getElementById('rbaEdTitle').value.trim(),
+    category: document.getElementById('rbaEdCategory').value,
+    linkedResourceNames: document.getElementById('rbaEdLinked').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    hazards: document.getElementById('rbaEdHazards').value.trim(),
+    whoAtRisk: document.getElementById('rbaEdWho').value.trim(),
+    controls: document.getElementById('rbaEdControls').value.trim(),
+    benefits: document.getElementById('rbaEdBenefits').value.trim(),
+    reviewDate: document.getElementById('rbaEdReviewDate').value,
+    reviewIntervalMonths: parseInt(document.getElementById('rbaEdInterval').value,10) || 12,
+  };
+}
+
+function saveRbaEditor() {
+  const fields = readRbaEditorFields();
+  if (!fields.title) { alert('Please give this risk assessment a title.'); return; }
+  if (rbaEditingId === 'new') {
+    rbaState.rbas.push(Object.assign({
+      id: 'rba_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+      history: [], notifiedThresholds: [],
+    }, fields));
+  } else {
+    const rba = rbaState.rbas.find(r => r.id === rbaEditingId);
+    if (!rba) return;
+    Object.assign(rba, fields);
+  }
+  saveRbas();
+  closeRbaEditor();
+  renderRbaCatFilter();
+  renderRbaList();
+}
+
+function deleteRbaEditor() {
+  if (rbaEditingId === 'new') { closeRbaEditor(); return; }
+  if (!confirm('Delete this risk assessment? Activities linking to it will lose the link.')) return;
+  rbaState.rbas = rbaState.rbas.filter(r => r.id !== rbaEditingId);
+  saveRbas();
+  closeRbaEditor();
+  renderRbaCatFilter();
+  renderRbaList();
+}
+
+// ─── Review alerts (soft warning, renew-in-place popup) ───
+
+function checkRbaAlerts() {
+  const alerts = []; // {rbaId, title, message, urgency}
+  let anyChanged = false;
+  rbaState.rbas.forEach(rba => {
+    if (!rba.reviewDate) return;
+    const st = rbaStatus(rba);
+    if (st.status === 'none') return;
+    if (!rba.notifiedThresholds) rba.notifiedThresholds = [];
+    const crossed = RBA_REVIEW_THRESHOLDS.filter(t => st.daysUntil <= t && !rba.notifiedThresholds.includes(t));
+    if (!crossed.length) return;
+    crossed.forEach(t => rba.notifiedThresholds.push(t));
+    anyChanged = true;
+    const message = st.daysUntil < 0 ? 'overdue by ' + Math.abs(st.daysUntil) + ' day(s)' : st.daysUntil + ' day(s) left';
+    alerts.push({rbaId: rba.id, title: rba.title, message, urgency: st.status});
+  });
+  if (anyChanged) saveRbas();
+  if (alerts.length) showRbaAlertModal(alerts);
+}
+
+function showRbaAlertModal(alerts) {
+  const existing = document.getElementById('rbaAlertOverlay');
+  if (existing) existing.remove();
+  const urgencyOrder = {expired:0, due30:1, due90:2, due180:3};
+  alerts.sort((a,b) => (urgencyOrder[a.urgency]??9) - (urgencyOrder[b.urgency]??9));
+  const overlay = document.createElement('div');
+  overlay.id = 'rbaAlertOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:900;display:flex;align-items:center;justify-content:center;padding:1.5rem;';
+  const box = document.createElement('div');
+  box.style.cssText = 'background:var(--parchment);border-radius:10px;padding:1.4rem 1.5rem;max-width:520px;width:100%;max-height:85vh;overflow-y:auto;font-family:\'Lora\',serif;box-shadow:0 10px 40px var(--shadow-deep);';
+  box.innerHTML = '<div style="font-family:\'EB Garamond\',serif;font-size:1.15rem;font-weight:600;margin-bottom:0.9rem;color:var(--moss);">⚠ Risk Assessment Reviews</div>'+
+    '<div id="rbaAlertList" style="display:flex;flex-direction:column;gap:0.9rem;"></div>'+
+    '<div style="text-align:right;margin-top:1.2rem;"><button class="register-btn" id="rbaAlertDismissAllBtn">Close</button></div>';
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  const list = document.getElementById('rbaAlertList');
+  alerts.forEach(a => list.appendChild(buildRbaAlertRow(a)));
+  document.getElementById('rbaAlertDismissAllBtn').onclick = () => overlay.remove();
+}
+
+function buildRbaAlertRow(alert) {
+  const rba = rbaState.rbas.find(r => r.id === alert.rbaId);
+  const row = document.createElement('div');
+  const color = RBA_STATUS_COLORS[alert.urgency] || 'var(--bark-light)';
+  row.style.cssText = 'border-left:3px solid '+color+';padding:0.5rem 0 0.5rem 0.7rem;';
+  if (!rba) { row.innerHTML = '<div>'+escHtml(alert.title)+' — '+escHtml(alert.message)+'</div>'; return row; }
+  row.innerHTML =
+    '<div style="font-weight:600;">'+escHtml(rba.title)+'</div>'+
+    '<div style="font-size:0.82rem;color:'+color+';margin-bottom:0.4rem;">'+escHtml(alert.message)+'</div>'+
+    '<textarea class="detail-textarea" rows="2" data-rba-alert-field="hazards" style="font-size:0.78rem;margin-bottom:0.3rem;">'+escHtml(rba.hazards||'')+'</textarea>'+
+    '<textarea class="detail-textarea" rows="2" data-rba-alert-field="controls" style="font-size:0.78rem;margin-bottom:0.3rem;">'+escHtml(rba.controls||'')+'</textarea>'+
+    '<div style="display:flex;gap:0.4rem;flex-wrap:wrap;">'+
+      '<button class="register-btn" style="font-size:0.72rem;" data-rba-action="renew">Renew as-is</button>'+
+      '<button class="register-btn primary" style="font-size:0.72rem;" data-rba-action="amend">Amend and renew</button>'+
+      '<button class="register-btn" style="font-size:0.72rem;" data-rba-action="snooze">Dismiss for now</button>'+
+    '</div>';
+  const hazardsEl = row.querySelector('[data-rba-alert-field="hazards"]');
+  const controlsEl = row.querySelector('[data-rba-alert-field="controls"]');
+  row.querySelector('[data-rba-action="renew"]').onclick = () => renewRbaFromAlert(rba.id, false, hazardsEl, controlsEl, row);
+  row.querySelector('[data-rba-action="amend"]').onclick = () => renewRbaFromAlert(rba.id, true, hazardsEl, controlsEl, row);
+  row.querySelector('[data-rba-action="snooze"]').onclick = () => { row.style.opacity = '0.4'; row.style.pointerEvents = 'none'; };
+  return row;
+}
+
+function renewRbaFromAlert(rbaId, amended, hazardsEl, controlsEl, row) {
+  const rba = rbaState.rbas.find(r => r.id === rbaId);
+  if (!rba) return;
+  const newHazards = hazardsEl.value.trim();
+  const newControls = controlsEl.value.trim();
+  const changed = amended && (newHazards !== (rba.hazards||'') || newControls !== (rba.controls||''));
+  if (!rba.history) rba.history = [];
+  rba.history.push({
+    hazards: rba.hazards||'', whoAtRisk: rba.whoAtRisk||'', controls: rba.controls||'', benefits: rba.benefits||'',
+    supersededAt: ukDateNow(), reason: changed ? 'amended' : 'renewed as-is'
+  });
+  if (changed) { rba.hazards = newHazards; rba.controls = newControls; }
+  const interval = rba.reviewIntervalMonths || 12;
+  const base = new Date(ukDateNow()+'T00:00:00');
+  base.setMonth(base.getMonth() + interval);
+  rba.reviewDate = base.toISOString().slice(0,10);
+  rba.notifiedThresholds = [];
+  rba.lastRenewedAt = ukDateNow();
+  saveRbas();
+  row.style.opacity = '0.4';
+  row.innerHTML = '<div style="font-style:italic;color:var(--moss);">✓ Renewed, next review '+escHtml(formatRegisterDateShort(rba.reviewDate))+'</div>';
+  renderRbaList();
+}
+
 // Fills in a default leaving time for anyone who arrived but was never marked as
 // having left, once the day is over (past 3:30pm today, or any earlier day).
 // This can only run when the app is actually open — there's no background server —
@@ -16594,7 +17066,9 @@ function renderPlannerCurrentMonth() {
   await loadRegister();
   applyAutoDepartures();
   await loadUserCategories();
+  await loadRbas();
   checkQualificationAlerts();
+  checkRbaAlerts();
   // Show loading state
   const main = document.getElementById('plannerContent');
   if (main) main.innerHTML = '<div style="padding:3rem;text-align:center;font-family:Lora,serif;font-style:italic;color:var(--bark-light);">🌿 Loading your planner…</div>';
