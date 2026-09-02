@@ -3564,6 +3564,8 @@ body {
     <div class="menu-view" id="rbaView">
       <div class="menu-search-bar">
         <input type="text" class="menu-search-input" id="rbaSearchInput" placeholder="🔍  Search risk assessments…" oninput="filterRbaList()">
+        <button class="menu-csv-btn import" onclick="openRbaCsvImportModal()" title="Import risk assessments from CSV spreadsheet">⬆ Import CSV</button>
+        <button class="menu-csv-btn" onclick="exportRbaCsv()" title="Export all risk assessments as CSV spreadsheet">⬇ Export CSV</button>
         <button class="add-idea-btn" onclick="openRbaEditor('new')">＋ New Assessment</button>
       </div>
       <div class="cal-type-filter" id="rbaCatFilterBar"></div>
@@ -4127,6 +4129,15 @@ body {
   </div>
 </div>
 
+
+<!-- ─── RBA LINK PICKER MODAL ─── -->
+<div class="modal-overlay" id="rbaLinkPickerModal" style="z-index:950;">
+  <div class="modal" style="max-width:420px;">
+    <button class="modal-close" onclick="document.getElementById('rbaLinkPickerModal').classList.remove('open')">✕</button>
+    <h2 style="font-family:'EB Garamond',serif;font-size:1rem;margin-bottom:0.9rem;color:var(--moss);">⚠ Link a risk assessment</h2>
+    <div id="rbaLinkPickerList" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:0.3rem;"></div>
+  </div>
+</div>
 
 <!-- ─── RBA EDITOR MODAL ─── -->
 <div class="modal-overlay" id="rbaEditorModal" style="z-index:900;">
@@ -7465,17 +7476,29 @@ function openDpRbaAddPicker() {
   const item = state.menuItems[idx];
   const draftItem = { equipment: document.getElementById('dpEquipmentInput')?.value || '', rbaOverrides: item.rbaOverrides || {add:[], remove:[]} };
   const already = new Set(matchRbasForActivity(draftItem).map(r => r.id));
-  const options = rbaState.rbas.filter(r => !already.has(r.id));
-  if (!options.length) { alert('No other risk assessments to link — everything relevant is already linked, or add a new one from the Risk Assessments tab.'); return; }
-  const choice = prompt('Type the exact title of the assessment to link:\n\n' + options.map(r => '• '+r.title).join('\n'));
-  if (!choice) return;
-  const match = options.find(r => r.title.toLowerCase() === choice.trim().toLowerCase());
-  if (!match) { alert('No exact match found for "'+choice+'".'); return; }
+  const options = rbaState.rbas.filter(r => !already.has(r.id)).sort((a,b) => (a.title||'').localeCompare(b.title||''));
+  const list = document.getElementById('rbaLinkPickerList');
+  if (!options.length) {
+    list.innerHTML = '<div style="font-size:0.82rem;font-style:italic;color:var(--bark-light);">Nothing left to link — everything relevant is already linked, or add a new assessment from the Risk Assessments tab first.</div>';
+  } else {
+    list.innerHTML = options.map(r => {
+      const cat = RBA_CATEGORIES.find(c => c.id === r.category) || {emoji:'📄'};
+      return '<button class="register-btn" style="text-align:left;justify-content:flex-start;" onclick="linkDpRba(\''+r.id+'\')">'+cat.emoji+' '+escHtml(r.title)+'</button>';
+    }).join('');
+  }
+  document.getElementById('rbaLinkPickerModal').classList.add('open');
+}
+
+function linkDpRba(rbaId) {
+  const idx = detailPanelState.itemIndex;
+  if (idx < 0) return;
+  const item = state.menuItems[idx];
   if (!item.rbaOverrides) item.rbaOverrides = {add:[], remove:[]};
-  item.rbaOverrides.remove = (item.rbaOverrides.remove||[]).filter(id => id !== match.id);
-  if (!item.rbaOverrides.add.includes(match.id)) item.rbaOverrides.add.push(match.id);
+  item.rbaOverrides.remove = (item.rbaOverrides.remove||[]).filter(id => id !== rbaId);
+  if (!item.rbaOverrides.add.includes(rbaId)) item.rbaOverrides.add.push(rbaId);
   saveState();
   document.getElementById('dpUnsavedDot').classList.add('visible');
+  document.getElementById('rbaLinkPickerModal').classList.remove('open');
   renderDpRbaLinkedList();
 }
 
@@ -13209,6 +13232,35 @@ function buildPrintHtml(dateLabel, sheetName, rows, sessionData, logoSrc) {
     resourcesHtml = `<div class="resources-section"><div class="resources-title">📋 Resources</div>${resourceLines.map(r => `<div class="resource-line">${r}</div>`).join('')}</div>`;
   }
 
+  // Build risk assessments section — every RBA linked (auto or manual) to today's activities,
+  // plus any activity-specific additional risk notes. Overdue/due-soon reviews get flagged so
+  // the printed sheet doubles as a same-day paperwork check, not just a session plan.
+  let rbaHtml = '';
+  const rbaLines = [];
+  const seenRbaIds = new Set();
+  for (const row of rows) {
+    if (row.key === '_notes' || row.type === 'divider') continue;
+    const acts = (sessionData[row.key] || []);
+    for (const act of acts) {
+      const r = resolveAct(act);
+      const menuItem = state.menuItems.find(m => m.name === r.text);
+      if (!menuItem) continue;
+      matchRbasForActivity(menuItem).forEach(rba => {
+        if (seenRbaIds.has(rba.id)) return;
+        seenRbaIds.add(rba.id);
+        const st = rbaStatus(rba);
+        const flag = (st.status==='expired' || st.status==='due30') ? ' ⚠ ' + escHtml(rbaStatusLabel(st)) : '';
+        rbaLines.push('<strong>' + escHtml(rba.title) + ':</strong> ' + escHtml(rba.controls || rba.hazards || '') + flag);
+      });
+      if ((menuItem.additionalRiskNotes||'').trim()) {
+        rbaLines.push('<strong>' + escHtml((r.isBorrowed?'🔗 ':'')+r.text) + ' (extra):</strong> ' + escHtml(menuItem.additionalRiskNotes.trim()));
+      }
+    }
+  }
+  if (rbaLines.length > 0) {
+    rbaHtml = `<div class="resources-section" style="margin-top:8px;"><div class="resources-title">⚠ Risk Assessments</div>${rbaLines.map(r => `<div class="resource-line">${r}</div>`).join('')}</div>`;
+  }
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13257,6 +13309,7 @@ function buildPrintHtml(dateLabel, sheetName, rows, sessionData, logoSrc) {
   </div>
   <table>${rowsHtml}</table>
   ${resourcesHtml}
+  ${rbaHtml}
 </body>
 </html>`;
 }
@@ -14940,6 +14993,195 @@ function deleteRbaEditor() {
   rbaState.rbas = rbaState.rbas.filter(r => r.id !== rbaEditingId);
   saveRbas();
   closeRbaEditor();
+  renderRbaCatFilter();
+  renderRbaList();
+}
+
+// ─── CSV export / import ───
+
+const RBA_CSV_HEADERS = ['title','category','linked_resources','hazards','who_at_risk','controls','benefits','review_date','review_interval_months'];
+
+function exportRbaCsv() {
+  const rows = [RBA_CSV_HEADERS];
+  rbaState.rbas.forEach(rba => {
+    const cat = RBA_CATEGORIES.find(c => c.id === rba.category);
+    rows.push([
+      rba.title || '',
+      cat ? cat.label : (rba.category || ''),
+      (rba.linkedResourceNames || []).join('\n').split('\n').join('\\n'),
+      (rba.hazards   || '').split('\n').join('\\n'),
+      (rba.whoAtRisk || '').split('\n').join('\\n'),
+      (rba.controls  || '').split('\n').join('\\n'),
+      (rba.benefits  || '').split('\n').join('\\n'),
+      rba.reviewDate || '',
+      rba.reviewIntervalMonths || 12,
+    ].map(csvEscapeField));
+  });
+  const csvContent = rows.map(r => r.join(',')).join('\r\n');
+  const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cotf-risk-assessments.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function resolveRbaCsvCategory(val) {
+  const v = (val||'').toLowerCase().trim();
+  const byId = RBA_CATEGORIES.find(c => c.id === v);
+  if (byId) return byId.id;
+  const byLabel = RBA_CATEGORIES.find(c => c.label.toLowerCase() === v);
+  if (byLabel) return byLabel.id;
+  return null;
+}
+
+let rbaCsvParsed = { newRows: [], updateRows: [] };
+
+function openRbaCsvImportModal() {
+  rbaCsvParsed = { newRows: [], updateRows: [] };
+  document.getElementById('rbaCsvPreviewBox').style.display = 'none';
+  document.getElementById('rbaCsvPreviewBox').innerHTML = '';
+  document.getElementById('rbaCsvFileInput').value = '';
+  document.getElementById('rbaCsvImportBtn').disabled = true;
+  document.getElementById('rbaCsvImportBtn').style.opacity = '0.5';
+  document.getElementById('rbaCsvImportModal').classList.add('open');
+}
+function closeRbaCsvImportModal() {
+  document.getElementById('rbaCsvImportModal').classList.remove('open');
+}
+function rbaCsvDragOver(e) { e.preventDefault(); document.getElementById('rbaCsvDropZone').classList.add('drag-over'); }
+function rbaCsvDragLeave(e) { document.getElementById('rbaCsvDropZone').classList.remove('drag-over'); }
+function rbaCsvDrop(e) {
+  e.preventDefault();
+  document.getElementById('rbaCsvDropZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processRbaCsvFile(file);
+}
+function rbaCsvFileChosen(e) {
+  const file = e.target.files[0];
+  if (file) processRbaCsvFile(file);
+}
+function processRbaCsvFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try { parseRbaCsvAndPreview(e.target.result); }
+    catch(err) { showRbaCsvPreview('<span class="csv-preview-err">❌ Could not read file: ' + escHtml(err.message) + '</span>', false); }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseRbaCsvAndPreview(text) {
+  const rows = parseCsvText(text); // reuses the generic CSV parser already used for activity import
+  if (rows.length < 2) {
+    showRbaCsvPreview('<span class="csv-preview-err">❌ File appears empty or has no data rows.</span>', false);
+    return;
+  }
+  const header = rows[0].map(h => h.toLowerCase().trim());
+  const titleIdx    = header.indexOf('title');
+  const catIdx      = header.indexOf('category');
+  const linkedIdx   = header.indexOf('linked_resources');
+  const hazardsIdx  = header.indexOf('hazards');
+  const whoIdx      = header.indexOf('who_at_risk');
+  const controlsIdx = header.indexOf('controls');
+  const benefitsIdx = header.indexOf('benefits');
+  const reviewIdx   = header.indexOf('review_date');
+  const intervalIdx = header.indexOf('review_interval_months');
+
+  if (titleIdx < 0 || catIdx < 0) {
+    showRbaCsvPreview('<span class="csv-preview-err">❌ Missing required columns. Need at least: <strong>title</strong>, <strong>category</strong>.</span>', false);
+    return;
+  }
+
+  const newRows = [], updateRows = [];
+  let skippedBad = 0, unchanged = 0, warnings = [];
+
+  rows.slice(1).forEach((row, ri) => {
+    const title = (row[titleIdx] || '').trim();
+    if (!title) { skippedBad++; return; }
+
+    let category = resolveRbaCsvCategory(row[catIdx]);
+    if (!category) { category = RBA_CATEGORIES[0].id; warnings.push(`Row ${ri+2}: unknown category "${row[catIdx]||''}" — set to "${RBA_CATEGORIES[0].label}"`); }
+
+    const linkedResourceNames = linkedIdx >= 0 ? (row[linkedIdx]||'').replace(/\\n/g,'\n').split('\n').map(s=>s.trim()).filter(Boolean) : [];
+    const hazards   = hazardsIdx  >= 0 ? (row[hazardsIdx]  || '').replace(/\\n/g, '\n') : '';
+    const whoAtRisk = whoIdx      >= 0 ? (row[whoIdx]      || '').replace(/\\n/g, '\n') : '';
+    const controls  = controlsIdx >= 0 ? (row[controlsIdx] || '').replace(/\\n/g, '\n') : '';
+    const benefits  = benefitsIdx >= 0 ? (row[benefitsIdx] || '').replace(/\\n/g, '\n') : '';
+    const reviewDate = reviewIdx >= 0 ? (row[reviewIdx]||'').trim() : '';
+    let reviewIntervalMonths = intervalIdx >= 0 ? parseInt(row[intervalIdx],10) : NaN;
+    if (!reviewIntervalMonths || reviewIntervalMonths < 1) reviewIntervalMonths = 12;
+
+    const csvItem = {title, category, linkedResourceNames, hazards, whoAtRisk, controls, benefits, reviewDate, reviewIntervalMonths};
+    const existing = rbaState.rbas.find(r => (r.title||'').toLowerCase() === title.toLowerCase());
+
+    if (existing) {
+      const changed = existing.category !== category ||
+        JSON.stringify(existing.linkedResourceNames||[]) !== JSON.stringify(linkedResourceNames) ||
+        (existing.hazards||'') !== hazards || (existing.whoAtRisk||'') !== whoAtRisk ||
+        (existing.controls||'') !== controls || (existing.benefits||'') !== benefits ||
+        (reviewDate && reviewDate !== (existing.reviewDate||'')) ||
+        (reviewIntervalMonths !== (existing.reviewIntervalMonths||12));
+      if (changed) updateRows.push({existingId: existing.id, csvItem});
+      else unchanged++;
+    } else {
+      newRows.push(csvItem);
+    }
+  });
+
+  rbaCsvParsed = { newRows, updateRows };
+
+  let msg = '';
+  if (newRows.length > 0) msg += `<span class="csv-preview-good">✓ ${newRows.length} new assessment${newRows.length===1?'':'s'} to add</span>`;
+  if (updateRows.length > 0) msg += `${msg?'<br>':''}<span class="csv-preview-warn">⚠ ${updateRows.length} existing assessment${updateRows.length===1?'':'s'} will be updated (old version saved to history)</span>`;
+  if (unchanged > 0) msg += `<br><span style="color:var(--bark-light);">✓ ${unchanged} unchanged — already match</span>`;
+  if (skippedBad > 0) msg += `<br><span class="csv-preview-warn">⚠ ${skippedBad} row${skippedBad===1?' was':'s were'} skipped — missing title</span>`;
+  warnings.slice(0,5).forEach(w => { msg += `<br><span class="csv-preview-warn">⚠ ${escHtml(w)}</span>`; });
+  if (warnings.length > 5) msg += `<br><span class="csv-preview-warn">… and ${warnings.length-5} more warnings</span>`;
+  const hasWork = newRows.length > 0 || updateRows.length > 0;
+  if (!hasWork) msg += (msg?'<br>':'') + '<span class="csv-preview-err">Nothing to add or update.</span>';
+
+  showRbaCsvPreview(msg, hasWork);
+}
+
+function showRbaCsvPreview(html, enableBtn) {
+  const box = document.getElementById('rbaCsvPreviewBox');
+  box.style.display = 'block';
+  box.innerHTML = html;
+  const btn = document.getElementById('rbaCsvImportBtn');
+  btn.disabled = !enableBtn;
+  btn.style.opacity = enableBtn ? '1' : '0.5';
+}
+
+// Bulk-apply gate: this only runs when the person explicitly clicks Import after reviewing the
+// counts above, per the same confirmation pattern used for activity CSV import.
+function doImportRbaCsv() {
+  const { newRows, updateRows } = rbaCsvParsed;
+  newRows.forEach(csvItem => {
+    rbaState.rbas.push(Object.assign({
+      id: 'rba_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+      history: [], notifiedThresholds: [],
+    }, csvItem, { reviewDate: csvItem.reviewDate || '' }));
+  });
+  updateRows.forEach(({existingId, csvItem}) => {
+    const rba = rbaState.rbas.find(r => r.id === existingId);
+    if (!rba) return;
+    if (!rba.history) rba.history = [];
+    rba.history.push({
+      hazards: rba.hazards||'', whoAtRisk: rba.whoAtRisk||'', controls: rba.controls||'', benefits: rba.benefits||'',
+      supersededAt: ukDateNow(), reason: 'CSV import update'
+    });
+    rba.category = csvItem.category;
+    rba.linkedResourceNames = csvItem.linkedResourceNames;
+    rba.hazards = csvItem.hazards;
+    rba.whoAtRisk = csvItem.whoAtRisk;
+    rba.controls = csvItem.controls;
+    rba.benefits = csvItem.benefits;
+    rba.reviewIntervalMonths = csvItem.reviewIntervalMonths;
+    if (csvItem.reviewDate) { rba.reviewDate = csvItem.reviewDate; rba.notifiedThresholds = []; }
+  });
+  saveRbas();
+  closeRbaCsvImportModal();
   renderRbaCatFilter();
   renderRbaList();
 }
@@ -17381,6 +17623,45 @@ function renderPlannerCurrentMonth() {
     <div class="csv-modal-btns">
       <button class="btn-secondary" onclick="closeCsvImportModal()">Cancel</button>
       <button class="btn-primary" id="csvImportBtn" onclick="doImportCsv()" disabled style="opacity:0.5;">Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── RBA CSV IMPORT MODAL ─── -->
+<div id="rbaCsvImportModal" onclick="if(event.target===this)closeRbaCsvImportModal()">
+  <div class="csv-modal-box">
+    <div class="csv-modal-title">⬆ Import Risk Assessments from CSV</div>
+    <div class="csv-modal-sub">Upload a CSV to add new risk assessments and update existing ones (matched by title). Updated assessments keep their review date and history unless the CSV specifies a new review date.</div>
+
+    <div class="csv-col-guide">
+      <strong>Required columns (in order):</strong><br>
+      <code>title</code> &nbsp;·&nbsp;
+      <code>category</code> &nbsp;·&nbsp;
+      <code>linked_resources</code> &nbsp;·&nbsp;
+      <code>hazards</code> &nbsp;·&nbsp;
+      <code>who_at_risk</code> &nbsp;·&nbsp;
+      <code>controls</code> &nbsp;·&nbsp;
+      <code>benefits</code> &nbsp;·&nbsp;
+      <code>review_date</code> &nbsp;·&nbsp;
+      <code>review_interval_months</code><br><br>
+      <strong>Category values:</strong> Tools · Site Features · Weather · Techniques · Materials<br>
+      <strong>linked_resources:</strong> one or more names, separated by <code>\n</code> (matched against activity equipment)<br>
+      <strong>review_date:</strong> YYYY-MM-DD, or leave blank to keep the existing date unchanged
+    </div>
+
+    <div class="csv-drop-zone" id="rbaCsvDropZone"
+      ondragover="rbaCsvDragOver(event)" ondragleave="rbaCsvDragLeave(event)" ondrop="rbaCsvDrop(event)"
+      onclick="document.getElementById('rbaCsvFileInput').click()">
+      <div class="csv-drop-icon">📄</div>
+      <div class="csv-drop-text"><strong>Click to choose a file</strong> or drag and drop here<br>(.csv files only)</div>
+    </div>
+    <input type="file" id="rbaCsvFileInput" accept=".csv,text/csv" style="display:none" onchange="rbaCsvFileChosen(event)">
+
+    <div class="csv-preview-box" id="rbaCsvPreviewBox" style="display:none;"></div>
+
+    <div class="csv-modal-btns">
+      <button class="btn-secondary" onclick="closeRbaCsvImportModal()">Cancel</button>
+      <button class="btn-primary" id="rbaCsvImportBtn" onclick="doImportRbaCsv()" disabled style="opacity:0.5;">Import Risk Assessments</button>
     </div>
   </div>
 </div>
