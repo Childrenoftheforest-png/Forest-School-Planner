@@ -2295,6 +2295,30 @@ body {
   justify-content: center;
 }
 #csvImportModal.open { display: flex; }
+
+/* ─── RBA CSV IMPORT MODAL (missed on first pass — same fix as above) ─── */
+#rbaCsvImportModal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(30,45,20,0.55);
+  z-index: 600;
+  align-items: center;
+  justify-content: center;
+}
+#rbaCsvImportModal.open { display: flex; }
+
+/* ─── SCHEDULE AUDIT MODAL (missed on first pass — same fix as above) ─── */
+#scheduleAuditModal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(30,45,20,0.55);
+  z-index: 600;
+  align-items: center;
+  justify-content: center;
+}
+#scheduleAuditModal.open { display: flex; }
 .csv-modal-box {
   background: #fff;
   border-radius: 14px;
