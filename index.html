@@ -13930,7 +13930,12 @@ function openBulkClearModal() {
   document.getElementById('bcsRows').classList.remove('active');
   document.getElementById('bulkClearRowsSection').style.display = 'none';
 
-  // Build month pills — only months that have at least one session in the active sheet
+  // Build month pills — only months that have at least one REAL session on this
+  // sheet. This used to also scan the legacy SESSION_DATA_BASE seed template,
+  // which meant selecting a month could match phantom day-of-month dates that
+  // aren't this sheet's actual sessions at all — the same legacy template
+  // already retired from loadState() for creating stray Friday sessions. Bulk
+  // Clear must only ever touch dates that genuinely exist on this sheet.
   const sheet = getActiveSheet();
   if (!sheet) return;
 
@@ -13938,13 +13943,6 @@ function openBulkClearModal() {
   Object.keys(sheet.sessions || {}).forEach(dateKey => {
     monthsPresent.add(keyMonthAbbr(dateKey));
   });
-  // Also check SESSION_DATA_BASE (raw seed data, always legacy 'D-Mon' literals)
-  if (typeof SESSION_DATA_BASE !== 'undefined') {
-    Object.keys(SESSION_DATA_BASE).forEach(dateKey => {
-      const parts = dateKey.split('-');
-      if (parts.length >= 2) monthsPresent.add(parts[parts.length - 1]);
-    });
-  }
 
   const container = document.getElementById('bulkClearMonths');
   container.innerHTML = '';
@@ -13960,9 +13958,15 @@ function openBulkClearModal() {
     container.appendChild(pill);
   });
 
-  // Build row checkboxes (all checked by default)
+  // Build row checkboxes — UNCHECKED by default. A pre-checked "select what to
+  // delete" list is a trap: clicking the one row you want to clear actually
+  // *removes* it from the selection while leaving every other row selected,
+  // so a single click clears everything except the one row you were aiming
+  // for. Starting empty means nothing is cleared until you deliberately pick
+  // rows, which is the only safe default for an irreversible bulk delete.
   const rowList = document.getElementById('bulkClearRowList');
   rowList.innerHTML = '';
+
   const sheetRows = sheet.rowDefs || ROW_DEFS;
   sheetRows.filter(r => r.key !== '_notes').forEach(row => {
     const item = document.createElement('div');
@@ -13971,7 +13975,7 @@ function openBulkClearModal() {
     cb.type = 'checkbox';
     cb.id = 'bcr_' + row.key.replace(/\W/g,'_');
     cb.dataset.rowKey = row.key;
-    cb.checked = true;
+    cb.checked = false;
     cb.onchange = updateBulkClearPreview;
     const lbl = document.createElement('label');
     lbl.htmlFor = cb.id;
@@ -14012,13 +14016,11 @@ function _getBulkClearTargets() {
   const sheet = getActiveSheet();
   if (!sheet) return { sessionCount: 0, cellCount: 0, dates: [], rowKeys: [] };
 
-  // Collect dates from both state sessions and SESSION_DATA_BASE
-  const allDates = new Set([
-    ...Object.keys(sheet.sessions || {}),
-    ...(typeof SESSION_DATA_BASE !== 'undefined' ? Object.keys(SESSION_DATA_BASE) : [])
-  ]);
-
-  const targetDates = [...allDates].filter(d => selectedMonths.has(keyMonthAbbr(d)));
+  // Only ever target dates that genuinely exist on this sheet — never the
+  // legacy SESSION_DATA_BASE seed template, which uses day-of-month-only keys
+  // that can silently mismatch the sheet's real dates and get created fresh
+  // as empty phantom sessions the moment anything writes to them.
+  const targetDates = Object.keys(sheet.sessions || {}).filter(d => selectedMonths.has(keyMonthAbbr(d)));
 
   // Determine row keys to clear
   let rowKeys;
@@ -14033,7 +14035,7 @@ function _getBulkClearTargets() {
   // Count cells that actually have content
   let cellCount = 0;
   targetDates.forEach(date => {
-    const sess = (sheet.sessions || {})[date] || (typeof SESSION_DATA_BASE !== 'undefined' ? SESSION_DATA_BASE[date] : null) || {};
+    const sess = (sheet.sessions || {})[date] || {};
     rowKeys.forEach(rk => {
       const acts = sess[rk];
       if (acts && acts.length > 0) cellCount++;
@@ -14073,7 +14075,13 @@ function updateBulkClearPreview() {
   }
 
   prev.className = 'bulk-clear-preview';
-  prev.innerHTML = `⚠ This will remove <strong>${cellCount} filled cell${cellCount !== 1 ? 's' : ''}</strong> across <strong>${sessionCount} session${sessionCount !== 1 ? 's' : ''}</strong>. This cannot be undone.`;
+  const sheet = getActiveSheet();
+  const sheetRows = sheet ? (sheet.rowDefs || ROW_DEFS) : ROW_DEFS;
+  const rowLabels = rowKeys.map(rk => {
+    const def = sheetRows.find(r => r.key === rk);
+    return def ? (def.icon ? def.icon + ' ' : '') + def.label : rk;
+  });
+  prev.innerHTML = `⚠ This will remove <strong>${cellCount} filled cell${cellCount !== 1 ? 's' : ''}</strong> across <strong>${sessionCount} session${sessionCount !== 1 ? 's' : ''}</strong>, from: <strong>${rowLabels.map(escHtml).join(', ')}</strong>. This cannot be undone.`;
   btn.disabled = false;
   btn.textContent = `Clear ${cellCount} cell${cellCount !== 1 ? 's' : ''}`;
 }
