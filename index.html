@@ -4467,6 +4467,7 @@ const MONTH_META = {
 };
 
 const ROW_DEFS = [
+  {key:"Seasonal Nature Connection", label:"Nature Connection",    icon:"🧭", cat:"natureconnect"},
   {key:"Morning Circle Question", label:"Morning Circle",        icon:"💬", cat:"morning"},
   {key:"Chat Topics",             label:"Chat Topics",           icon:"🗣️", cat:"chat"},
   {key:"Nature Journaling",       label:"Nature Journaling",     icon:"📓", cat:"journaling"},
@@ -4479,7 +4480,7 @@ const ROW_DEFS = [
   {key:"Long Term Project",       label:"Long Term Project",     icon:"🏗️", cat:"projects"},
   {key:"Camp Improvement / Decoration Activity", label:"Camp Improvement", icon:"🎨", cat:"_camptasks"},
   {key:"Afternoon Tea Club",      label:"Afternoon Tea",         icon:"🍵", cat:"recipes"},
-  {key:"Afternoon Activity",      label:"Seasonal & Spiritual",  icon:"🌙", cat:"seasonal"},
+  {key:"Afternoon Activity",      label:"Spiritual",             icon:"🌙", cat:"seasonal"},
   {key:"Planning & Singing",      label:"Planning & Singing",    icon:"🎶", cat:"songs"},
   {key:"_notes",                  label:"Session Notes",         icon:"📝", cat:"_skip"},
 ];
@@ -4494,7 +4495,8 @@ const BASE_CATEGORIES = [
   {id:"foraging",  label:"Foraging",              emoji:"🌱", color:"#1a3a1a", bg:"#eef6ee", accent:"#3a6b3a", base:true},
   {id:"stories",   label:"Stories",               emoji:"📖", color:"#2a1a3a", bg:"#f5f0fa", accent:"#6a4a8a", base:true},
   {id:"songs",     label:"Songs",                 emoji:"🎶", color:"#1a2a3a", bg:"#eef3fa", accent:"#3a5a8a", base:true},
-  {id:"seasonal",  label:"Seasonal & Spiritual",  emoji:"🌙", color:"#2a2a1a", bg:"#f8f8ee", accent:"#8a7a2a", base:true},
+  {id:"seasonal",  label:"Spiritual",             emoji:"🌙", color:"#2a2a1a", bg:"#f8f8ee", accent:"#8a7a2a", base:true},
+  {id:"natureconnect", label:"Seasonal Nature Connection", emoji:"🧭", color:"#1a2e1a", bg:"#eef6ee", accent:"#3a7a4a", base:true},
   {id:"woodland",  label:"Woodland Tasks",         emoji:"🌳", color:"#1a3028", bg:"#eef6f4", accent:"#2a6a58", base:true},
   {id:"morning",   label:"Morning Circle",        emoji:"💬", color:"#2a3a1a", bg:"#f0f6ee", accent:"#4a7a3a", base:true},
   {id:"chat",      label:"Chat Topics",           emoji:"🗣️", color:"#1a2a3a", bg:"#eef3fa", accent:"#3a6a9a", base:true},
@@ -5030,7 +5032,8 @@ const MENU_ITEMS_BASE = [
   {name:"Decorating the fire pit / Making blackboard easels",month:"Sep",cat:"woodland",resources:"EQUIPMENT:\\n• Paintbrushes\\n• Bow saw\\n• Drill\\n\\nCONSUMABLES:\\n• Exterior paint\\n• Timber offcuts\\n• Chalkboard paint"},
   {name:"Knot-tying challenges and natural material traps",month:"Oct",cat:"bushcraft",resources:"EQUIPMENT:\\n• Rope lengths (one per child)\\n• Knot reference cards\\n\\nCONSUMABLES:\\n• Natural cordage\\n• Sticks for trap mechanisms"},
   {name:"Knot-tying challenges with natural materials",month:"Nov",cat:"bushcraft",resources:"EQUIPMENT:\\n• Rope lengths\\n• Knot reference cards\\n\\nCONSUMABLES:\\n• Natural cordage\\n• Sticks"},
-  {name:"Leaf printing with hammering technique",month:"Oct",cat:"crafts",resources:"EQUIPMENT:\\n• Wooden mallets or hammers\\n• Flat chopping block or stone\\n• Protective plastic sheet\\n\\nCONSUMABLES:\\n• Fresh leaves (various shapes)\\n• Cotton fabric or thick paper\\n• Backing paper"}
+  {name:"Leaf printing with hammering technique",month:"Oct",cat:"crafts",resources:"EQUIPMENT:\\n• Wooden mallets or hammers\\n• Flat chopping block or stone\\n• Protective plastic sheet\\n\\nCONSUMABLES:\\n• Fresh leaves (various shapes)\\n• Cotton fabric or thick paper\\n• Backing paper"},
+  {name:"Wildlife cameras",month:"all",cat:"natureconnect"},{name:"Looking for animal tracking signs",month:"all",cat:"natureconnect"},{name:"Setting traps for animals",month:"Sep",cat:"natureconnect"},{name:"Foraging for Dandelion Leaves",month:"Jan",cat:"natureconnect"},{name:"Foraging for Chickweed",month:"Jan",cat:"natureconnect"},{name:"Foraging for Wild Garlic (first shoots)",month:"Feb",cat:"natureconnect"},{name:"Foraging for Nettles — young tips",month:"Feb",cat:"natureconnect"},{name:"Foraging for Nettle Tips",month:"Mar",cat:"natureconnect"},{name:"Foraging for Wild Garlic",month:"Mar",cat:"natureconnect"},{name:"Foraging for Wood Sorrel",month:"Mar",cat:"natureconnect"},{name:"Foraging for Dandelion Flowers",month:"Mar",cat:"natureconnect"},{name:"Foraging for Hawthorn Shoots",month:"Mar",cat:"natureconnect"},{name:"Foraging for Wild Garlic (peak season)",month:"Apr",cat:"natureconnect"},{name:"Foraging for Dandelion Flowers",month:"Apr",cat:"natureconnect"},{name:"Foraging for Stinging Nettles",month:"Apr",cat:"natureconnect"},{name:"Foraging for Elderflowers",month:"May",cat:"natureconnect"},{name:"Foraging for Hawthorn Flowers",month:"May",cat:"natureconnect"},{name:"Foraging for Lemon Balm",month:"May",cat:"natureconnect"},{name:"Foraging for Sorrel",month:"May",cat:"natureconnect"},{name:"Foraging for Wild Strawberries",month:"Jun",cat:"natureconnect"},{name:"Foraging for Honeysuckle Flowers",month:"Jun",cat:"natureconnect"},{name:"Foraging for Blackberries (early)",month:"Aug",cat:"natureconnect"},{name:"Foraging for Wild Cherries",month:"Jul",cat:"natureconnect"},{name:"Foraging for Meadowsweet Flowers",month:"Jul",cat:"natureconnect"},{name:"Foraging for Blackberries",month:"Aug",cat:"natureconnect"},{name:"Foraging for Rosehips (early)",month:"Sep",cat:"natureconnect"},{name:"Foraging for Crab Apples (early)",month:"Sep",cat:"natureconnect"},{name:"Foraging for Mushrooms",month:"Sep",cat:"natureconnect"},{name:"Foraging for Blackberries",month:"Sep",cat:"natureconnect"},{name:"Foraging for Rosehips",month:"Sep",cat:"natureconnect"},{name:"Foraging for Elderberries",month:"Sep",cat:"natureconnect"},{name:"Foraging for Sweet Chestnuts",month:"Oct",cat:"natureconnect"},{name:"Foraging for Sloe Berries",month:"Oct",cat:"natureconnect"},{name:"Foraging for Rosehips",month:"Nov",cat:"natureconnect"},{name:"Foraging for Hawthorn Berries",month:"Nov",cat:"natureconnect"},{name:"Foraging for Holly Berries (decorative only)",month:"Dec",cat:"natureconnect"},{name:"Foraging for Pine Needles (for tea)",month:"Dec",cat:"natureconnect"},{name:"Foraging for Stinging Nettles",month:"Mar",cat:"natureconnect"},
 ];
 
 // Session data from the spreadsheet
@@ -5989,6 +5992,108 @@ function loadState() {
       return true;
     });
     if (state.menuItems.length !== beforeDedupeLen) purged = true;
+  }
+
+  // One-off migration (Seasonal Nature Connection split, Sep 2026): the old
+  // single "Seasonal & Spiritual" bucket becomes two — Spiritual (unchanged
+  // content, just relabelled) and a new Seasonal Nature Connection category +
+  // dedicated row for foraging, tracking and seasonal-observation activities
+  // that used to live scattered inside Woodland Tasks and Bushcraft & Skills.
+  // Renaming/hiding here also fixes up any session cells and existing sheets'
+  // own saved row lists — new installs get the right shape from ROW_DEFS /
+  // HOLIDAY_DEFAULT_ROWS directly. Safe to leave running permanently.
+  {
+    const renameActivityInSessionsNC = (oldName, newName) => {
+      if (!oldName || !newName || oldName === newName) return;
+      state.sheets.forEach(sheet => {
+        if (!sheet.sessions) return;
+        Object.values(sheet.sessions).forEach(sessionData => {
+          Object.keys(sessionData).forEach(rowKey => {
+            const acts = sessionData[rowKey];
+            if (!Array.isArray(acts)) return;
+            acts.forEach(a => {
+              if (a && typeof a === 'object' && a.text === oldName) a.text = newName;
+            });
+          });
+        });
+      });
+    };
+
+    // Retired outright — equipment no longer owned, or conditions never apply
+    // (day sessions only, no genuine snow, can't guarantee deer sign)
+    const NC_RETIRE = [
+      'Endoscope camera into bird boxes',
+      'Endoscope camera into ponds',
+      'Dark sky stargazing',
+      'Star gazing — winter constellations',
+      'Snow tracking walk',
+      'Follow the Deer Tracks — nature tracking adventure',
+    ];
+    // Folded into the consolidated activities added to MENU_ITEMS_BASE — hide originals
+    const NC_SUPERSEDED = [
+      'Checking wildlife camera traps',
+      'Camera trap setup',
+      'Camera trap setup for autumn wildlife',
+      'Wildlife camera monitoring project',
+      'Wildlife camera review',
+      'Animal tracking',
+      'Animal tracking — reading signs in mud and bark',
+      'Setting animal tracking traps',
+      'Setting and using animal tracking traps',
+    ];
+    [...NC_RETIRE, ...NC_SUPERSEDED].forEach(name => {
+      state.menuItems.forEach(item => {
+        if (item && item.name === name && !item.hidden) { item.hidden = true; purged = true; }
+      });
+    });
+
+    // Kept, just recategorised into Seasonal Nature Connection
+    const NC_RECAT = [
+      'UV torch mushroom hunting',
+      'Mushroom foraging walk',
+      'Bird box checking',
+      'Winter bird survey',
+      'Snowdrop mapping project',
+      'Snowdrop walk',
+      'First buds — watching and recording',
+      'Forest walk — spotting changes',
+      'Tadpole checking',
+      'Laying food caches for animals + wildlife cameras',
+      'Learning the art of stealth and tracking in nature',
+    ];
+    state.menuItems.forEach(item => {
+      if (item && NC_RECAT.includes(item.name) && item.cat !== 'natureconnect') {
+        item.cat = 'natureconnect';
+        purged = true;
+      }
+    });
+
+    // Drop the now-redundant "+ wildlife cameras" tail — that's its own
+    // consolidated activity now
+    state.menuItems.forEach(item => {
+      if (item && item.name === 'Laying food caches for animals + wildlife cameras') {
+        item.name = 'Laying food caches for animals';
+        purged = true;
+      }
+    });
+    renameActivityInSessionsNC('Laying food caches for animals + wildlife cameras', 'Laying food caches for animals');
+
+    // Existing sheets keep their own saved rowDefs snapshot from creation time,
+    // so the shared ROW_DEFS/HOLIDAY_DEFAULT_ROWS updates above only reach
+    // brand-new sheets — fix up sheets that already have their own copy.
+    state.sheets.forEach(sheet => {
+      if (!sheet.rowDefs || !sheet.rowDefs.length) return;
+      sheet.rowDefs.forEach(row => {
+        if (row.key === 'Afternoon Activity' && row.label === 'Seasonal & Spiritual') {
+          row.label = 'Spiritual';
+          purged = true;
+        }
+      });
+      if (!sheet.rowDefs.some(r => r.key === 'Seasonal Nature Connection')) {
+        sheet.rowDefs.unshift({ key: 'Seasonal Nature Connection', label: 'Nature Connection', icon: '🧭', cat: 'natureconnect' });
+        purged = true;
+      }
+    });
   }
 
   if (anySheetMigrated || catFixed || backfilled || purged || sessionsPruned) saveState();
@@ -12079,13 +12184,14 @@ window.addEventListener('resize', () => {
 // ═══════════════════════════════════════════════════════════════
 
 const HOLIDAY_DEFAULT_ROWS = [
+  {key:'Seasonal Nature Connection', label:'Nature Connection', icon:'🧭', cat:'natureconnect'},
   {key:'Morning Circle Question', label:'Morning Circle', icon:'💬', cat:'seasonal'},
   {key:'Wide Game', label:'Wide Game (AM)', icon:'🦊', cat:'wide'},
   {key:'Active Bushcraft Activity / Role Playing Activity', label:'Bushcraft / Activity', icon:'🔥', cat:'bushcraft'},
   {key:'Low Energy Craft', label:'Craft', icon:'🌿', cat:'crafts'},
   {key:'divider_lunch_default', label:'Lunch', icon:'🥪', type:'divider'},
   {key:'Nature-Based Activity / Woodland Management Task', label:'Nature / Woodland Task', icon:'🌳', cat:'woodland'},
-  {key:'Afternoon Activity', label:'Seasonal & Spiritual', icon:'🌙', cat:'seasonal'},
+  {key:'Afternoon Activity', label:'Spiritual', icon:'🌙', cat:'seasonal'},
   {key:'Planning & Singing', label:'Planning & Singing', icon:'🎶', cat:'songs'},
   {key:'_notes', label:'Session Notes', icon:'📝'},
 ];
@@ -17815,7 +17921,7 @@ function renderPlannerCurrentMonth() {
       <code>resources</code> &nbsp;·&nbsp;
       <code>notes</code> &nbsp;·&nbsp;
       <code>link</code><br><br>
-      <strong>Category values:</strong> Wide Games · Games · Bushcraft &amp; Skills · Craft Projects · Recipes &amp; Cooking · Foraging · Stories · Songs · Seasonal &amp; Spiritual · Woodland Tasks · Afternoon Tea Club<br>
+      <strong>Category values:</strong> Wide Games · Games · Bushcraft &amp; Skills · Craft Projects · Recipes &amp; Cooking · Foraging · Stories · Songs · Spiritual · Seasonal Nature Connection · Woodland Tasks · Afternoon Tea Club<br>
       <strong>Month values:</strong> Jan · Feb · Mar · Apr · May · Jun · Jul · Aug · Sep · Oct · Nov · Dec · all (or "Year Round")
     </div>
 
