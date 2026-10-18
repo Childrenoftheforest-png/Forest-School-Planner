@@ -4463,8 +4463,12 @@ const DOC_REF = db.collection('planner').doc('main');
 // Failures are shown in a banner instead of only being logged.
 // ═══════════════════════════════════════════════════════════════
 const CLOUD_CLIENT_ID = 'c_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); // identifies this page load, so a write whose acknowledgement was lost can be recognised as ours
-const cloudSync = { lastSynced:{}, loaded:{}, rev:{}, canResume:{}, failedLoad:{}, failing:{}, conflict:{}, stale:{}, dirty:{}, inflight:{}, getters:{}, timers:{}, retryMs:{} };
+const cloudSync = { layout: cloudStoredLayout(), docChars:{}, lastSynced:{}, loaded:{}, rev:{}, canResume:{}, failedLoad:{}, failing:{}, conflict:{}, stale:{}, dirty:{}, inflight:{}, getters:{}, timers:{}, retryMs:{} };
 const CLOUD_LABELS = { main:'planning', register:'register', rbas:'risk assessments', categories:'categories', shopping:'shopping list' };
+function cloudLabel(n) { return CLOUD_LABELS[n] || (/^sheet_/.test(n) ? 'planning sheets' : /^menu_/.test(n) ? 'activities' : n); }
+function cloudIsPart(n) { return /^(sheet|menu)_/.test(n); }
+function cloudStoredLayout() { try { return localStorage.getItem('cotf_layout') === '2' ? 2 : 1; } catch(e) { return 1; } }
+function cloudStoreLayout(l) { try { localStorage.setItem('cotf_layout', String(l)); } catch(e) {} }
 function cloudRef(name) { return db.collection('planner').doc(name); }
 function cloudStoredRev(name) { try { const v = localStorage.getItem('cotf_rev_' + name); return v === null ? null : parseInt(v, 10); } catch(e) { return null; } }
 function cloudStoreRev(name, r) { try { localStorage.setItem('cotf_rev_' + name, String(r)); } catch(e) {} }
@@ -4493,7 +4497,7 @@ async function cloudRead(name) {
     cloudSync.loaded[name] = true; cloudSync.failedLoad[name] = false;
     cloudSync.rev[name] = rev; cloudStoreRev(name, rev);
     cloudSync.lastSynced[name] = data ? cloudCanonDoc(name, data) : null;
-    if (name === 'main') cloudSync.mainChars = cloudSync.lastSynced[name] ? cloudSync.lastSynced[name].length : 0;
+    cloudSync.docChars[name] = cloudSync.lastSynced[name] ? cloudSync.lastSynced[name].length : 0;
     updateSyncBanner();
     return { ok: true, exists: snap.exists, data };
   } catch (e) {
@@ -4502,7 +4506,7 @@ async function cloudRead(name) {
     const sr = cloudStoredRev(name);
     cloudSync.rev[name] = sr;
     // Only the planning doc has a full local copy, so only it may resume later
-    cloudSync.canResume[name] = (name === 'main' && sr !== null);
+    cloudSync.canResume[name] = ((name === 'main' || cloudIsPart(name)) && sr !== null);
     updateSyncBanner();
     return { ok: false };
   }
@@ -4527,9 +4531,25 @@ function cloudKeepConflictCopy(name, data) {
 }
 
 async function cloudFlush(name) {
+  if (cloudSync.splitBroken && (name === 'main' || cloudIsPart(name))) return;   // stored pieces are missing: don't write anything on top
   if (cloudSync.conflict[name]) return;                       // paused until reload
   if (!cloudSync.dirty[name]) return;
   if (cloudSync.inflight[name]) { clearTimeout(cloudSync.timers[name]); cloudSync.timers[name] = setTimeout(() => cloudFlush(name), 500); return; }
+  if (name === 'main' && cloudSync.layout === 2 && !cloudSync.writingParts) {
+    // The index document is written last, so it never lists a sheet or activity block that isn't saved yet.
+    cloudSync.writingParts = true;
+    try {
+      for (const p of Object.keys(cloudSync.dirty).filter(n => cloudIsPart(n) && cloudSync.dirty[n])) {
+        for (let i = 0; i < 3 && cloudSync.dirty[p] && !cloudSync.conflict[p]; i++) await cloudFlush(p);
+      }
+    } finally { cloudSync.writingParts = false; }
+    const blockedPart = Object.keys(cloudSync.dirty).some(n => cloudIsPart(n) && (cloudSync.dirty[n] || cloudSync.inflight[n]));
+    if (blockedPart) {
+      if (Object.keys(cloudSync.conflict).some(n => cloudIsPart(n) && cloudSync.conflict[n])) return;   // paused until reload
+      clearTimeout(cloudSync.timers.main); cloudSync.timers.main = setTimeout(() => cloudFlush('main'), 2000);
+      return;
+    }
+  }
   cloudSync.inflight[name] = true;
   let data = null;
   try {
@@ -4539,7 +4559,9 @@ async function cloudFlush(name) {
       const r = await cloudRead(name);
       if (!r.ok) throw new Error('still offline');
       // Resume only if this device has a full copy AND nobody else has saved since it last synced
-      if (!(canResume && base !== null && cloudSync.rev[name] === base)) {
+      // (A split-out part that doesn't exist in the cloud yet has nothing to overwrite, so it may be created.)
+      const nothingThere = cloudIsPart(name) && !r.exists;
+      if (!nothingThere && !(canResume && base !== null && cloudSync.rev[name] === base)) {
         cloudSync.conflict[name] = true;
         cloudKeepConflictCopy(name, cloudSync.getters[name]());
         return;
@@ -4549,7 +4571,7 @@ async function cloudFlush(name) {
     cloudSync.dirty[name] = false;
     // Nothing new to save (e.g. only the sheet you were looking at changed): don't touch the cloud
     const canon = cloudCanonDoc(name, data);
-    if (name === 'main') cloudSync.mainChars = canon.length;
+    cloudSync.docChars[name] = canon.length;
     if (canon === cloudSync.lastSynced[name]) { cloudSync.failing[name] = false; return; }
     const expected = cloudSync.rev[name];
     const outcome = await db.runTransaction(async tx => {
@@ -4597,21 +4619,25 @@ async function cloudFlush(name) {
 function updateSyncBanner() {
   if (typeof document === 'undefined' || !document.body) return;
   let el = document.getElementById('syncBanner');
-  const names = o => Object.keys(o).filter(n => o[n]).map(n => CLOUD_LABELS[n] || n);
+  const names = o => Array.from(new Set(Object.keys(o).filter(n => o[n]).map(cloudLabel)));
   const conflicts = names(cloudSync.conflict);
-  const blocked = Object.keys(cloudSync.failedLoad).filter(n => cloudSync.failedLoad[n] && !cloudSync.loaded[n] && !(n === 'main' && cloudSync.canResume[n]));
+  const blocked = Object.keys(cloudSync.failedLoad).filter(n => cloudSync.failedLoad[n] && !cloudSync.loaded[n] && !((n === 'main' || cloudIsPart(n)) && cloudSync.canResume[n]));
   const offlineMain = cloudSync.failedLoad.main && !cloudSync.loaded.main && cloudSync.canResume.main;
   const failing = names(cloudSync.failing);
   const stale = names(cloudSync.stale);
   let msg = '', kind = '', actions = '';
   const reload = '<button onclick="location.reload()" style="margin-left:.6rem;padding:.2rem .7rem;border-radius:6px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;">Reload</button>';
-  if (conflicts.length) {
+  if (cloudSync.splitBroken) {
+    kind = 'bad';
+    msg = '⛔ Part of the stored planning data is missing, so nothing is being saved to protect what is left. Open 🛟 Backups and restore the latest backup (or tell Claude).';
+    actions = '';
+  } else if (conflicts.length) {
     kind = 'bad';
     msg = '⛔ The ' + conflicts.join(' and ') + ' changed on another device, so saving is paused to avoid overwriting it. Reload to get the latest version. Your unsaved changes from this screen are kept in this browser.';
     actions = reload + '<button onclick="downloadUnsavedCopy()" style="margin-left:.4rem;padding:.2rem .7rem;border-radius:6px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;">Download my unsaved copy</button>';
   } else if (blocked.length) {
     kind = 'bad';
-    msg = '⛔ Couldn\'t load the ' + blocked.map(n => CLOUD_LABELS[n] || n).join(' and ') + ' from the cloud, so nothing will be saved for ' + (blocked.length > 1 ? 'them' : 'it') + ' until you reload. Nothing has been overwritten.';
+    msg = '⛔ Couldn\'t load the ' + Array.from(new Set(blocked.map(cloudLabel))).join(' and ') + ' from the cloud, so nothing will be saved for ' + (blocked.length > 1 ? 'them' : 'it') + ' until you reload. Nothing has been overwritten.';
     actions = reload;
   } else if (offlineMain || failing.length) {
     kind = 'warn';
@@ -4622,7 +4648,7 @@ function updateSyncBanner() {
     actions = reload;
   } else if (cloudMainUsage() >= 0.85) {
     kind = cloudMainUsage() >= 0.95 ? 'bad' : 'warn';
-    msg = (kind === 'bad' ? '⛔ ' : '⚠️ ') + 'The planning data is at about ' + Math.round(cloudMainUsage() * 100) + '% of the most the cloud can store in one document. Saves will start failing when it fills. Tell Claude so the data can be split up.';
+    msg = (kind === 'bad' ? '⛔ ' : '⚠️ ') + (cloudSync.layout === 2 ? 'One stored document (' + cloudBiggestDoc() + ') is at about ' + Math.round(cloudMainUsage() * 100) + '% of the cloud limit. Saves will start failing when it fills. Tell Claude.' : 'The planning data is at about ' + Math.round(cloudMainUsage() * 100) + '% of the most the cloud can store in one document. Saves will start failing when it fills. Open 🛟 Backups and press Upgrade storage.');
   }
   if (!msg) { if (el) el.style.display = 'none'; return; }
   if (!el) {
@@ -4639,7 +4665,8 @@ function updateSyncBanner() {
 
 // Firestore allows 1 MiB per document. This is an estimate from the size of the content.
 const CLOUD_DOC_LIMIT_BYTES = 1048576;
-function cloudMainUsage() { return cloudSync.mainChars ? (cloudSync.mainChars * 1.03) / CLOUD_DOC_LIMIT_BYTES : 0; }
+function cloudBiggestDoc() { let b = '', m = 0; Object.keys(cloudSync.docChars).forEach(n => { if (cloudSync.docChars[n] > m) { m = cloudSync.docChars[n]; b = n; } }); return b; }
+function cloudMainUsage() { const m = Math.max(0, ...Object.values(cloudSync.docChars)); return m ? (m * 1.03) / CLOUD_DOC_LIMIT_BYTES : 0; }
 
 function downloadUnsavedCopy() {
   try {
@@ -4676,15 +4703,101 @@ async function cloudCheckForNewer() {
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cloudCheckForNewer(); });
 
-// Planning doc: queued save (debounced 1.5s). `data` is rebuilt from live state at write time.
-// Which sheet you're looking at is per-device (kept in this browser only), never part of the shared document
-function saveToCloud(data) { cloudSave('main', () => { const c = Object.assign({}, data); delete c.activeSheetId; return c; }, 1500); }
+// ───────────────────────────────────────────────────────────────
+// STORAGE LAYOUTS
+// Layout 1 (original): everything in one document, planner/main. Firestore caps a document at 1 MiB.
+// Layout 2 (after "Upgrade storage"): planner/main holds only a small index (dates, settings, the list
+// of sheets, how many activity blocks there are). Each planning sheet is its own document
+// (planner/sheet_<id>) and the activities are held in blocks of 300 (planner/menu_0, menu_1, ...).
+// Every document has its own revision check, so nothing can fill up, and two devices editing
+// different sheets no longer clash. The index is always written last.
+// The rest of the app still sees one 'state' object: splitMain/joinMain convert between the two.
+// ───────────────────────────────────────────────────────────────
+const CLOUD_MENU_CHUNK = 300;
+function sheetDocName(id) { return 'sheet_' + String(id).replace(/[^A-Za-z0-9_-]/g, '_'); }
+function menuDocName(i) { return 'menu_' + i; }
+function menuChunkCount(items) { return Math.max(1, Math.ceil(((items || []).length) / CLOUD_MENU_CHUNK)); }
+function mainIndexOf(logical) {
+  const idx = {};
+  Object.keys(logical).forEach(k => { if (k !== 'sheets' && k !== 'menuItems' && k !== 'activeSheetId') idx[k] = logical[k]; });
+  const sheets = logical.sheets || [];
+  const seen = {};
+  idx.sheetIds = sheets.map(sh => {
+    const n = sheetDocName(sh.id);
+    if (seen[n]) throw new Error('Two sheets would share one storage name (' + sh.id + ')');
+    seen[n] = true; return sh.id;
+  });
+  idx.menuChunks = menuChunkCount(logical.menuItems);
+  idx.layout = 2;
+  return idx;
+}
+// logical -> { docName: content }, index last
+function splitMain(logical) {
+  const out = {};
+  (logical.sheets || []).forEach(sh => { out[sheetDocName(sh.id)] = sh; });
+  const items = logical.menuItems || [];
+  for (let i = 0; i < menuChunkCount(items); i++) out[menuDocName(i)] = { items: items.slice(i * CLOUD_MENU_CHUNK, (i + 1) * CLOUD_MENU_CHUNK) };
+  out.main = mainIndexOf(logical);
+  return out;
+}
+// { docName: content } -> logical. Throws if the index lists something that is missing.
+function joinMain(docs) {
+  const idx = docs.main || {};
+  if (idx.layout !== 2) return idx;                      // layout 1: already whole
+  const out = {};
+  Object.keys(idx).forEach(k => { if (k !== 'layout' && k !== 'sheetIds' && k !== 'menuChunks' && k !== '_rev' && k !== '_by') out[k] = idx[k]; });
+  out.sheets = (idx.sheetIds || []).map(id => {
+    const d = docs[sheetDocName(id)];
+    if (!d) throw new Error('A sheet is missing from storage (' + id + ')');
+    const c = Object.assign({}, d); delete c._rev; delete c._by; return c;
+  });
+  out.menuItems = [];
+  for (let i = 0; i < (idx.menuChunks || 0); i++) {
+    const d = docs[menuDocName(i)];
+    if (!d) throw new Error('An activity block is missing from storage (' + i + ')');
+    out.menuItems = out.menuItems.concat(d.items || []);
+  }
+  return out;
+}
 
-// Planning doc: read. Returns the data, or null if it doesn't exist OR could not be read
-// (cloudSync.loaded.main tells the two apart, and blocks saving when the read failed).
+// Planning data: queued save (debounced 1.5s). `data` is rebuilt from live state at write time.
+// Which sheet you're looking at is per-device (kept in this browser only), never part of the shared documents
+function saveToCloud(data) {
+  if (cloudSync.layout !== 2) { cloudSave('main', () => { const c = Object.assign({}, data); delete c.activeSheetId; return c; }, 1500); return; }
+  (data.sheets || []).forEach(sh => {
+    const n = sheetDocName(sh.id);
+    cloudSave(n, () => (data.sheets || []).find(x => x.id === sh.id) || sh, 1500);
+  });
+  for (let i = 0; i < menuChunkCount(data.menuItems); i++) {
+    cloudSave(menuDocName(i), () => ({ items: (data.menuItems || []).slice(i * CLOUD_MENU_CHUNK, (i + 1) * CLOUD_MENU_CHUNK) }), 1500);
+  }
+  cloudSave('main', () => mainIndexOf(data), 1500);
+}
+
+// Planning data: read. Returns the whole thing (joined if split), or null if it doesn't exist OR could
+// not be read (cloudSync.loaded.main tells the two apart, and blocks saving when the read failed).
 async function loadFromCloud() {
   const r = await cloudRead('main');
-  return (r.ok && r.exists) ? r.data : null;
+  if (!(r.ok && r.exists)) return null;
+  if (r.data.layout !== 2) { cloudSync.layout = 1; cloudStoreLayout(1); return r.data; }
+  cloudSync.layout = 2; cloudStoreLayout(2);
+  const idx = r.data;
+  const docs = { main: idx };
+  const names = (idx.sheetIds || []).map(sheetDocName);
+  for (let i = 0; i < (idx.menuChunks || 0); i++) names.push(menuDocName(i));
+  const reads = await Promise.all(names.map(async n => [n, await cloudRead(n)]));
+  const bad = reads.filter(([n, x]) => !x.ok || !x.exists);
+  if (bad.length) {
+    // Can't trust a partial picture: block saving everything until a clean reload
+    cloudSync.loaded.main = false; cloudSync.failedLoad.main = true; cloudSync.canResume.main = false;
+    if (bad.some(([n, x]) => x.ok)) cloudSync.splitBroken = true;      // a piece the index lists is genuinely missing: no saving at all until a restore
+    bad.forEach(([n, x]) => { if (x.ok && !x.exists) { cloudSync.loaded[n] = false; cloudSync.failedLoad[n] = true; cloudSync.canResume[n] = false; } });
+    console.warn('Split storage incomplete:', bad.map(b => b[0]));
+    updateSyncBanner();
+    return null;
+  }
+  reads.forEach(([n, x]) => { docs[n] = x.data; });
+  return joinMain(docs);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4717,8 +4830,14 @@ async function createBackup(kind, label) {
   const names = BACKUP_DOCS.filter(n => cloudSync.loaded[n] && !cloudSync.failedLoad[n]);
   if (!names.includes('main')) throw new Error('The planning data has not loaded from the cloud, so there is nothing safe to back up.');
   const id = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-  for (const n of names) await backupDocRef(id, n).set(backupPayload(n));
-  const entry = { at: new Date().toISOString(), day: ukDateNow(), kind: kind || 'manual', label: label || '', counts: backupCounts(), docs: names };
+  const phys = {};
+  for (const n of names) {
+    const p = backupPayload(n);
+    if (n === 'main') Object.assign(phys, splitMain(p)); else phys[n] = p;   // planning data is stored in pieces, so a backup can never hit the size cap either
+  }
+  const physNames = Object.keys(phys);
+  for (const n of physNames) await backupDocRef(id, n).set(phys[n]);
+  const entry = { at: new Date().toISOString(), day: ukDateNow(), kind: kind || 'manual', label: label || '', counts: backupCounts(), docs: physNames };
   await backupIndexRef().set({ entries: { [id]: entry } }, { merge: true });
   await backupPrune();
   return id;
@@ -4752,12 +4871,16 @@ async function autoBackupIfDue() {
 
 // Save a document immediately and wait for it (used by restore)
 async function cloudWriteNow(name, data) {
+  if (!cloudSync.loaded[name]) {                  // never read this one (e.g. a new sheet document): learn its revision first
+    const r = await cloudRead(name);
+    if (!r.ok) throw new Error('Could not reach the cloud to check ' + cloudLabel(name));
+  }
   cloudSync.getters[name] = () => data;
   cloudSync.dirty[name] = true;
   clearTimeout(cloudSync.timers[name]);
   for (let i = 0; i < 40 && cloudSync.inflight[name]; i++) await new Promise(r => setTimeout(r, 250));
   await cloudFlush(name);
-  if (cloudSync.conflict[name] || cloudSync.dirty[name]) throw new Error('Could not save the ' + (CLOUD_LABELS[name] || name) + ' (is the connection down, or was it changed elsewhere?)');
+  if (cloudSync.conflict[name] || cloudSync.dirty[name]) throw new Error('Could not save the ' + cloudLabel(name) + ' (is the connection down, or was it changed elsewhere?)');
 }
 
 async function backupFetch(id, names) {
@@ -4770,24 +4893,45 @@ async function backupFetch(id, names) {
   return out;
 }
 
+// Physical backup documents -> { main: <whole planning data>, register, rbas, categories }
+function composeBackup(map) {
+  const out = {}, mainDocs = {};
+  Object.keys(map).forEach(n => { if (n === 'main' || cloudIsPart(n)) mainDocs[n] = map[n]; else out[n] = map[n]; });
+  if (mainDocs.main) out.main = joinMain(mainDocs);
+  return out;
+}
+
+// Write the whole planning data in whichever layout is live (parts first, index last)
+async function writeLogicalMain(logical) {
+  if (cloudSync.layout !== 2) { await cloudWriteNow('main', logical); return; }
+  const parts = splitMain(logical);
+  for (const n of Object.keys(parts).filter(n => n !== 'main')) await cloudWriteNow(n, parts[n]);
+  await cloudWriteNow('main', parts.main);
+}
+
 async function restoreBackup(id) {
   const list = await backupList();
   const e = list.find(x => x.id === id);
   if (!e) { alert('That backup was not found.'); return; }
-  if (Object.keys(cloudSync.conflict).some(n => cloudSync.conflict[n]) || BACKUP_DOCS.some(n => cloudSync.failedLoad[n] && !cloudSync.loaded[n])) {
+  if (Object.keys(cloudSync.conflict).some(n => cloudSync.conflict[n]) || BACKUP_DOCS.some(n => cloudSync.failedLoad[n] && !cloudSync.loaded[n] && !(n === 'main' && cloudSync.splitBroken))) {
     alert('Reload the page first: some data has not loaded cleanly or was changed on another device.'); return;
   }
   const c = e.counts || {};
   const when = new Date(e.at).toLocaleString('en-GB', { timeZone: 'Europe/London', dateStyle: 'medium', timeStyle: 'short' });
   if (!confirm('Restore the backup from ' + when + '?\n\nIt contains ' + (c.sheets ?? '?') + ' sheets, ' + (c.activities ?? '?') + ' activities, ' + (c.people ?? '?') + ' people, ' + (c.rbas ?? '?') + ' risk assessments.\n\nWhat is in the app right now is backed up first, then replaced. The page will reload.')) return;
   try {
-    const data = await backupFetch(id, e.docs || BACKUP_DOCS);          // fetch first: fail before changing anything
-    await createBackup('pre-restore', 'Before restoring ' + when);
+    const data = composeBackup(await backupFetch(id, e.docs || BACKUP_DOCS));   // fetch first: fail before changing anything
+    if (!cloudSync.splitBroken) await createBackup('pre-restore', 'Before restoring ' + when);   // (when pieces are missing, what is in memory is not a trustworthy copy)
+    cloudSync.splitBroken = false;
     cloudSync.frozen = true;                                              // nothing else may save during the swap
-    for (const n of Object.keys(data)) await cloudWriteNow(n, data[n]);
+    Object.keys(cloudSync.timers).forEach(n => clearTimeout(cloudSync.timers[n]));
+    Object.keys(cloudSync.dirty).forEach(n => { cloudSync.dirty[n] = false; });
+    if (data.main) await writeLogicalMain(data.main);
+    for (const n of Object.keys(data).filter(n => n !== 'main')) await cloudWriteNow(n, data[n]);
     location.reload();
   } catch (err) {
     cloudSync.frozen = false;
+    if (cloudSync.failedLoad.main && !cloudSync.loaded.main) cloudSync.splitBroken = true;
     alert('Restore failed: ' + err.message + '\n\nNothing further was changed. If anything looks wrong, reload and check the Backups list for the "pre-restore" copy.');
   }
 }
@@ -4796,7 +4940,7 @@ async function downloadBackup(id) {
   try {
     const list = await backupList();
     const e = list.find(x => x.id === id);
-    const data = await backupFetch(id, (e && e.docs) || BACKUP_DOCS);
+    const data = composeBackup(await backupFetch(id, (e && e.docs) || BACKUP_DOCS));
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
     a.download = 'cotf-backup-' + id + '.json';
@@ -4824,7 +4968,8 @@ async function openBackupsModal() {
     const list = await backupList();
     const pct = Math.round(cloudMainUsage() * 100);
     let h = '<p style="font-family:Lora,serif;font-size:.85rem;color:var(--bark-light);margin-bottom:.7rem;">A snapshot of planning, register, risk assessments and categories is taken automatically once a day. The newest ' + BACKUP_KEEP + ' are kept.</p>';
-    h += '<p style="font-family:Lora,serif;font-size:.85rem;margin-bottom:.9rem;">Planning data size: about <b>' + pct + '%</b> of the cloud limit for one document.</p>';
+    if (cloudSync.layout === 2) h += '<p style="font-family:Lora,serif;font-size:.85rem;margin-bottom:.9rem;">Storage: split into small pieces (one per sheet, plus activity blocks). The fullest piece is at about <b>' + pct + '%</b> of the cloud limit.</p>';
+    else h += '<p style="font-family:Lora,serif;font-size:.85rem;margin-bottom:.9rem;">Planning data size: about <b>' + pct + '%</b> of the cloud limit for one document. <button class="btn-secondary" onclick="upgradeStorage()">Upgrade storage</button></p>';
     h += '<button class="btn-primary" onclick="backupNowClick(this)">Back up now</button>';
     h += '<div style="margin-top:1rem;display:flex;flex-direction:column;gap:.45rem;">';
     if (!list.length) h += '<p style="font-family:Lora,serif;font-style:italic;">No backups yet.</p>';
@@ -4841,6 +4986,42 @@ async function openBackupsModal() {
     body.innerHTML = h;
   } catch (err) {
     body.innerHTML = '<p style="color:var(--ember);font-family:Lora,serif;">Couldn\'t read the backup list: ' + String(err.message).replace(/</g, '&lt;') + '</p>';
+  }
+}
+
+// One-time move from layout 1 (one big document) to layout 2 (split). Order matters:
+// backup, rollback copy, write the pieces, check them by reading back, and only then replace the
+// index in planner/main. Until that last step nothing the app reads has changed.
+async function upgradeStorage() {
+  if (cloudSync.layout === 2) { alert('Storage has already been upgraded.'); return; }
+  if (!cloudSync.loaded.main || cloudSync.failedLoad.main || Object.keys(cloudSync.conflict).some(n => cloudSync.conflict[n]) ||
+      Object.keys(cloudSync.dirty).some(n => cloudSync.dirty[n] || cloudSync.inflight[n])) {
+    alert('Wait a few seconds for everything to finish saving (or reload the page if a red banner is showing), then try again.'); return;
+  }
+  if (!confirm('Upgrade storage?\n\nThis splits the planning data into smaller pieces so it can never hit the cloud size limit. It takes a backup first and keeps a copy of the old version.\n\nBefore you start: reload the planner on every other device (phone, laptop) so they have this latest version, and don\'t use them until this finishes.\n\nThe page will reload when it\'s done.')) return;
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(40,28,18,.85);color:#fff;display:flex;align-items:center;justify-content:center;font:600 1rem Lora,serif;text-align:center;padding:2rem;';
+  ov.textContent = 'Upgrading storage… please keep this page open and don\'t make changes.';
+  document.body.appendChild(ov);
+  try {
+    const logical = backupPayload('main');
+    await createBackup('pre-upgrade', 'Before the storage upgrade');
+    cloudSync.frozen = true;
+    await cloudRef('main_legacy').set(logical);                          // rollback copy of the old single document
+    const parts = splitMain(logical);
+    const names = Object.keys(parts).filter(n => n !== 'main');
+    for (const n of names) await cloudWriteNow(n, parts[n]);
+    for (const n of names) {                                             // read everything back and compare
+      const snap = await cloudRef(n).get();
+      if (!snap.exists || cloudCanonDoc(n, snap.data()) !== cloudCanon(JSON.parse(JSON.stringify(parts[n])))) throw new Error('Check failed on ' + n + ', so the old version has been left in place.');
+    }
+    await cloudWriteNow('main', parts.main);                              // the switch: replaces the old big document with the index
+    cloudSync.layout = 2; cloudStoreLayout(2);
+    location.reload();
+  } catch (err) {
+    cloudSync.frozen = false;
+    ov.remove();
+    alert('Upgrade did not complete: ' + err.message + '\n\nNothing you use has changed, and the planner is still working as before.');
   }
 }
 
@@ -5579,6 +5760,21 @@ function findScheduleMismatches(sheet) {
   return mismatches;
 }
 
+// Sessions that fall outside every term on this sheet. These used to be deleted silently on
+// every load; now they are only listed here, for you to review and delete by hand.
+function findOutOfTermSessions(sheet) {
+  const terms = getSheetTerms(sheet).filter(t => t.label && t.start && t.end);
+  if (!terms.length || !sheet.sessions || sheet.type === 'holiday') return [];
+  const out = [];
+  Object.keys(sheet.sessions).forEach(key => {
+    const iso = keyToISO(key, sheet);
+    if (!keyIsISO(iso)) return;
+    if (!terms.some(t => iso >= t.start && iso <= t.end)) out.push({ iso, data: sheet.sessions[key] });
+  });
+  out.sort((a, b) => a.iso < b.iso ? -1 : a.iso > b.iso ? 1 : 0);
+  return out;
+}
+
 function openScheduleAuditModal() {
   const sheet = getActiveSheet();
   if (!sheet || !sheet.days || sheet.days.length === 0) {
@@ -5598,13 +5794,14 @@ function renderScheduleAuditList() {
   if (!sheet) return;
   const scheduledNames = (sheet.days || []).map(d => DOW_NAMES_FULL[d]).join(', ');
   const mismatches = findScheduleMismatches(sheet);
+  const oot = findOutOfTermSessions(sheet);
 
-  if (!mismatches.length) {
-    box.innerHTML = '<p style="font-style:italic;color:var(--bark-light);padding:1rem 0;">No mismatched sessions found — every session on this sheet falls on a scheduled day (' + escHtml(scheduledNames) + ').</p>';
+  if (!mismatches.length && !oot.length) {
+    box.innerHTML = '<p style="font-style:italic;color:var(--bark-light);padding:1rem 0;">No problems found. Every session on this sheet falls on a scheduled day (' + escHtml(scheduledNames) + ') and inside its term dates.</p>';
     return;
   }
 
-  box.innerHTML = '<p style="font-size:0.85rem;color:var(--bark-light);margin-bottom:0.8rem;">This sheet is scheduled for <strong>' + escHtml(scheduledNames) + '</strong>. Found ' + mismatches.length + ' session date(s) that fall outside that.</p>' +
+  const mmHtml = mismatches.length ? '<p style=""font-size:0.85rem;color:var(--bark-light);margin-bottom:0.8rem;">This sheet is scheduled for <strong>' + escHtml(scheduledNames) + '</strong>. Found ' + mismatches.length + ' session date(s) that fall outside that.</p>' +
     mismatches.map(m => {
       const rowKeys = Object.keys(m.data || {}).filter(rk => rk !== '_notes' && Array.isArray(m.data[rk]) && m.data[rk].length);
       const rowLines = rowKeys.map(rk => {
@@ -5622,7 +5819,23 @@ function renderScheduleAuditList() {
         '</div>' +
         body +
       '</div>';
+    }).join('') : '';
+
+  let ootHtml = '';
+  if (oot.length) {
+    ootHtml = '<p style="font-size:0.85rem;color:var(--bark-light);margin:0.8rem 0;">Found ' + oot.length + ' session date(s) outside this sheet\'s term dates.</p>' + oot.map(m => {
+      const rowKeys = Object.keys(m.data || {}).filter(rk => rk !== '_notes' && Array.isArray(m.data[rk]) && m.data[rk].length);
+      const lines = rowKeys.map(rk => {
+        const rowDef = (sheet.rowDefs || []).find(r => r.key === rk);
+        const names = m.data[rk].map(act => act.text || (act.borrowedFrom ? '(borrowed activity)' : '')).filter(Boolean).join(', ');
+        return '<div style="font-size:0.78rem;"><strong>' + escHtml(rowDef ? rowDef.label : rk) + ':</strong> ' + escHtml(names) + '</div>';
+      }).join('') || '<div style="font-size:0.78rem;font-style:italic;color:var(--bark-light);">No content, empty session.</div>';
+      return '<div style="border:1px solid rgba(184,134,11,0.35);border-radius:6px;padding:0.6rem 0.8rem;margin-bottom:0.6rem;background:rgba(184,134,11,0.05);">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.3rem;gap:0.6rem;"><strong>' + escHtml(fmtTermDate(m.iso)) + '</strong>' +
+        '<button class="register-btn" style="font-size:0.7rem;white-space:nowrap;" onclick="deleteScheduleAuditDate(\'' + m.iso + '\')">🗑 Delete this day</button></div>' + lines + '</div>';
     }).join('');
+  }
+  box.innerHTML = mmHtml + ootHtml;
 }
 
 function deleteScheduleAuditDate(iso) {
@@ -6763,12 +6976,6 @@ function deleteSheet(id) {
   renderPlanner();
 }
 
-function switchSheet(id) {
-  state.activeSheetId = id;
-  saveState();
-  renderSheetTabs();
-  renderPlanner();
-}
 
 // ─── ARCHIVE / RESTORE (works for any sheet type, incl. Home Ed and holiday clubs) ───
 function archiveSheet(id) {
@@ -6897,13 +7104,7 @@ function groupByMonth(sessions) {
   return groups;
 }
 
-function monthFromDate(date) {
-  return keyMonthAbbr(date);
-}
 
-function getMonthKey(date) {
-  return keyMonthAbbr(date);
-}
 
 let editModeActive = false;
 
@@ -7144,7 +7345,7 @@ function renderTermDatesPanel() {
   html += '<div id="termRowsContainer">';
   terms.forEach((t, i) => {
     html += `<div class="term-row-edit">
-      <input type="text" value="${t.label || ''}" placeholder="e.g. Autumn 1" onchange="updateTermField(${i},'label',this.value)" />
+      <input type="text" value="${escHtml(t.label || '')}" placeholder="e.g. Autumn 1" onchange="updateTermField(${i},'label',this.value)" />
       <input type="date" value="${t.start || ''}" onchange="updateTermField(${i},'start',this.value)" />
       <input type="date" value="${t.end || ''}" onchange="updateTermField(${i},'end',this.value)" />
       <button class="term-del-btn" onclick="deleteTerm(${i})" title="Remove">✕</button>
@@ -7174,51 +7375,6 @@ function deleteTerm(i) {
   renderTermDatesPanel();
 }
 
-// Removes sessions that fall outside every configured term (leftover from a sheet
-// created before term dates existed, or from a custom range that overshot). Only
-// empty dates are deleted automatically; anything with real activities is left alone
-// and listed instead, so nothing gets lost silently.
-function cleanupOutOfTermSessions() {
-  try {
-    const sheet = getActiveSheet();
-    if (!sheet || sheet.type === 'holiday') { showToast('Switch to a term-time sheet first — holiday clubs use their own picked dates.'); return; }
-    const terms = getSheetTerms(sheet).filter(t => t.label && t.start && t.end);
-    if (!terms.length) { showToast('Set up your term dates first (🗓 Term dates), then run this again.'); return; }
-
-    const inAnyTerm = iso => terms.some(t => iso >= t.start && iso <= t.end);
-    const keys = Object.keys(sheet.sessions || {});
-    const outOfTerm = keys.filter(k => {
-      const iso = keyToISO(k, sheet);
-      return keyIsISO(iso) && !inAnyTerm(iso);
-    });
-
-    if (!outOfTerm.length) { showToast('✅ No sessions found outside your configured term dates.'); return; }
-
-    const isEmpty = k => {
-      const day = sheet.sessions[k] || {};
-      return Object.keys(day).every(rk => rk === '_notes' ? !day[rk] : !(day[rk] || []).length);
-    };
-    const emptyOnes = outOfTerm.filter(isEmpty);
-    const nonEmptyOnes = outOfTerm.filter(k => !isEmpty(k));
-
-    let msg = `Found ${outOfTerm.length} session date(s) outside your configured terms.\n\n`;
-    msg += `${emptyOnes.length} are empty and will be removed.\n`;
-    if (nonEmptyOnes.length) {
-      const list = nonEmptyOnes.map(k => keyDayNum(k) + ' ' + keyMonthAbbr(k)).join(', ');
-      msg += `${nonEmptyOnes.length} have activities planned, so they'll be left alone: ${list}\n\nYou can review and remove those by hand if they're not needed.`;
-    }
-    if (emptyOnes.length === 0) { showToast(`Found ${outOfTerm.length} out-of-term date(s), but all have activities planned — nothing removed automatically.`); return; }
-    if (!confirm(msg + '\n\nRemove the empty ones?')) return;
-
-    emptyOnes.forEach(k => delete sheet.sessions[k]);
-    saveState();
-    renderPlanner();
-    showToast(`🧹 Removed ${emptyOnes.length} empty out-of-term session${emptyOnes.length !== 1 ? 's' : ''}.`);
-  } catch (err) {
-    console.error('Clean Up Sessions failed:', err);
-    showToast('⚠️ Clean Up hit an error — check the browser console (F12) and let Claude know what it says.', 4000);
-  }
-}
 
 function saveTermDates() {
   saveState();
@@ -7414,7 +7570,7 @@ function buildPlannerTbody(sheet, dates, mon) {
     labelTd.dataset.rowKey = rowDef.key;
     labelTd.innerHTML = `
       <span class="drag-handle" title="Drag to reorder">⠿</span>
-      <span class="row-icon">${rowDef.icon}</span>${rowDef.label}
+      <span class="row-icon">${escHtml(rowDef.icon || '')}</span>${escHtml(rowDef.label || '')}
       <div class="row-edit-controls">
         <button class="row-edit-btn" onclick="renameRow(event,'${rowDef.key}')" title="Rename">✏️</button>
         <button class="row-edit-btn del" onclick="deleteRow(event,'${rowDef.key}')" title="Remove row">✕</button>
@@ -7492,7 +7648,7 @@ function buildAddRowBar(mon, dateCount) {
       </div>
       <div id="addRowActivityOptions_${mon}" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;flex:1;">
         <select class="add-row-input" id="addRowCat_${mon}" style="flex:none;width:auto;min-width:160px;font-size:0.82rem;padding:0.3rem 0.5rem;">
-        ${CATEGORIES.filter(c=>c.id!=='static').map(c=>`<option value="${c.id}">${c.emoji} ${c.label}</option>`).join('')}
+        ${CATEGORIES.filter(c=>c.id!=='static').map(c=>`<option value="${c.id}">${escHtml(c.emoji || '')} ${escHtml(c.label)}</option>`).join('')}
         <option value="static">🎮 Static Games</option>
         <option value="any">✨ Any (seasonal mix)</option>
         </select>
@@ -7781,7 +7937,7 @@ function renderMenu() {
     card.innerHTML = `
       <div class="menu-card-header">
         <span class="menu-card-emoji">${cat.emoji}</span>
-        <span class="menu-card-title" style="color:${cat.color}">${cat.label}</span>
+        <span class="menu-card-title" style="color:${cat.color}">${escHtml(cat.label)}</span>
         <span class="menu-card-count">${items.length} ideas</span>
       </div>
       <ul class="menu-item-list">
@@ -7872,7 +8028,7 @@ function renderCatFilters() {
     const count = state.menuItems.filter(i=>i.cat===cat.id).length;
     const btn = document.createElement('button');
     btn.className = 'cat-filter-btn' + (state.catFilter===cat.id?' active':'');
-    btn.innerHTML = `${cat.emoji} ${cat.label} <span class="cat-count">${count}</span>`;
+    btn.innerHTML = `${escHtml(cat.emoji || '')} ${escHtml(cat.label)} <span class="cat-count">${count}</span>`;
     btn.onclick = () => { state.catFilter=cat.id; renderCatFilters(); renderMenu(); };
     list.appendChild(btn);
   }
@@ -7883,7 +8039,7 @@ function renderCatFilters() {
 // ═══════════════════════════════════════════════════════════════
 function openAddIdeaModal() {
   const sel = document.getElementById('ideaCategory');
-  sel.innerHTML = CATEGORIES.map(c=>`<option value="${c.id}">${c.emoji} ${c.label}</option>`).join('');
+  sel.innerHTML = CATEGORIES.map(c=>`<option value="${c.id}">${escHtml(c.emoji || '')} ${escHtml(c.label)}</option>`).join('');
   document.getElementById('ideaName').value = '';
   document.getElementById('ideaLink').value = '';
   document.getElementById('ideaNotes').value = '';
@@ -7933,9 +8089,6 @@ function saveNewIdea() {
 // ═══════════════════════════════════════════════════════════════
 let detailPanelState = { itemIndex: -1, isBaseItem: false };
 
-function findMenuItemIndex(name, cat) {
-  return state.menuItems.findIndex(i => i.name === name && i.cat === cat);
-}
 
 function findOrCreateMenuItem(name) {
   // Try exact name match first
@@ -7952,7 +8105,7 @@ function findOrCreateMenuItem(name) {
 function openDetailPanel(name, catId) {
   // Populate category dropdown
   const catSel = document.getElementById('dpCatInput');
-  catSel.innerHTML = CATEGORIES.map(c=>`<option value="${c.id}">${c.emoji} ${c.label}</option>`).join('');
+  catSel.innerHTML = CATEGORIES.map(c=>`<option value="${c.id}">${escHtml(c.emoji || '')} ${escHtml(c.label)}</option>`).join('');
 
   // Find or locate item
   let idx = state.menuItems.findIndex(i => i.name === name && (!catId || i.cat === catId));
@@ -8033,13 +8186,6 @@ function closeDetailPanel() {
   detailPanelState.itemIndex = -1;
 }
 
-// Same auto-tick behaviour as the Add Idea modal, but for editing existing items
-function onDpCategoryChange() {
-  const cat = document.getElementById('dpCatInput').value;
-  const excl = document.getElementById('dpExcludeFromPopulate');
-  if (cat === 'misc' && excl) excl.checked = true;
-  updateDpPrintRecipeVisibility(cat);
-}
 
 function updateDpPrintRecipeVisibility(cat) {
   const btn = document.getElementById('dpPrintRecipeBtn');
@@ -8457,7 +8603,7 @@ function openPopulateModal() {
   const rowSel = document.getElementById('popRowVal');
   rowSel.innerHTML = sheet.rowDefs
     .filter(r => r.key !== '_notes')
-    .map(r => `<option value="${r.key}">${r.icon} ${r.label}</option>`)
+    .map(r => `<option value="${r.key}">${escHtml(r.icon || '')} ${escHtml(r.label)}</option>`)
     .join('');
   setPopulateScope('all', document.querySelector('.scope-btn[data-scope="all"]'));
   const borrowCb = document.getElementById('popBorrowFromOtherGroups');
@@ -8786,7 +8932,7 @@ function renderWizRoutineList() {
     item.innerHTML = `
       <span class="rr-handle">⠿</span>
       <span class="rr-icon">${row.icon}</span>
-      <span class="rr-label">${row.label}</span>
+      <span class="rr-label">${escHtml(row.label)}</span>
       <button class="rr-remove" onclick="wizRemoveRow(${i})" title="Remove">✕</button>`;
     item.addEventListener('dragstart', () => { dragSrc = i; item.style.opacity='0.4'; });
     item.addEventListener('dragend', () => { item.style.opacity=''; });
@@ -12906,25 +13052,6 @@ function renderHcWizRows() {
   });
 }
 
-function openHolidayModal() {
-  // Set default dates to today + 2 days
-  const today = new Date();
-  const pad = n => String(n).padStart(2,'0');
-  const toISO = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  document.getElementById('hcStart').value = toISO(today);
-  const endDate = new Date(today); endDate.setDate(endDate.getDate() + 2);
-  document.getElementById('hcEnd').value = toISO(endDate);
-  document.getElementById('hcName').value = '';
-  // Reset type toggle
-  hcAddType = 'activity';
-  hcSetType('activity');
-  // Load default rows
-  hcWizRows = HOLIDAY_DEFAULT_ROWS.map(r => ({...r}));
-  renderHcWizRows();
-  document.getElementById('holidayModal').classList.add('open');
-  closeHolidayDropdown();
-  setTimeout(() => document.getElementById('hcName').focus(), 100);
-}
 
 function closeHolidayModal() {
   document.getElementById('holidayModal').classList.remove('open');
@@ -13156,7 +13283,7 @@ function renderHolidayPlanner(sheet) {
     labelTd.dataset.rowKey = rowDef.key;
     labelTd.innerHTML = `
       <span class="drag-handle" title="Drag to reorder">⠿</span>
-      <span class="row-icon">${rowDef.icon}</span>${rowDef.label}
+      <span class="row-icon">${escHtml(rowDef.icon || '')}</span>${escHtml(rowDef.label || '')}
       <div class="row-edit-controls">
         <button class="row-edit-btn" onclick="renameRowOnSheet(event,'${rowDef.key}','${sheet.id}')" title="Rename">✏️</button>
         <button class="row-edit-btn del" onclick="deleteRowOnSheet(event,'${rowDef.key}','${sheet.id}')" title="Remove row">✕</button>
@@ -13536,71 +13663,6 @@ function parseLegacyResourcesText(raw) {
   return { preamble, equipmentLines, consumablesLines };
 }
 
-function runTidyLegacyResources() {
-  const candidates = state.menuItems.filter(item =>
-    item && item.name && !item.hidden &&
-    !(item.equipment && item.equipment.trim()) &&
-    !(item.consumables && item.consumables.trim()) &&
-    item.resources && item.resources.trim()
-  );
-
-  const parsedCandidates = candidates
-    .map(item => ({ item, parsed: parseLegacyResourcesText(item.resources) }))
-    .filter(c => c.parsed);
-
-  if (parsedCandidates.length === 0) {
-    alert('Nothing to tidy — every activity with old-style resources text has already been split, or has no recognisable Equipment/Consumables markers.');
-    return;
-  }
-
-  const ok = confirm(
-    `This will split ${parsedCandidates.length} activit${parsedCandidates.length !== 1 ? 'ies' : 'y'} into proper Equipment and Purchases fields, and sort likely-foraged ingredients into the Foraged field using a keyword guess.\n\n` +
-    `Nothing already split by hand is touched, and the original text isn't deleted — only these new fields are filled in.\n\n` +
-    `Recommended: export to CSV afterwards to review the Purchases/Foraged split before relying on it. Continue?`
-  );
-  if (!ok) return;
-
-  let equipmentSet = 0, consumablesSet = 0, foragedSet = 0, notesUpdated = 0;
-
-  parsedCandidates.forEach(({ item, parsed }) => {
-    const { preamble, equipmentLines, consumablesLines } = parsed;
-
-    if (equipmentLines.length > 0) {
-      item.equipment = equipmentLines.join('\n');
-      equipmentSet++;
-    }
-
-    const purchaseLines = [];
-    const foragedLines = [];
-    consumablesLines.forEach(line => {
-      if (isForagedConsumableLine(line)) foragedLines.push(line);
-      else purchaseLines.push(line);
-    });
-    if (purchaseLines.length > 0) { item.consumables = purchaseLines.join('\n'); consumablesSet++; }
-    if (foragedLines.length > 0) { item.foraged = foragedLines.join('\n'); foragedSet++; }
-
-    if (preamble) {
-      const existingNotes = (item.notes || '').trim();
-      if (!existingNotes.includes(preamble)) {
-        item.notes = existingNotes ? preamble + '\n\n' + existingNotes : preamble;
-        notesUpdated++;
-      }
-    }
-  });
-
-  saveState();
-  renderMenu();
-  renderCatFilters();
-
-  alert(
-    `🧹 Tidied ${parsedCandidates.length} activit${parsedCandidates.length !== 1 ? 'ies' : 'y'}.\n\n` +
-    `Equipment filled: ${equipmentSet}\n` +
-    `Purchases filled: ${consumablesSet}\n` +
-    `Foraged filled (keyword guess): ${foragedSet}\n` +
-    (notesUpdated > 0 ? `Recipe notes moved to Notes: ${notesUpdated}\n` : '') +
-    `\nExport to CSV to review the Purchases/Foraged split.`
-  );
-}
 
 // ═══════════════════════════════════════════════════════════════
 // CSV IMPORT / EXPORT
@@ -14473,20 +14535,6 @@ function closeSessionPicker() {
 
 
 
-// ─── BULK RECLASSIFY ──────────────────────────────────────────
-function openBulkReclassifyModal() {
-  const fromSel = document.getElementById('reclassifyFrom');
-  const toSel   = document.getElementById('reclassifyTo');
-  const opts = CATEGORIES.map(c => `<option value="${c.id}">${c.emoji} ${c.label}</option>`).join('');
-  fromSel.innerHTML = opts;
-  toSel.innerHTML = opts;
-  // Default to games → general (the most common confusion)
-  fromSel.value = 'wide';
-  toSel.value   = 'static';
-  document.getElementById('reclassifyPreview').style.display = 'none';
-  document.getElementById('reclassifyApplyBtn').style.display = 'none';
-  document.getElementById('bulkReclassifyModal').classList.add('open');
-}
 
 function closeBulkReclassify() {
   document.getElementById('bulkReclassifyModal').classList.remove('open');
@@ -14807,11 +14855,11 @@ function renderAlignConflicts() {
       <div class="align-conflict-diff">${diffHtml}</div>
       <div class="align-conflict-btns">
         <button class="align-choice-btn ${choice==='menu'?'selected-menu':''}"
-          onclick="setAlignChoice(${JSON.stringify(conflict.name)},'menu')">🔒 Keep menu</button>
+          onclick="setAlignChoice(${escHtml(JSON.stringify(conflict.name))},'menu')">🔒 Keep menu</button>
         <button class="align-choice-btn ${choice==='csv'?'selected-csv':''}"
-          onclick="setAlignChoice(${JSON.stringify(conflict.name)},'csv')">✅ Use CSV</button>
+          onclick="setAlignChoice(${escHtml(JSON.stringify(conflict.name))},'csv')">✅ Use CSV</button>
         <button class="align-choice-btn ${choice==='both'?'selected-both':''}"
-          onclick="setAlignChoice(${JSON.stringify(conflict.name)},'both')">➕ Keep both</button>
+          onclick="setAlignChoice(${escHtml(JSON.stringify(conflict.name))},'both')">➕ Keep both</button>
       </div>`;
     list.appendChild(div);
   });
@@ -14960,7 +15008,7 @@ function mEnterEditMode() {
 
   // Build category options
   const catOpts = CATEGORIES.map(c =>
-    `<option value="${c.id}" ${item.cat === c.id ? 'selected' : ''}>${c.emoji} ${c.label}</option>`
+    `<option value="${c.id}" ${item.cat === c.id ? 'selected' : ''}>${escHtml(c.emoji || '')} ${escHtml(c.label)}</option>`
   ).join('');
 
   // Build month options
@@ -15277,19 +15325,6 @@ function isConsumable(word) {
   return true;
 }
 
-function extractConsumables(resourcesText) {
-  if (!resourcesText) return [];
-  const items = [];
-  // Split on newlines, bullets, commas, semicolons
-  const raw = resourcesText.replace(/\\n/g,'\n').split(/[\n•·,;]+/);
-  raw.forEach(line => {
-    const clean = line.trim().replace(/^[-–—*·•\d.]+\s*/, '').trim();
-    if (clean.length > 2 && isConsumable(clean)) {
-      items.push(clean);
-    }
-  });
-  return items;
-}
 
 function mGetWeekRange() {
   const today = new Date();
@@ -17606,7 +17641,7 @@ function renderCatManagerList() {
     row.className = 'cat-manager-row';
     row.innerHTML = `
       <input id="catEditEmoji_${cat.id}" class="cat-add-emoji" value="${cat.emoji}" style="width:36px;font-size:1rem;" maxlength="4">
-      <input id="catEditName_${cat.id}" class="cat-add-name" value="${cat.label}" style="flex:1;">
+      <input id="catEditName_${cat.id}" class="cat-add-name" value="${escHtml(cat.label)}" style="flex:1;">
       ${cat.base ? '<span class="cat-manager-base-tag">built-in</span>' : ''}
       <button class="cat-edit-btn" onclick="saveCatEdit('${cat.id}')">Save</button>
       ${!cat.base ? `<button class="cat-del-btn" onclick="deleteUserCategory('${cat.id}')">Delete</button>` : ''}
@@ -17622,13 +17657,6 @@ function openCatManager() {
     modal.classList.add('open');
     modal.style.display = 'flex'; // belt-and-braces in case CSS class doesn't fire
   }
-}
-function closeCatManagerFixed() {
-  const modal = document.getElementById('catManagerModal');
-  if (modal) { modal.classList.remove('open'); modal.style.display = ''; }
-}
-function closeCatManager() {
-  document.getElementById('catManagerModal').classList.remove('open');
 }
 
 // ── Update resolveCsvCategory to use dynamic CATEGORIES ──
@@ -18742,7 +18770,7 @@ function renderPlannerCurrentMonth() {
 <div id="scheduleAuditModal" onclick="if(event.target===this)closeScheduleAuditModal()">
   <div class="bulk-clear-box" style="max-width:560px;">
     <div class="bulk-clear-title">⚠ Check Schedule</div>
-    <div class="bulk-clear-sub">Finds sessions on this sheet that fall on a day it isn't scheduled for — e.g. leftover Fridays on a Wed/Thu sheet. Nothing is changed automatically; review each one and delete if it shouldn't be there.</div>
+    <div class="bulk-clear-sub">Finds sessions on this sheet that fall on a day it isn't scheduled for — e.g. leftover Fridays on a Wed/Thu sheet. It also lists sessions outside the sheet's term dates. Nothing is changed automatically; review each one and delete if it shouldn't be there.</div>
     <div id="scheduleAuditBody" style="max-height:60vh;overflow-y:auto;margin-top:0.8rem;"></div>
     <div class="bulk-clear-actions">
       <button class="bulk-clear-cancel" onclick="closeScheduleAuditModal()">Close</button>
