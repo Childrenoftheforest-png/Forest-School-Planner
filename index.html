@@ -3545,6 +3545,7 @@ body {
       <button class="header-tab" onclick="showView('rbas')" data-view="rbas">⚠ Risk Assessments</button>
       <button class="header-tab" onclick="showView('calendar')" data-view="calendar">🗓 Calendar</button>
       <button class="header-tab" onclick="showView('upcoming')" data-view="upcoming">📆 This Week</button>
+      <button class="header-tab" onclick="openBackupsModal()" title="Automatic backups and restore">🛟 Backups</button>
     </div>
   </header>
 
@@ -4461,11 +4462,25 @@ const DOC_REF = db.collection('planner').doc('main');
 //     banner asks for a reload, so one device can't silently erase another's work.
 // Failures are shown in a banner instead of only being logged.
 // ═══════════════════════════════════════════════════════════════
-const cloudSync = { loaded:{}, rev:{}, canResume:{}, failedLoad:{}, failing:{}, conflict:{}, stale:{}, dirty:{}, inflight:{}, getters:{}, timers:{}, retryMs:{} };
+const CLOUD_CLIENT_ID = 'c_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); // identifies this page load, so a write whose acknowledgement was lost can be recognised as ours
+const cloudSync = { lastSynced:{}, loaded:{}, rev:{}, canResume:{}, failedLoad:{}, failing:{}, conflict:{}, stale:{}, dirty:{}, inflight:{}, getters:{}, timers:{}, retryMs:{} };
 const CLOUD_LABELS = { main:'planning', register:'register', rbas:'risk assessments', categories:'categories', shopping:'shopping list' };
 function cloudRef(name) { return db.collection('planner').doc(name); }
 function cloudStoredRev(name) { try { const v = localStorage.getItem('cotf_rev_' + name); return v === null ? null : parseInt(v, 10); } catch(e) { return null; } }
 function cloudStoreRev(name, r) { try { localStorage.setItem('cotf_rev_' + name, String(r)); } catch(e) {} }
+// Canonical text of a document's real content (ignoring bookkeeping fields and per-device view
+// state), so a save with nothing new in it can be skipped instead of bumping the revision.
+function cloudCanon(v) {
+  if (Array.isArray(v)) return '[' + v.map(cloudCanon).join(',') + ']';
+  if (v && typeof v === 'object') return '{' + Object.keys(v).filter(k => v[k] !== undefined).sort().map(k => JSON.stringify(k) + ':' + cloudCanon(v[k])).join(',') + '}';
+  return JSON.stringify(v);
+}
+function cloudCanonDoc(name, d) {
+  const c = Object.assign({}, d || {});
+  delete c._rev; delete c._by;
+  if (name === 'main') delete c.activeSheetId;
+  return cloudCanon(c);
+}
 function cloudRevOf(data) { return (data && typeof data._rev === 'number') ? data._rev : 0; }
 
 // Read a document. ok:false means we could NOT confirm what is in the cloud,
@@ -4477,6 +4492,8 @@ async function cloudRead(name) {
     const rev = cloudRevOf(data);
     cloudSync.loaded[name] = true; cloudSync.failedLoad[name] = false;
     cloudSync.rev[name] = rev; cloudStoreRev(name, rev);
+    cloudSync.lastSynced[name] = data ? cloudCanonDoc(name, data) : null;
+    if (name === 'main') cloudSync.mainChars = cloudSync.lastSynced[name] ? cloudSync.lastSynced[name].length : 0;
     updateSyncBanner();
     return { ok: true, exists: snap.exists, data };
   } catch (e) {
@@ -4493,6 +4510,7 @@ async function cloudRead(name) {
 
 // Queue a save. `getter` is called at write time so the latest state is written.
 function cloudSave(name, getter, delay) {
+  if (cloudSync.frozen) return;                  // a restore is in progress: nothing else may save
   cloudSync.getters[name] = getter;
   cloudSync.dirty[name] = true;
   clearTimeout(cloudSync.timers[name]);
@@ -4529,16 +4547,34 @@ async function cloudFlush(name) {
     }
     data = cloudSync.getters[name]();
     cloudSync.dirty[name] = false;
+    // Nothing new to save (e.g. only the sheet you were looking at changed): don't touch the cloud
+    const canon = cloudCanonDoc(name, data);
+    if (name === 'main') cloudSync.mainChars = canon.length;
+    if (canon === cloudSync.lastSynced[name]) { cloudSync.failing[name] = false; return; }
     const expected = cloudSync.rev[name];
-    const newRev = await db.runTransaction(async tx => {
+    const outcome = await db.runTransaction(async tx => {
       const ref = cloudRef(name);
       const snap = await tx.get(ref);
-      const remote = snap.exists ? cloudRevOf(snap.data()) : 0;
-      if (remote !== expected) { const err = new Error('STALE'); err.stale = true; throw err; }
-      tx.set(ref, Object.assign({}, data, { _rev: remote + 1 }));
-      return remote + 1;
+      const remoteData = snap.exists ? snap.data() : null;
+      const remote = cloudRevOf(remoteData);
+      if (remote !== expected) {
+        // A save of ours that landed but whose acknowledgement was lost (e.g. signal dropped
+        // mid-save) is not someone else's change: adopt it, then save again if needed.
+        if (remoteData && remoteData._by === CLOUD_CLIENT_ID && remote > expected) return { adopt: remote };
+        const err = new Error('STALE'); err.stale = true; throw err;
+      }
+      tx.set(ref, Object.assign({}, data, { _rev: remote + 1, _by: CLOUD_CLIENT_ID }));
+      return { rev: remote + 1 };
     });
-    cloudSync.rev[name] = newRev; cloudStoreRev(name, newRev);
+    if (outcome.adopt !== undefined) {
+      cloudSync.rev[name] = outcome.adopt; cloudStoreRev(name, outcome.adopt);
+      cloudSync.lastSynced[name] = null;                    // unknown what landed: compare afresh
+      cloudSync.dirty[name] = true;
+      clearTimeout(cloudSync.timers[name]); cloudSync.timers[name] = setTimeout(() => cloudFlush(name), 50);
+    } else {
+      cloudSync.rev[name] = outcome.rev; cloudStoreRev(name, outcome.rev);
+      cloudSync.lastSynced[name] = canon;
+    }
     cloudSync.failing[name] = false; cloudSync.retryMs[name] = 5000;
   } catch (e) {
     if (e && e.stale) {
@@ -4584,6 +4620,9 @@ function updateSyncBanner() {
     kind = 'warn';
     msg = 'ℹ️ A newer version of the ' + stale.join(' and ') + ' was saved from another device.';
     actions = reload;
+  } else if (cloudMainUsage() >= 0.85) {
+    kind = cloudMainUsage() >= 0.95 ? 'bad' : 'warn';
+    msg = (kind === 'bad' ? '⛔ ' : '⚠️ ') + 'The planning data is at about ' + Math.round(cloudMainUsage() * 100) + '% of the most the cloud can store in one document. Saves will start failing when it fills. Tell Claude so the data can be split up.';
   }
   if (!msg) { if (el) el.style.display = 'none'; return; }
   if (!el) {
@@ -4597,6 +4636,10 @@ function updateSyncBanner() {
   el.style.display = 'block';
   el.innerHTML = msg + actions;
 }
+
+// Firestore allows 1 MiB per document. This is an estimate from the size of the content.
+const CLOUD_DOC_LIMIT_BYTES = 1048576;
+function cloudMainUsage() { return cloudSync.mainChars ? (cloudSync.mainChars * 1.03) / CLOUD_DOC_LIMIT_BYTES : 0; }
 
 function downloadUnsavedCopy() {
   try {
@@ -4634,13 +4677,178 @@ async function cloudCheckForNewer() {
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cloudCheckForNewer(); });
 
 // Planning doc: queued save (debounced 1.5s). `data` is rebuilt from live state at write time.
-function saveToCloud(data) { cloudSave('main', () => data, 1500); }
+// Which sheet you're looking at is per-device (kept in this browser only), never part of the shared document
+function saveToCloud(data) { cloudSave('main', () => { const c = Object.assign({}, data); delete c.activeSheetId; return c; }, 1500); }
 
 // Planning doc: read. Returns the data, or null if it doesn't exist OR could not be read
 // (cloudSync.loaded.main tells the two apart, and blocks saving when the read failed).
 async function loadFromCloud() {
   const r = await cloudRead('main');
   return (r.ok && r.exists) ? r.data : null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BACKUPS
+// A dated snapshot of the planning data, register, risk assessments and categories is taken
+// automatically once a day (and on demand). The newest BACKUP_KEEP are kept. Snapshots live in
+// the same 'planner' collection as separate documents (backup_<id>_<name>) with a small index
+// document (backup_index). Restoring first takes a "pre-restore" snapshot of what's there now.
+// ═══════════════════════════════════════════════════════════════
+const BACKUP_DOCS = ['main', 'register', 'rbas', 'categories'];
+const BACKUP_KEEP = 20;
+function backupDocRef(id, name) { return cloudRef('backup_' + id + '_' + name); }
+function backupIndexRef() { return cloudRef('backup_index'); }
+
+function backupPayload(name) {
+  let o;
+  if (name === 'main') o = { sheets: state.sheets, menuItems: state.menuItems.filter(i => i && i.name), importantDates: state.importantDates, termDates: state.termDates, campTasks: state.campTasks, meta: state.meta };
+  else if (name === 'register') o = regState;
+  else if (name === 'rbas') o = rbaState;
+  else o = categoriesPayload();
+  o = JSON.parse(JSON.stringify(o));      // plain copy, undefined dropped
+  delete o._rev; delete o._by;
+  return o;
+}
+function backupCounts() {
+  return { sheets: (state.sheets || []).length, activities: (state.menuItems || []).length, people: (regState.people || []).length, rbas: (rbaState.rbas || []).length };
+}
+
+async function createBackup(kind, label) {
+  const names = BACKUP_DOCS.filter(n => cloudSync.loaded[n] && !cloudSync.failedLoad[n]);
+  if (!names.includes('main')) throw new Error('The planning data has not loaded from the cloud, so there is nothing safe to back up.');
+  const id = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+  for (const n of names) await backupDocRef(id, n).set(backupPayload(n));
+  const entry = { at: new Date().toISOString(), day: ukDateNow(), kind: kind || 'manual', label: label || '', counts: backupCounts(), docs: names };
+  await backupIndexRef().set({ entries: { [id]: entry } }, { merge: true });
+  await backupPrune();
+  return id;
+}
+
+async function backupList() {
+  const snap = await backupIndexRef().get();
+  const entries = snap.exists ? (snap.data().entries || {}) : {};
+  return Object.keys(entries).sort().reverse().map(id => Object.assign({ id }, entries[id]));
+}
+
+async function backupPrune() {
+  const list = await backupList();
+  for (const e of list.slice(BACKUP_KEEP)) {
+    try {
+      for (const n of (e.docs || BACKUP_DOCS)) await backupDocRef(e.id, n).delete();
+      await backupIndexRef().update({ ['entries.' + e.id]: firebase.firestore.FieldValue.delete() });
+    } catch (err) { console.warn('Backup prune failed for ' + e.id, err); }
+  }
+}
+
+// Once a day, after everything has loaded successfully
+async function autoBackupIfDue() {
+  if (!cloudSync.loaded.main || cloudSync.failedLoad.main || cloudSync.conflict.main) return;
+  if (!(state.sheets || []).length && !(regState.people || []).length) return;   // nothing worth keeping
+  const today = ukDateNow();
+  const list = await backupList();
+  if (list.some(e => e.kind === 'auto' && e.day === today)) return;
+  await createBackup('auto');
+}
+
+// Save a document immediately and wait for it (used by restore)
+async function cloudWriteNow(name, data) {
+  cloudSync.getters[name] = () => data;
+  cloudSync.dirty[name] = true;
+  clearTimeout(cloudSync.timers[name]);
+  for (let i = 0; i < 40 && cloudSync.inflight[name]; i++) await new Promise(r => setTimeout(r, 250));
+  await cloudFlush(name);
+  if (cloudSync.conflict[name] || cloudSync.dirty[name]) throw new Error('Could not save the ' + (CLOUD_LABELS[name] || name) + ' (is the connection down, or was it changed elsewhere?)');
+}
+
+async function backupFetch(id, names) {
+  const out = {};
+  for (const n of names) {
+    const snap = await backupDocRef(id, n).get();
+    if (!snap.exists) throw new Error('Backup is incomplete: missing ' + n);
+    out[n] = snap.data();
+  }
+  return out;
+}
+
+async function restoreBackup(id) {
+  const list = await backupList();
+  const e = list.find(x => x.id === id);
+  if (!e) { alert('That backup was not found.'); return; }
+  if (Object.keys(cloudSync.conflict).some(n => cloudSync.conflict[n]) || BACKUP_DOCS.some(n => cloudSync.failedLoad[n] && !cloudSync.loaded[n])) {
+    alert('Reload the page first: some data has not loaded cleanly or was changed on another device.'); return;
+  }
+  const c = e.counts || {};
+  const when = new Date(e.at).toLocaleString('en-GB', { timeZone: 'Europe/London', dateStyle: 'medium', timeStyle: 'short' });
+  if (!confirm('Restore the backup from ' + when + '?\n\nIt contains ' + (c.sheets ?? '?') + ' sheets, ' + (c.activities ?? '?') + ' activities, ' + (c.people ?? '?') + ' people, ' + (c.rbas ?? '?') + ' risk assessments.\n\nWhat is in the app right now is backed up first, then replaced. The page will reload.')) return;
+  try {
+    const data = await backupFetch(id, e.docs || BACKUP_DOCS);          // fetch first: fail before changing anything
+    await createBackup('pre-restore', 'Before restoring ' + when);
+    cloudSync.frozen = true;                                              // nothing else may save during the swap
+    for (const n of Object.keys(data)) await cloudWriteNow(n, data[n]);
+    location.reload();
+  } catch (err) {
+    cloudSync.frozen = false;
+    alert('Restore failed: ' + err.message + '\n\nNothing further was changed. If anything looks wrong, reload and check the Backups list for the "pre-restore" copy.');
+  }
+}
+
+async function downloadBackup(id) {
+  try {
+    const list = await backupList();
+    const e = list.find(x => x.id === id);
+    const data = await backupFetch(id, (e && e.docs) || BACKUP_DOCS);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
+    a.download = 'cotf-backup-' + id + '.json';
+    a.click();
+  } catch (err) { alert('Download failed: ' + err.message); }
+}
+
+function ensureBackupsModal() {
+  let m = document.getElementById('backupsModal');
+  if (m) return m;
+  m = document.createElement('div');
+  m.className = 'modal-overlay';
+  m.id = 'backupsModal';
+  m.style.zIndex = '960';
+  m.innerHTML = '<div class="modal" style="max-width:600px;"><button class="modal-close" onclick="document.getElementById(\'backupsModal\').classList.remove(\'open\')">✕</button><h2>🛟 Backups</h2><div id="backupsBody"></div></div>';
+  document.body.appendChild(m);
+  return m;
+}
+
+async function openBackupsModal() {
+  ensureBackupsModal().classList.add('open');
+  const body = document.getElementById('backupsBody');
+  body.innerHTML = '<p style="font-family:Lora,serif;font-style:italic;">Loading…</p>';
+  try {
+    const list = await backupList();
+    const pct = Math.round(cloudMainUsage() * 100);
+    let h = '<p style="font-family:Lora,serif;font-size:.85rem;color:var(--bark-light);margin-bottom:.7rem;">A snapshot of planning, register, risk assessments and categories is taken automatically once a day. The newest ' + BACKUP_KEEP + ' are kept.</p>';
+    h += '<p style="font-family:Lora,serif;font-size:.85rem;margin-bottom:.9rem;">Planning data size: about <b>' + pct + '%</b> of the cloud limit for one document.</p>';
+    h += '<button class="btn-primary" onclick="backupNowClick(this)">Back up now</button>';
+    h += '<div style="margin-top:1rem;display:flex;flex-direction:column;gap:.45rem;">';
+    if (!list.length) h += '<p style="font-family:Lora,serif;font-style:italic;">No backups yet.</p>';
+    list.forEach(e => {
+      const c = e.counts || {};
+      const when = new Date(e.at).toLocaleString('en-GB', { timeZone: 'Europe/London', dateStyle: 'medium', timeStyle: 'short' });
+      const kind = e.kind === 'auto' ? 'automatic' : e.kind === 'pre-restore' ? 'before a restore' : 'manual';
+      h += '<div style="border:1px solid rgba(107,66,38,.2);border-radius:8px;padding:.5rem .7rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">' +
+        '<div style="flex:1;min-width:200px;font-family:Lora,serif;font-size:.82rem;"><b>' + when + '</b> (' + kind + ')<br><span style="color:var(--bark-light);">' + (c.sheets ?? '?') + ' sheets, ' + (c.activities ?? '?') + ' activities, ' + (c.people ?? '?') + ' people, ' + (c.rbas ?? '?') + ' RBAs</span></div>' +
+        '<button class="btn-secondary" onclick="downloadBackup(\'' + e.id + '\')">Download</button>' +
+        '<button class="btn-secondary" onclick="restoreBackup(\'' + e.id + '\')">Restore</button></div>';
+    });
+    h += '</div>';
+    body.innerHTML = h;
+  } catch (err) {
+    body.innerHTML = '<p style="color:var(--ember);font-family:Lora,serif;">Couldn\'t read the backup list: ' + String(err.message).replace(/</g, '&lt;') + '</p>';
+  }
+}
+
+async function backupNowClick(btn) {
+  btn.disabled = true; btn.textContent = 'Backing up…';
+  try { await createBackup('manual'); showToast('✓ Backup saved'); }
+  catch (err) { alert('Backup failed: ' + err.message); }
+  openBackupsModal();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -17328,7 +17536,7 @@ async function loadUserCategories() {
   } catch(e) { console.warn('Category load failed', e); }
 }
 
-async function saveUserCategories() {
+function categoriesPayload() {
   const userCats = CATEGORIES.filter(c => !c.base);
   const baseOverrides = {};
   CATEGORIES.filter(c => c.base).forEach(c => {
@@ -17337,7 +17545,11 @@ async function saveUserCategories() {
       baseOverrides[c.id] = { label: c.label, emoji: c.emoji };
     }
   });
-  cloudSave('categories', () => ({ userCats, baseOverrides }), 300);
+  return { userCats, baseOverrides };
+}
+async function saveUserCategories() {
+  const payload = categoriesPayload();
+  cloudSave('categories', () => payload, 300);
 }
 
 function addUserCategory() {
@@ -18126,7 +18338,10 @@ function renderPlannerCurrentMonth() {
     // Merge cloud data into state AND into localStorage so loadState() below reads the same data
     try {
       state.sheets = cloudData.sheets || [];
-      state.activeSheetId = cloudData.activeSheetId || null;
+      let localActive = null;
+      try { localActive = (JSON.parse(localStorage.getItem('forestSchoolPlanner_v2') || '{}') || {}).activeSheetId || null; } catch(e) {}
+      cloudData.activeSheetId = localActive || cloudData.activeSheetId || null; // this device's own choice wins
+      state.activeSheetId = cloudData.activeSheetId;
       state.menuItems = (cloudData.menuItems || []).filter(i => i && i.name);
       state.importantDates = cloudData.importantDates || [];
       state.termDates = cloudData.termDates || [];
@@ -18153,6 +18368,7 @@ function renderPlannerCurrentMonth() {
   updateRestoreDeletedBtn();
   renderCatFilters();
   showView('planner');
+  setTimeout(() => autoBackupIfDue().catch(e => console.warn('Automatic backup failed', e)), 4000);
 
   // Initialise mobile view if on a small screen
   if (IS_MOBILE()) mInit();
