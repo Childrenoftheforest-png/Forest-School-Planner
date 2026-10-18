@@ -4448,31 +4448,199 @@ const auth    = firebase.auth();
 const storage = firebase.storage();
 const DOC_REF = db.collection('planner').doc('main');
 
-let saveDebounceTimer = null;
+// ═══════════════════════════════════════════════════════════════
+// CLOUD SYNC LAYER
+// Every Firestore document (main, register, rbas, categories, shopping) goes through
+// here. Two rules, both learned the hard way:
+//  1. Never save over something this screen has not successfully read. A failed
+//     load used to fall back to a blank planner which the next save wrote over the
+//     real data.
+//  2. Never overwrite a newer version. Each document carries a revision number
+//     (_rev). A save only succeeds if the cloud is still at the revision this
+//     device last saw (checked in a transaction); otherwise saving pauses and a
+//     banner asks for a reload, so one device can't silently erase another's work.
+// Failures are shown in a banner instead of only being logged.
+// ═══════════════════════════════════════════════════════════════
+const cloudSync = { loaded:{}, rev:{}, canResume:{}, failedLoad:{}, failing:{}, conflict:{}, stale:{}, dirty:{}, inflight:{}, getters:{}, timers:{}, retryMs:{} };
+const CLOUD_LABELS = { main:'planning', register:'register', rbas:'risk assessments', categories:'categories', shopping:'shopping list' };
+function cloudRef(name) { return db.collection('planner').doc(name); }
+function cloudStoredRev(name) { try { const v = localStorage.getItem('cotf_rev_' + name); return v === null ? null : parseInt(v, 10); } catch(e) { return null; } }
+function cloudStoreRev(name, r) { try { localStorage.setItem('cotf_rev_' + name, String(r)); } catch(e) {} }
+function cloudRevOf(data) { return (data && typeof data._rev === 'number') ? data._rev : 0; }
 
-// Save to Firestore (debounced — waits 1.5s after last change before writing)
-function saveToCloud(data) {
-  clearTimeout(saveDebounceTimer);
-  saveDebounceTimer = setTimeout(async () => {
-    try {
-      await DOC_REF.set(data);
-    } catch(e) {
-      console.warn('Cloud save failed, data is in localStorage:', e.message);
-    }
-  }, 1500);
+// Read a document. ok:false means we could NOT confirm what is in the cloud,
+// which blocks saving that document (see rule 1).
+async function cloudRead(name) {
+  try {
+    const snap = await cloudRef(name).get();
+    const data = snap.exists ? snap.data() : null;
+    const rev = cloudRevOf(data);
+    cloudSync.loaded[name] = true; cloudSync.failedLoad[name] = false;
+    cloudSync.rev[name] = rev; cloudStoreRev(name, rev);
+    updateSyncBanner();
+    return { ok: true, exists: snap.exists, data };
+  } catch (e) {
+    console.warn('Cloud read failed (' + name + ')', e);
+    cloudSync.loaded[name] = false; cloudSync.failedLoad[name] = true;
+    const sr = cloudStoredRev(name);
+    cloudSync.rev[name] = sr;
+    // Only the planning doc has a full local copy, so only it may resume later
+    cloudSync.canResume[name] = (name === 'main' && sr !== null);
+    updateSyncBanner();
+    return { ok: false };
+  }
 }
 
-// Load from Firestore, fall back to localStorage if offline
-async function loadFromCloud() {
+// Queue a save. `getter` is called at write time so the latest state is written.
+function cloudSave(name, getter, delay) {
+  cloudSync.getters[name] = getter;
+  cloudSync.dirty[name] = true;
+  clearTimeout(cloudSync.timers[name]);
+  cloudSync.timers[name] = setTimeout(() => cloudFlush(name), delay == null ? 300 : delay);
+}
+
+function cloudKeepConflictCopy(name, data) {
   try {
-    const doc = await DOC_REF.get();
-    if (doc.exists) {
-      return doc.data();
+    Object.keys(localStorage).filter(k => k.indexOf('cotf_conflict_' + name + '_') === 0).forEach(k => localStorage.removeItem(k));
+    localStorage.setItem('cotf_conflict_' + name + '_' + Date.now(), JSON.stringify(data));
+  } catch (e) { /* storage full: the download button still works from memory */ }
+  cloudSync.conflictData = cloudSync.conflictData || {};
+  cloudSync.conflictData[name] = data;
+}
+
+async function cloudFlush(name) {
+  if (cloudSync.conflict[name]) return;                       // paused until reload
+  if (!cloudSync.dirty[name]) return;
+  if (cloudSync.inflight[name]) { clearTimeout(cloudSync.timers[name]); cloudSync.timers[name] = setTimeout(() => cloudFlush(name), 500); return; }
+  cloudSync.inflight[name] = true;
+  let data = null;
+  try {
+    if (!cloudSync.loaded[name]) {
+      // We never read this document successfully. Writing now could erase it.
+      const base = cloudSync.rev[name], canResume = cloudSync.canResume[name];
+      const r = await cloudRead(name);
+      if (!r.ok) throw new Error('still offline');
+      // Resume only if this device has a full copy AND nobody else has saved since it last synced
+      if (!(canResume && base !== null && cloudSync.rev[name] === base)) {
+        cloudSync.conflict[name] = true;
+        cloudKeepConflictCopy(name, cloudSync.getters[name]());
+        return;
+      }
     }
-  } catch(e) {
-    console.warn('Cloud load failed, using localStorage:', e.message);
+    data = cloudSync.getters[name]();
+    cloudSync.dirty[name] = false;
+    const expected = cloudSync.rev[name];
+    const newRev = await db.runTransaction(async tx => {
+      const ref = cloudRef(name);
+      const snap = await tx.get(ref);
+      const remote = snap.exists ? cloudRevOf(snap.data()) : 0;
+      if (remote !== expected) { const err = new Error('STALE'); err.stale = true; throw err; }
+      tx.set(ref, Object.assign({}, data, { _rev: remote + 1 }));
+      return remote + 1;
+    });
+    cloudSync.rev[name] = newRev; cloudStoreRev(name, newRev);
+    cloudSync.failing[name] = false; cloudSync.retryMs[name] = 5000;
+  } catch (e) {
+    if (e && e.stale) {
+      cloudSync.conflict[name] = true;
+      cloudKeepConflictCopy(name, data);
+    } else {
+      console.warn('Cloud save failed (' + name + '), will retry', e);
+      cloudSync.dirty[name] = true; cloudSync.failing[name] = true;
+      const ms = Math.min(60000, cloudSync.retryMs[name] || 5000);
+      cloudSync.retryMs[name] = ms * 2;
+      clearTimeout(cloudSync.timers[name]);
+      cloudSync.timers[name] = setTimeout(() => cloudFlush(name), ms);
+    }
+  } finally {
+    cloudSync.inflight[name] = false;
+    updateSyncBanner();
   }
-  return null;
+}
+
+function updateSyncBanner() {
+  if (typeof document === 'undefined' || !document.body) return;
+  let el = document.getElementById('syncBanner');
+  const names = o => Object.keys(o).filter(n => o[n]).map(n => CLOUD_LABELS[n] || n);
+  const conflicts = names(cloudSync.conflict);
+  const blocked = Object.keys(cloudSync.failedLoad).filter(n => cloudSync.failedLoad[n] && !cloudSync.loaded[n] && !(n === 'main' && cloudSync.canResume[n]));
+  const offlineMain = cloudSync.failedLoad.main && !cloudSync.loaded.main && cloudSync.canResume.main;
+  const failing = names(cloudSync.failing);
+  const stale = names(cloudSync.stale);
+  let msg = '', kind = '', actions = '';
+  const reload = '<button onclick="location.reload()" style="margin-left:.6rem;padding:.2rem .7rem;border-radius:6px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;">Reload</button>';
+  if (conflicts.length) {
+    kind = 'bad';
+    msg = '⛔ The ' + conflicts.join(' and ') + ' changed on another device, so saving is paused to avoid overwriting it. Reload to get the latest version. Your unsaved changes from this screen are kept in this browser.';
+    actions = reload + '<button onclick="downloadUnsavedCopy()" style="margin-left:.4rem;padding:.2rem .7rem;border-radius:6px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;">Download my unsaved copy</button>';
+  } else if (blocked.length) {
+    kind = 'bad';
+    msg = '⛔ Couldn\'t load the ' + blocked.map(n => CLOUD_LABELS[n] || n).join(' and ') + ' from the cloud, so nothing will be saved for ' + (blocked.length > 1 ? 'them' : 'it') + ' until you reload. Nothing has been overwritten.';
+    actions = reload;
+  } else if (offlineMain || failing.length) {
+    kind = 'warn';
+    msg = '⚠️ ' + (offlineMain ? 'Offline: showing the copy saved on this device. ' : '') + (failing.length ? 'Not saved to the cloud yet (' + failing.join(', ') + '). Retrying automatically. Keep this page open.' : 'Changes will sync when you\'re back online, provided nothing else has changed.');
+  } else if (stale.length) {
+    kind = 'warn';
+    msg = 'ℹ️ A newer version of the ' + stale.join(' and ') + ' was saved from another device.';
+    actions = reload;
+  }
+  if (!msg) { if (el) el.style.display = 'none'; return; }
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'syncBanner';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;padding:.55rem 1rem;font:600 .85rem Lora,serif;text-align:center;';
+    document.body.appendChild(el);
+  }
+  el.style.background = kind === 'bad' ? '#8c2f1f' : '#b8860b';
+  el.style.color = '#fff';
+  el.style.display = 'block';
+  el.innerHTML = msg + actions;
+}
+
+function downloadUnsavedCopy() {
+  try {
+    const out = cloudSync.conflictData || {};
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' }));
+    a.download = 'cotf-unsaved-copy-' + new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-') + '.json';
+    a.click();
+  } catch (e) { alert('Could not create the download: ' + e.message); }
+}
+
+// Back online: retry anything waiting. Leaving with unsaved changes: warn.
+window.addEventListener('online', () => {
+  Object.keys(cloudSync.dirty).forEach(n => { if (cloudSync.dirty[n]) { cloudSync.retryMs[n] = 5000; cloudFlush(n); } });
+});
+window.addEventListener('beforeunload', e => {
+  const pending = Object.keys(cloudSync.dirty).some(n => (cloudSync.dirty[n] || cloudSync.inflight[n]) && !cloudSync.conflict[n]);
+  if (pending) { e.preventDefault(); e.returnValue = ''; }
+});
+
+// Coming back to the tab: has another device saved the register meanwhile? (small document, cheap check)
+let cloudLastStaleCheck = 0;
+async function cloudCheckForNewer() {
+  if (Date.now() - cloudLastStaleCheck < 30000) return;
+  cloudLastStaleCheck = Date.now();
+  for (const name of ['register']) {
+    if (!cloudSync.loaded[name] || cloudSync.dirty[name] || cloudSync.inflight[name]) continue;
+    try {
+      const snap = await cloudRef(name).get();
+      cloudSync.stale[name] = cloudRevOf(snap.exists ? snap.data() : null) > cloudSync.rev[name];
+    } catch (e) { /* offline: nothing to report */ }
+  }
+  updateSyncBanner();
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cloudCheckForNewer(); });
+
+// Planning doc: queued save (debounced 1.5s). `data` is rebuilt from live state at write time.
+function saveToCloud(data) { cloudSave('main', () => data, 1500); }
+
+// Planning doc: read. Returns the data, or null if it doesn't exist OR could not be read
+// (cloudSync.loaded.main tells the two apart, and blocks saving when the read failed).
+async function loadFromCloud() {
+  const r = await cloudRead('main');
+  return (r.ok && r.exists) ? r.data : null;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -14944,16 +15112,16 @@ let mShopWeekKey = '';
 
 async function mLoadShopState() {
   const weekKey = mGetWeekKey();
-  try {
-    const doc = await db.collection('planner').doc('shopping').get();
-    if (doc.exists && doc.data().weekKey === weekKey) {
+  {
+    const r = await cloudRead('shopping');
+    if (r.ok && r.exists && r.data.weekKey === weekKey) {
       mShopWeekKey = weekKey;
-      mShopChecked = doc.data().checked || {};
-      mShopDeleted = doc.data().deleted || {};
-      mShopCustom  = doc.data().custom  || [];
+      mShopChecked = r.data.checked || {};
+      mShopDeleted = r.data.deleted || {};
+      mShopCustom  = r.data.custom  || [];
       return;
     }
-  } catch(e) { console.warn('Shop load failed', e); }
+  }
   mShopWeekKey = weekKey;
   mShopChecked = {};
   mShopDeleted = {};
@@ -14961,14 +15129,12 @@ async function mLoadShopState() {
 }
 
 async function mSaveShopState() {
-  try {
-    await db.collection('planner').doc('shopping').set({
-      weekKey: mShopWeekKey,
-      checked: mShopChecked,
-      deleted: mShopDeleted,
-      custom:  mShopCustom,
-    });
-  } catch(e) { console.warn('Shop save failed', e); }
+  cloudSave('shopping', () => ({
+    weekKey: mShopWeekKey,
+    checked: mShopChecked,
+    deleted: mShopDeleted,
+    custom:  mShopCustom,
+  }), 300);
 }
 
 async function mBuildShoppingList() {
@@ -15184,21 +15350,20 @@ let mRegisterSheetId = null;
 let mRegisterDateIdx = 0;
 
 async function loadRegister() {
-  try {
-    const doc = await db.collection('planner').doc('register').get();
-    if (doc.exists) {
-      const d = doc.data();
-      regState.people = d.people||[];
-      regState.arrivals = d.arrivals||{};
-      regState.departures = d.departures||{};
-      regState.departureAuto = d.departureAuto||{};
-    }
-  } catch(e) { console.warn('Register load failed', e); }
+  const r = await cloudRead('register');
+  if (r.ok && r.exists) {
+    const d = r.data;
+    regState.people = d.people||[];
+    regState.arrivals = d.arrivals||{};
+    regState.departures = d.departures||{};
+    regState.departureAuto = d.departureAuto||{};
+    // keep any other saved fields (e.g. groups) rather than silently dropping them
+    Object.keys(d).forEach(k => { if (k !== '_rev' && regState[k] === undefined) regState[k] = d[k]; });
+  }
 }
 
 async function saveRegister() {
-  try { await db.collection('planner').doc('register').set(regState); }
-  catch(e) { console.warn('Register save failed', e); }
+  cloudSave('register', () => regState, 300);
 }
 
 // ═══════════════════════════════ RISK-BENEFIT ASSESSMENTS (RBAs) ═══════════════════════════════
@@ -15225,18 +15390,12 @@ const RBA_CATEGORIES = [
 ];
 
 async function loadRbas() {
-  try {
-    const doc = await db.collection('planner').doc('rbas').get();
-    if (doc.exists) {
-      const d = doc.data();
-      rbaState.rbas = d.rbas || [];
-    }
-  } catch(e) { console.warn('RBA load failed', e); }
+  const r = await cloudRead('rbas');
+  if (r.ok && r.exists) rbaState.rbas = r.data.rbas || [];
 }
 
 async function saveRbas() {
-  try { await db.collection('planner').doc('rbas').set(rbaState); }
-  catch(e) { console.warn('RBA save failed', e); }
+  cloudSave('rbas', () => rbaState, 300);
 }
 
 const RBA_REVIEW_THRESHOLDS = [180, 90, 30, 0];
@@ -17149,11 +17308,11 @@ function applyRegisterImport() {
 // User-created categories stored in Firestore under planner/categories
 async function loadUserCategories() {
   try {
-    const doc = await db.collection('planner').doc('categories').get();
-    if (doc.exists && doc.data().userCats) {
-      const userCats = doc.data().userCats;
+    const r = await cloudRead('categories');
+    if (r.ok && r.exists && r.data.userCats) {
+      const userCats = r.data.userCats;
       // Merge with base, preserving any label/emoji overrides stored for base cats
-      const overrides = doc.data().baseOverrides || {};
+      const overrides = r.data.baseOverrides || {};
       CATEGORIES = BASE_CATEGORIES.map(c => ({
         ...c,
         label: overrides[c.id]?.label || c.label,
@@ -17178,9 +17337,7 @@ async function saveUserCategories() {
       baseOverrides[c.id] = { label: c.label, emoji: c.emoji };
     }
   });
-  try {
-    await db.collection('planner').doc('categories').set({ userCats, baseOverrides });
-  } catch(e) { console.warn('Category save failed', e); }
+  cloudSave('categories', () => ({ userCats, baseOverrides }), 300);
 }
 
 function addUserCategory() {
@@ -17193,7 +17350,7 @@ function addUserCategory() {
   CATEGORIES.push({ id, label: name, emoji, base: false, ...colorSet });
   saveUserCategories();
   renderCatManagerList();
-  renderCatFilter();
+  renderCatFilters();
   renderMenu();
   document.getElementById('catAddEmoji').value = '';
   document.getElementById('catAddName').value = '';
@@ -17211,7 +17368,7 @@ function deleteUserCategory(id) {
   CATEGORIES = CATEGORIES.filter(c => c.id !== id);
   saveUserCategories();
   renderCatManagerList();
-  renderCatFilter();
+  renderCatFilters();
   renderMenu();
 }
 
@@ -17224,7 +17381,7 @@ function saveCatEdit(id) {
   if (emoji) cat.emoji = emoji;
   saveUserCategories();
   renderCatManagerList();
-  renderCatFilter();
+  renderCatFilters();
   renderMenu();
 }
 
