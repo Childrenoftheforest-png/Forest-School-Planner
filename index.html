@@ -5645,6 +5645,9 @@ function borrowConflictRepoint(i) {
 }
 
 function loadState() {
+  // The built-in list has a few empty slots (stray commas in the literal). forEach skips
+  // them but find() doesn't, which crashed loading. Drop them once, up front.
+  if (typeof MENU_ITEMS_BASE !== 'undefined') MENU_ITEMS_BASE.splice(0, MENU_ITEMS_BASE.length, ...MENU_ITEMS_BASE.filter(Boolean));
   try {
     const saved = localStorage.getItem('forestSchoolPlanner_v2');
     if (saved) {
@@ -6157,7 +6160,7 @@ function loadState() {
     state.menuItems.forEach(item => {
       if (!item || item.cat !== 'recipes' || item.hidden) return;
       if (item.notes && item.notes.trim()) return; // already has a method — leave it alone
-      const base = MENU_ITEMS_BASE.find(b => b.cat === 'recipes' && b.name === item.name && b.month === item.month);
+      const base = MENU_ITEMS_BASE.find(b => b && b.cat === 'recipes' && b.name === item.name && b.month === item.month);
       if (base && base.notes && base.notes.trim()) {
         item.notes = base.notes;
         purged = true;
