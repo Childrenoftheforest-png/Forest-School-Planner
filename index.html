@@ -8823,10 +8823,20 @@ const USER_BATCH_V10 = {
  ]
 };
 
-function applyEditsV10() {
+function applyUserBatch(B) {
   const out = { removed: 0, merged: 0, filled: 0 };
   const items = () => state.menuItems || [];
-  USER_BATCH_V10.merge.forEach(m => {
+  (B.move || []).forEach(m => {
+    items().forEach(i => { if (i && i.name === m.name && i.cat === m.from) i.cat = m.to; });
+  });
+  (B.rename || []).forEach(r => {
+    const it0 = items().find(i => i && i.cat === r.cat && i.name === r.from);
+    if (it0 && !items().some(i => i && i.cat === r.cat && i.name === r.to)) {
+      it0.name = r.to;
+      renameActivityEverywhere(r.from, r.to);
+    }
+  });
+  B.merge.forEach(m => {
     const from = items().find(i => i && i.name === m[0]);
     const to = items().find(i => i && i.name === m[1]);
     if (from && to) {
@@ -8835,7 +8845,7 @@ function applyEditsV10() {
       out.merged++;
     }
   });
-  USER_BATCH_V10.removals.forEach(r => {
+  B.removals.forEach(r => {
     const before = items().length;
     state.menuItems = items().filter(i => !(i && i.name === r.name && i.cat === r.cat));
     if (items().length < before) {
@@ -8843,10 +8853,10 @@ function applyEditsV10() {
       if (!items().some(i => i && i.name === r.name)) cascadeRemoveFromSessions(r.name);
     }
   });
-  Object.keys(USER_BATCH_V10.fills).forEach(key => {
+  Object.keys(B.fills).forEach(key => {
     const cat = key.slice(0, key.indexOf('|'));
     const name = key.slice(key.indexOf('|') + 1);
-    const f = USER_BATCH_V10.fills[key];
+    const f = B.fills[key];
     items().forEach(item => {
       if (!item || item.cat !== cat || item.name !== name) return;
       if ((item.notes || '').trim()) return;
@@ -8860,6 +8870,568 @@ function applyEditsV10() {
   });
   return out;
 }
+
+function applyEditsV10() { return applyUserBatch(USER_BATCH_V10); }
+
+const USER_BATCH_V11 = {
+ "fills": {
+  "wide|Attack the Treehouse / Monster Traps": {
+   "equipment": "A treehouse or den to defend\nRopes, sticks and natural materials for traps (no real traps that could hurt anyone)",
+   "consumables": "None",
+   "notes": "1. Children gather at the treehouse. The leader is the monster, dressed up and out of sight.\n2. Children spend time setting up traps around the treehouse using sticks, ropes and natural materials. They are for show or to slow the monster, never to trap or hurt anyone.\n3. When the traps are ready, the monster attacks the treehouse, and the children work together to stop it, using the traps and by defending the treehouse.\n4. The monster plays gently, never grabbing or pulling anyone, and is stopped when it touches a trap or is tagged.\n5. Play several rounds and let children design new traps each time.\n6. Safety: check the ground for trip hazards, keep the pace safe for the group and stop the game if play gets rough."
+  },
+  "wide|Beat the Bear": {
+   "equipment": "A cuddly toy\nSpace to run around a circle",
+   "consumables": "None",
+   "notes": "1. Most of the group sit or stand in a circle. They pass the cuddly toy from person to person round the inside of the circle.\n2. One player, the bear, runs around the outside of the circle.\n3. The aim of the circle is to pass the toy all the way round before the bear gets back to the start.\n4. If the bear gets back first, the bear wins the round. If the toy gets round first, the circle wins.\n5. Swap the bear after each round.\n6. Safety: the bear runs on the outside only and keeps clear of the circle."
+  },
+  "wide|Bunny tail tag": {
+   "equipment": "Fabric strips (tags), one per player\nCones or rope to mark the boundary",
+   "consumables": "None",
+   "notes": "1. Split the group into rabbits and hunters. Rabbits tuck a strip of fabric into a pocket or the back of their clothes so that it hangs out like a tail. Hunters wear their strip tied round their head.\n2. Agree the boundaries of the playing area.\n3. On the signal, hunters try to pull the tails from the rabbits, as in tag rugby. They must not grab the player.\n4. When a hunter takes a tail, they give it back to the rabbit, and that rabbit joins the hunters and ties the fabric round their head.\n5. The game ends when everyone has the fabric round their head.\n6. Swap roles and play again. Safety: check the ground for trip hazards, keep the pace safe for the group and stop the game if play gets rough."
+  },
+  "wide|Hunters and Rabbits": {
+   "equipment": "Fabric strips (tags), one per player\nCones or rope to mark the boundary",
+   "consumables": "None",
+   "notes": "1. Split the group into rabbits and hunters. Rabbits tuck a strip of fabric into a pocket or the back of their clothes so that it hangs out like a tail. Hunters wear their strip tied round their head.\n2. Agree the boundaries of the playing area.\n3. On the signal, hunters try to pull the tails from the rabbits, as in tag rugby. They must not grab the player.\n4. When a hunter takes a tail, they give it back to the rabbit, and that rabbit joins the hunters and ties the fabric round their head.\n5. The game ends when everyone has the fabric round their head.\n6. Swap roles and play again. Safety: check the ground for trip hazards, keep the pace safe for the group and stop the game if play gets rough."
+  },
+  "wide|Hunter and Rabbits \u2014 summer spirit edition": {
+   "equipment": "Fabric strips (tags), one per player\nCones or rope to mark the boundary",
+   "consumables": "None",
+   "notes": "1. Split the group into rabbits and hunters. Rabbits tuck a strip of fabric into a pocket or the back of their clothes so that it hangs out like a tail. Hunters wear their strip tied round their head.\n2. Agree the boundaries of the playing area.\n3. On the signal, hunters try to pull the tails from the rabbits, as in tag rugby. They must not grab the player.\n4. When a hunter takes a tail, they give it back to the rabbit, and that rabbit joins the hunters and ties the fabric round their head.\n5. The game ends when everyone has the fabric round their head.\n6. Swap roles and play again. Safety: check the ground for trip hazards, keep the pace safe for the group and stop the game if play gets rough."
+  },
+  "wide|Camouflage Hide and Seek": {
+   "equipment": "Pieces of camouflage material, scarves or netting\nOptional: facepaint-free natural materials such as leaves and bracken",
+   "consumables": "None",
+   "notes": "1. Agree the boundaries of the playing area, and explain that no one hides in unsafe places.\n2. Give out pieces of camouflage material, or give everyone a few minutes to camouflage themselves with natural materials.\n3. The seeker closes their eyes and counts while everyone hides.\n4. The seeker goes to find the others, who stay as still as they can.\n5. The first one found is the next seeker, or play until everyone is found.\n6. Talk about which hiding places worked best and why."
+  },
+  "wide|Capture the Flag": {
+   "equipment": "Two flags\nCones or rope to mark the centre",
+   "consumables": "None",
+   "notes": "1. The group splits into two teams. Each team has a flag and a base on one side of the woods.\n2. Agree boundaries and which areas are out of bounds.\n3. The teams hide their flag on their own side of the woods, in a place that is not too hard to reach.\n4. On the signal, each team tries to find the other team's flag before their own is found.\n5. The team that finds the flag brings it back to the centre.\n6. Play as many rounds as you like, with each team hiding in new places.\n7. Safety: tagging is not part of this game. Children walk or jog, and stay in the agreed area."
+  },
+  "wide|Dracula / Zombie tag": {
+   "equipment": "None needed",
+   "consumables": "None",
+   "notes": "1. The group stands in a circle, with one player in the middle as Dracula or a zombie, with their arms out in front.\n2. The player in the middle walks slowly towards someone in the circle.\n3. That person says the name of someone else in the circle, which sends Dracula towards that person.\n4. The next person says another name, and so on, passing the attention round the circle before anyone is tagged.\n5. Anyone who is tagged swaps with Dracula.\n6. Safety: Dracula walks, never runs, and tags gently on the shoulder."
+  },
+  "wide|Evolution": {
+   "equipment": "Open flat space",
+   "consumables": "None",
+   "notes": "1. Everyone starts as a worm, wriggling on the ground.\n2. When two worms meet, they play rock, paper, scissors. The winner moves up to being on their knees. The loser stays as a worm.\n3. When two players on their knees meet, they play. The winner becomes a hunched-over person with bent legs, and the loser drops back to a worm.\n4. Hunched players play each other, and the winner stands up tall. The loser goes down a step.\n5. Players can only play others at the same stage as them.\n6. The aim is to be standing tall for as long as possible.\n7. Play for a set time, or until a few players are standing."
+  },
+  "wide|Find Your Flock": {
+   "equipment": "A list of animal or bird names on slips of paper",
+   "consumables": "Slips of paper",
+   "notes": "1. Give each child a slip with an animal or bird name, such as chiffchaff, blue tit or crow. Several children get the same one.\n2. Children keep their animal secret.\n3. On the signal, everyone makes the sound or movement of their animal and moves around to find the other members of their group.\n4. When a flock thinks it is complete, it sits down together.\n5. Check each flock to see if they are all the same, then swap slips and play again."
+  },
+  "wide|Fox Hunt": {
+   "equipment": "Cones or markers for the start line and the finish line",
+   "consumables": "None",
+   "notes": "1. Choose a start line, a finish line and a safe route. One player is the fox and the others are the group.\n2. In round one, the group gets a head start of several seconds. The fox then runs after them and tries to tag them.\n3. With each round, the head start gets shorter, so the group has to run faster to keep ahead.\n4. Anyone tagged joins the fox, or sits out, as agreed.\n5. Play until the head start is gone or only a few players are left untagged.\n6. Safety: check the ground for trip hazards, keep the pace safe for the group and stop the game if play gets rough."
+  },
+  "wide|Fox Hunt \u2014 Up the Hill": {
+   "equipment": "Cones or markers for the start line and the finish line",
+   "consumables": "None",
+   "notes": "1. Choose a start line, a finish line and a safe route. One player is the fox and the others are the group.\n2. In round one, the group gets a head start of several seconds. The fox then runs after them and tries to tag them.\n3. With each round, the head start gets shorter, so the group has to run faster to keep ahead.\n4. Anyone tagged joins the fox, or sits out, as agreed.\n5. Play until the head start is gone or only a few players are left untagged.\n6. Safety: check the ground for trip hazards, keep the pace safe for the group and stop the game if play gets rough."
+  },
+  "wide|Ghost in the Graveyard": {
+   "equipment": "A camouflage poncho for the ghost\nMarkers for the graveyard (safe base)",
+   "consumables": "None",
+   "notes": "1. Choose a safe space as the graveyard. Everyone waits there.\n2. Players in the graveyard turn around and close their eyes while the ghost, wearing a camouflage poncho, goes and hides somewhere in the woods.\n3. Players venture out from the graveyard to look for the ghost.\n4. When a player finds the ghost, they shout \"Ghost in the Graveyard!\" and everyone runs back to the graveyard.\n5. The ghost chases and tries to tag players before they reach safety. Anyone tagged becomes the next ghost.\n6. Safety: check the ground for trip hazards, keep the pace safe for the group and stop the game if play gets rough."
+  },
+  "wide|Go Find It": {
+   "equipment": "Go Find It adjective cards",
+   "consumables": "The Go Find It cards",
+   "notes": "1. Shuffle the cards and hold up a card, such as \"smooth\" or \"fluffy\".\n2. Children go and find something in the woods that fits the word, and bring it back or point to it.\n3. They can compare what they found with others.\n4. Other ways to play: find things in a certain time, or in teams, or as a collection.\n5. Children return found items to where they were found."
+  },
+  "wide|Green Man and the Pinecones": {
+   "equipment": "Space to walk a route in the woods",
+   "consumables": "None",
+   "notes": "1. Choose a safe route through the woods and explain it to the group, saying where the leader as the Green Man will walk.\n2. The leader walks the route, and the children hide in the woods.\n3. The children try to see the Green Man on the path without being seen. They can use natural cover but must stay in the agreed area.\n4. If the Green Man spots someone, they say their name, and that child comes to stand with the Green Man.\n5. The game ends when the Green Man has finished the route. Children share what they saw.\n6. Swap and let a child be the Green Man."
+  },
+  "wide|Green Man's Coming": {
+   "equipment": "Space to walk a route in the woods",
+   "consumables": "None",
+   "notes": "1. Choose a safe route through the woods and explain it to the group, saying where the leader as the Green Man will walk.\n2. The leader walks the route, and the children hide in the woods.\n3. The children try to see the Green Man on the path without being seen. They can use natural cover but must stay in the agreed area.\n4. If the Green Man spots someone, they say their name, and that child comes to stand with the Green Man.\n5. The game ends when the Green Man has finished the route. Children share what they saw.\n6. Swap and let a child be the Green Man."
+  },
+  "wide|Green Man's Coming \u2014 on the den hill": {
+   "equipment": "Space to walk a route in the woods",
+   "consumables": "None",
+   "notes": "1. Choose a safe route through the woods and explain it to the group, saying where the leader as the Green Man will walk.\n2. The leader walks the route, and the children hide in the woods.\n3. The children try to see the Green Man on the path without being seen. They can use natural cover but must stay in the agreed area.\n4. If the Green Man spots someone, they say their name, and that child comes to stand with the Green Man.\n5. The game ends when the Green Man has finished the route. Children share what they saw.\n6. Swap and let a child be the Green Man."
+  },
+  "wide|Hey Mr Crocodile": {
+   "equipment": "A boundary for the river (two lines of rope or sticks)",
+   "consumables": "None",
+   "notes": "1. Mark out a river with two lines. Everyone stands on one side. The leader is the crocodile in the middle.\n2. Children sing: \"Hey, Mr Crocodile, come across the water in a cup and saucer to see your lovely daughter.\"\n3. The crocodile answers with a challenge, such as \"Only if you're wearing blue.\"\n4. Everyone who meets the challenge walks across for free. Everyone else runs across, and the crocodile tries to tag them.\n5. Anyone tagged becomes a crocodile for the next round.\n6. Safety: check the ground for trip hazards, keep the pace safe for the group and stop the game if play gets rough."
+  },
+  "wide|Human Knot": {
+   "equipment": "Flat open space",
+   "consumables": "None",
+   "notes": "1. Children stand in a circle, shoulder to shoulder.\n2. Each child reaches across the circle and takes the hand of someone who is not next to them, with the other hand taking a different person's hand.\n3. The group tries to untangle itself into a circle without letting go of hands.\n4. Children talk and work together, stepping over or ducking under arms.\n5. If the group gets stuck, the leader can ask for a rethink or a break.\n6. Safety: no pulling or twisting wrists. Children stay in control."
+  },
+  "wide|Human knot and untangle": {
+   "equipment": "Flat open space",
+   "consumables": "None",
+   "notes": "1. Children stand in a circle, shoulder to shoulder.\n2. Each child reaches across the circle and takes the hand of someone who is not next to them, with the other hand taking a different person's hand.\n3. The group tries to untangle itself into a circle without letting go of hands.\n4. Children talk and work together, stepping over or ducking under arms.\n5. If the group gets stuck, the leader can ask for a rethink or a break.\n6. Safety: no pulling or twisting wrists. Children stay in control."
+  },
+  "wide|Laser Maze": {
+   "equipment": "Lots of rope or string\nTrees or posts to tie to",
+   "consumables": "None",
+   "notes": "1. An adult sets up a web of ropes between trees at different heights and angles, like laser beams, with a way through.\n2. Make sure the ropes are low and clear, with no trip hazards on the ground and nothing that could catch a child's neck.\n3. In turns, children try to get through the maze without touching any rope, like a Mission Impossible mission.\n4. If a child touches a rope, they start again, or the next player takes a turn.\n5. Work in teams to help each other through, or time each attempt.\n6. An adult checks the ropes after each round and removes them at the end."
+  },
+  "wide|Meet the Trees": {
+   "equipment": "Blindfolds, or children keep their eyes closed",
+   "consumables": "None",
+   "notes": "1. Children work in pairs. One wears a blindfold or closes their eyes and the other is the guide.\n2. The guide leads their partner gently to a tree.\n3. The blindfolded child feels the tree, noticing the bark, shape and anything on it.\n4. The guide leads them away by a different route and spins them round gently.\n5. The child removes the blindfold and tries to find the tree they were touching.\n6. Swap roles. Safety: guides walk slowly and watch for trip hazards, and blindfolds are optional."
+  },
+  "wide|Only Safe If...": {
+   "equipment": "None needed",
+   "consumables": "None",
+   "notes": "1. Explain that the game is a tag game where players are safe if they meet the leader's challenge.\n2. The leader calls out something like \"You're only safe if you're touching a holly tree!\" and counts down from five.\n3. Players run to touch the object before the count ends.\n4. Anyone not touching it can be tagged by the tagger.\n5. The tagger changes each round.\n6. Safety: check the ground for trip hazards, keep the pace safe for the group and stop the game if play gets rough."
+  },
+  "wide|Ostrich Tag": {
+   "equipment": "Cones to mark the boundary",
+   "consumables": "None",
+   "notes": "1. Everyone holds one hand behind their back as tail feathers and the other in front as a beak.\n2. Players try to peck other players' tail feathers.\n3. When a player's tail feathers are pecked, they turn into an egg and crouch on the ground.\n4. Other players can peck the top of an egg to turn it back into an ostrich.\n5. Swap players or play for a set time.\n6. Safety: check the ground for trip hazards, keep the pace safe for the group and stop the game if play gets rough."
+  },
+  "wide|Panther Attack": {
+   "equipment": "A rope circle on the ground, about 1 m across",
+   "consumables": "None",
+   "notes": "1. One player, the person in the middle, sits or stands in the rope circle and cannot move their feet.\n2. Everyone else hides in the woods and tries to sneak up to the circle.\n3. The person in the middle watches and listens, and if they see someone, they say their name. That player is out and sits down.\n4. If anyone makes it into the circle without being named, they shout \"Panther attack!\"\n5. Everyone comes out of hiding and pretends to maul the person in the middle, gently and without any touching.\n6. Swap the person in the middle."
+  },
+  "wide|Penguins on the Iceberg": {
+   "equipment": "Tarps to be the icebergs\nPegs or stones to hold the tarps down",
+   "consumables": "None",
+   "notes": "1. Lay tarps on the ground as icebergs, with enough room for the whole group.\n2. Children move around as penguins, waddling and swimming.\n3. When the leader shouts \"Polar bear!\", the penguins scramble onto an iceberg before the bear can tag them.\n4. Each round, fold the tarps so the icebergs melt and get smaller, making it harder to fit.\n5. Play until there is just one small tarp left.\n6. Safety: check the ground for trip hazards, keep the pace safe for the group and stop the game if play gets rough."
+  },
+  "wide|Sardines": {
+   "equipment": "Space to hide",
+   "consumables": "None",
+   "notes": "1. Agree the boundaries of the playing area.\n2. One person hides while everyone else counts.\n3. Everyone then goes to find them. When someone finds the hiding person, they quietly hide with them.\n4. The hiding group gets bigger and bigger.\n5. The last person to find the group is the next to hide.\n6. Safety: hiding places must be safe and children stay in the agreed area."
+  },
+  "wide|Scream Running": {
+   "equipment": "Open space",
+   "consumables": "None",
+   "notes": "1. Line up the group at one end of a long open space.\n2. On the signal, children run as far as they can while screaming.\n3. When they run out of air for the scream, they have to stop running.\n4. See who gets the furthest, and compare.\n5. Check the area is clear of other groups who may not want the noise."
+  },
+  "wide|Simon Says Spring": {
+   "equipment": "None needed",
+   "consumables": "None",
+   "notes": "1. The leader is Simon. The leader gives instructions, such as \"Simon says touch a tree.\"\n2. Players only do the action if the leader says \"Simon says\" first.\n3. If the leader does not say it, and a player does the action, they are out or lose a point.\n4. Use spring-themed actions such as being a bud opening, a bee buzzing or a bird flapping.\n5. Let children take turns being Simon."
+  },
+  "wide|Smell Your Friends": {
+   "equipment": "Blindfolds, or children keep their eyes closed",
+   "consumables": "None",
+   "notes": "1. Players sit in a circle. One player is blindfolded or closes their eyes in the middle.\n2. The leader chooses another player to come forward.\n3. The blindfolded player smells the person in front of them, from an arm's length, and tries to work out who it is.\n4. Children can only take part if they are comfortable, and anyone can say no.\n5. Swap roles and play again."
+  },
+  "wide|Spider Tag": {
+   "equipment": "Cones to mark the boundary",
+   "consumables": "None",
+   "notes": "1. Choose two trees to be the first spider's web. The spider can move only along the line between the two trees.\n2. Everyone else tries to run past the web without being tagged.\n3. If the spider tags someone, that person chooses another set of two trees and sets up a new web there.\n4. Keep going, with more webs growing as more people are tagged, until everyone is a spider.\n5. The last child untagged is the winner.\n6. Safety: check the ground for trip hazards, keep the pace safe for the group and stop the game if play gets rough."
+  },
+  "wide|Squirrel Sneak Up": {
+   "equipment": "Trees to touch",
+   "consumables": "None",
+   "notes": "1. Everyone walks in a line behind the leader.\n2. At any time, with no warning, the leader turns round. Anyone who is not touching a tree is out of the safe zone and goes back to a tree.\n3. Children touch a tree like a squirrel to stay safe.\n4. Play until the group reaches the end of the route.\n5. Safety: children walk and do not run."
+  },
+  "wide|Up the Hill": {
+   "equipment": "A hill with trees\nMarkers for the start line",
+   "consumables": "None",
+   "notes": "1. Children start at the bottom of the hill and try to get to the top.\n2. The leader stands at the top, facing away, and counts down from different numbers.\n3. When the leader gets to zero, they turn round. Anyone who can be seen, not hiding behind a tree, goes back to the start.\n4. The first child to reach the leader wins, and becomes the next to count.\n5. Safety: watch for slippery ground and trip hazards."
+  },
+  "static|40-40-In": {
+   "equipment": "A post or tree as the base\nCones to mark the boundary",
+   "consumables": "None",
+   "notes": "1. Choose a post, tree or base. One player is the seeker and counts to 40 with their eyes closed while everyone else hides.\n2. After counting to 40, the seeker has to find the other players.\n3. The players have 40 seconds to try to get to the post without being tagged.\n4. Players who reach the post are safe.\n5. Anyone tagged becomes the next seeker.\n6. Safety: check the ground for trip hazards, keep the pace safe for the group and stop the game if play gets rough."
+  }
+ },
+ "removals": [
+  {
+   "cat": "wide",
+   "name": "Battle Game \u2014 final spring showdown in the woods"
+  },
+  {
+   "cat": "wide",
+   "name": "Blindfolded Obstacle Course"
+  },
+  {
+   "cat": "wide",
+   "name": "Christmas Trees (game)"
+  },
+  {
+   "cat": "wide",
+   "name": "Find and Fire"
+  },
+  {
+   "cat": "wide",
+   "name": "Forest Scavenger Hunt"
+  },
+  {
+   "cat": "wide",
+   "name": "Forest treasure hunt"
+  },
+  {
+   "cat": "wide",
+   "name": "Hands Poses Games"
+  },
+  {
+   "cat": "wide",
+   "name": "Harvest relay"
+  },
+  {
+   "cat": "wide",
+   "name": "Harvest Relay \u2014 race to complete tasks with natural materials"
+  },
+  {
+   "cat": "wide",
+   "name": "Hide and Seek the Summer Spirits \u2014 blend into nature"
+  },
+  {
+   "cat": "wide",
+   "name": "Jays and Squirrels"
+  },
+  {
+   "cat": "wide",
+   "name": "King of the Hill"
+  },
+  {
+   "cat": "wide",
+   "name": "Maypole dash"
+  },
+  {
+   "cat": "wide",
+   "name": "Maypole Dash (second round)"
+  },
+  {
+   "cat": "wide",
+   "name": "Nature Bingo"
+  },
+  {
+   "cat": "wide",
+   "name": "Nature Freeze Tag"
+  },
+  {
+   "cat": "wide",
+   "name": "Nature Ninja Warrior Course"
+  },
+  {
+   "cat": "wide",
+   "name": "Obstacle Course"
+  },
+  {
+   "cat": "wide",
+   "name": "Pathfinder Race"
+  },
+  {
+   "cat": "wide",
+   "name": "Pinecone Toss Challenge"
+  },
+  {
+   "cat": "wide",
+   "name": "Raiders"
+  },
+  {
+   "cat": "wide",
+   "name": "Robin Relay \u2014 team race with natural tasks"
+  },
+  {
+   "cat": "wide",
+   "name": "Roots and shoots tag"
+  },
+  {
+   "cat": "wide",
+   "name": "Seed scatter tag"
+  },
+  {
+   "cat": "wide",
+   "name": "Shadow Conga"
+  },
+  {
+   "cat": "wide",
+   "name": "Sneaky Animal Game"
+  },
+  {
+   "cat": "wide",
+   "name": "Snowflake Tag"
+  },
+  {
+   "cat": "wide",
+   "name": "Spring scavenger race"
+  },
+  {
+   "cat": "wide",
+   "name": "Stealth Game \u2014 hiding and retrieving an object"
+  },
+  {
+   "cat": "wide",
+   "name": "Survivor: Nature Challenges"
+  },
+  {
+   "cat": "wide",
+   "name": "Swallow Flight \u2014 navigate path with logs, ropes and cones"
+  },
+  {
+   "cat": "wide",
+   "name": "Wild Chase"
+  },
+  {
+   "cat": "wide",
+   "name": "Winter Nature Treasure Hunt"
+  },
+  {
+   "cat": "wide",
+   "name": "Worm Wriggle Chase \u2014 mimic soil creatures underground"
+  },
+  {
+   "cat": "wide",
+   "name": "Zeus' Coming"
+  }
+ ],
+ "merge": []
+};
+function applyEditsV11() { return applyUserBatch(USER_BATCH_V11); }
+
+const USER_BATCH_V12 = {
+ "fills": {
+  "static|Animal Court": {
+   "equipment": "None needed",
+   "consumables": "None",
+   "notes": "1. Choose a topic about the woods to argue about, such as whether the woods should have more trees or more open space, or who gets the best den.\n2. Each child chooses an animal to be and speaks as that animal, using its voice and movements.\n3. Animals take turns presenting their argument to the court, saying what the woods mean to them.\n4. A leader or the group acts as the judge, listening to each animal and asking questions.\n5. The court decides together, or finds a compromise that works for every animal.\n6. Talk about how each animal's needs are different."
+  },
+  "crafts|Butterfly Stick Puppets": {
+   "equipment": "Scissors\nPens or paints\nTape or glue",
+   "consumables": "Card or thin cardboard\nSticks, one per child\nPaint or pens for decoration",
+   "notes": "1. Look at pictures or real butterflies and talk about their wing shapes and colours.\n2. Children draw the outline of a butterfly on card and cut it out. Fold it in half to check both sides match.\n3. Decorate the wings with paints or pens, and make the pattern the same on both sides.\n4. Fix a stick to the middle of the back with tape or glue, so the butterfly can be held up.\n5. Hold the stick and move it gently to make the butterfly flap.\n6. Children can make their butterflies fly around the woods and rest on flowers."
+  },
+  "static|Centipede Tag": {
+   "equipment": "Cones to mark the boundary",
+   "consumables": "None",
+   "notes": "1. Choose one or two players to be the centipede heads.\n2. The heads try to tag other players. When someone is tagged, they join the back of the centipede by holding on to the player in front.\n3. As the centipede grows, the front of each centipede tries to tag the back of another centipede, or other free players.\n4. The centipede stays linked and moves together as one.\n5. The game ends when everyone has joined a centipede.\n6. Swap who is at the front and play again.\n7. Safety: players hold on gently around the waist or shoulders and move at a walking or jogging pace."
+  },
+  "static|Dolphin Training": {
+   "equipment": "None needed",
+   "consumables": "None",
+   "notes": "1. One player, the dolphin, leaves the group or turns away while the others agree on a secret task, such as touching a particular tree or picking up a stick.\n2. The dolphin returns. Nobody speaks.\n3. The group only makes positive or negative noises, such as a clap or a cheer for \"warmer\" and a groan for \"colder\", to guide the dolphin towards the task.\n4. The dolphin tries to work out what the task is from the noises.\n5. When the dolphin completes the task, the group celebrates.\n6. Swap the dolphin and agree a new task.\n7. Talk about how it felt to work out the task without any words."
+  },
+  "static|Don't drop the bridge": {
+   "equipment": "Wooden bricks or blocks, three per child",
+   "consumables": "None",
+   "notes": "1. Each player holds a brick in each hand, with a third brick balanced across the top to make a bridge.\n2. The leader calls out an action, such as walking, turning around, sitting down, rolling over, or standing on one leg.\n3. Players do the action while trying not to drop the bridge.\n4. Make it harder with more complicated actions.\n5. Anyone who drops the bridge has a go at rebuilding it and carrying on.\n6. Safety: use light wooden blocks and make sure the ground is clear of hazards."
+  },
+  "static|Floppy Guards": {
+   "equipment": "Flat, clear space",
+   "consumables": "None",
+   "notes": "1. Children work in pairs, standing facing each other with their hands up and palms touching.\n2. Each person pushes and pulls against their partner, but the aim is to stay in one place, not to win.\n3. Children adjust how much force they use so that they give and receive the same amount.\n4. The pair try to stay perfectly still, with a steady push and pull.\n5. Talk about how it felt to tune into your partner and how it felt to work together.\n6. Swap partners and try again.\n7. Safety: no sudden pushes. Children let go if it is not fun."
+  },
+  "static|Floppy Onion": {
+   "equipment": "None needed",
+   "consumables": "None",
+   "notes": "1. Children stand in a circle with a soft toy called Onion, or the leader pretends to throw Onion up in the air.\n2. The leader throws Onion up. Everyone watches how Onion lands.\n3. Children imitate Onion's pose with their legs and feet, copying the way Onion landed.\n4. Hold the pose for a few seconds and look at each other's shapes.\n5. Throw Onion again and try a new pose.\n6. Children can take turns throwing Onion."
+  },
+  "static|Jump the Tower with Foot Ropes": {
+   "equipment": "Wooden bricks or blocks for a tower\nTwo lengths of rope for each pair",
+   "consumables": "None",
+   "notes": "1. Build a tower of wooden bricks or blocks.\n2. Children work in pairs, standing side by side. Tie one rope between the left leg of one person and the right leg of the other, and a second rope between their other two legs, so they are loosely joined by two ropes.\n3. The pair stand on one side of the tower. They must jump at the same time, so that both ropes go over the tower without knocking it down.\n4. If the tower falls, rebuild it and try again.\n5. Make the tower taller as the pairs improve.\n6. Safety: tie the ropes loosely and make sure they can be released quickly. Jump over low towers only on soft ground."
+  },
+  "static|Molke / Kubb Tournament": {
+   "equipment": "Kubb set (wooden blocks, king and throwing batons)\nM\u00f6lkky set (wooden pins and a throwing pin)\nMarkers for the pitch",
+   "consumables": "None",
+   "notes": "1. Both are Viking-style wooden lawn games, played with sets that the group has.\n2. Kubb: two teams set out their wooden blocks, called kubbs, on their baselines. Teams take turns to throw batons at the opponents' kubbs, trying to knock them over.\n3. Knocked kubbs are thrown back into the opponents' half and stood up. Once all the kubbs are down, the team tries to knock over the king in the middle.\n4. M\u00f6lkky: players take turns throwing the wooden pin at a group of numbered skittles, scoring the number on a single skittle or the number of skittles knocked over.\n5. The first player or team to reach exactly 50 points wins.\n6. Run a tournament by letting teams play each other.\n7. Safety: throw only when the area is clear and nobody is standing near the pitch."
+  },
+  "static|No Air Laughing": {
+   "equipment": "Flat, soft ground",
+   "consumables": "None",
+   "notes": "1. Check first that everyone is happy to take part, and that nobody has a breathing, heart or other health condition that makes this unsuitable. Anyone can say no.\n2. Children sit or lie down in pairs, one as the laugher and one as the helper.\n3. The laugher breathes out all of the air in their lungs and stays relaxed.\n4. The helper lightly rests a flat hand on the laugher's upper chest for a moment. This should be a very gentle touch, not pressure, with nothing on the throat or ribs.\n5. The change in breath often makes the laugher laugh.\n6. Swap roles. Keep it short, a few seconds at a time, and stop straight away if anyone feels dizzy or short of breath.\n7. An adult watches all pairs."
+  },
+  "static|No-Air Screaming": {
+   "equipment": "Flat, soft ground",
+   "consumables": "None",
+   "notes": "1. Children sit down, so nobody can fall.\n2. Take a breath in, then breathe out all the air in your lungs, until you feel empty.\n3. Try to scream. Notice that almost no sound comes out.\n4. Talk about how the body needs air to make sound.\n5. Do it once or twice only, and stop straight away if anyone feels dizzy.\n6. Check the area is clear of other groups who may not want the noise."
+  },
+  "static|Spring charades": {
+   "equipment": "None needed",
+   "consumables": "None",
+   "notes": "1. Split the group into teams. One player from a team is chosen to act out something on a spring theme, such as a bud opening, a lamb, rain or a bee.\n2. The actor cannot speak. They use only actions and gestures.\n3. The team guesses what the actor is acting. If they get it right, they score a point.\n4. Swap actors and teams.\n5. Play for a set time or number of rounds."
+  },
+  "static|Stuck in the Mud": {
+   "equipment": "Cones to mark the boundary",
+   "consumables": "None",
+   "notes": "1. Choose one or two players to be the taggers. Everyone else runs.\n2. If a player is tagged, they stand still with their legs and arms apart, as if stuck in the mud.\n3. Other players can free them by crawling through their legs, or by touching them, as agreed.\n4. The taggers try to freeze everyone.\n5. The game ends when everyone is stuck, or after a set time.\n6. Swap taggers and play again. Safety: check the ground for trip hazards and stop the game if play gets rough."
+  },
+  "static|Well, Well, Well. If it isn't\ufffd.": {
+   "equipment": "None needed",
+   "consumables": "None",
+   "notes": "1. The leader stands facing the group and says, \"Well, well, well, if it isn't...\" followed by a made-up character name and description, such as \"Crispy McGee, the oldest man in the world.\"\n2. The child the leader is talking to has to respond in the character's voice, as that character.\n3. Others join in and respond to the character as well.\n4. Let children take a turn as the leader and make up a character for someone else.\n5. Keep it funny, and make sure children are happy with the character they are given."
+  }
+ },
+ "removals": [
+  {
+   "cat": "static",
+   "name": "40-40-In"
+  },
+  {
+   "cat": "static",
+   "name": "Blindfolded Race"
+  },
+  {
+   "cat": "static",
+   "name": "Frame Walking"
+  },
+  {
+   "cat": "static",
+   "name": "Heads or tails coins \u2014 nature themed"
+  },
+  {
+   "cat": "static",
+   "name": "Paint Stickman Battle Ships"
+  },
+  {
+   "cat": "static",
+   "name": "null"
+  },
+  {
+   "cat": "static",
+   "name": "Where Tapere"
+  }
+ ],
+ "merge": [],
+ "move": [
+  {
+   "name": "Butterfly Stick Puppets",
+   "from": "static",
+   "to": "crafts"
+  },
+  {
+   "name": "String Head Painting",
+   "from": "static",
+   "to": "crafts"
+  }
+ ],
+ "rename": [
+  {
+   "cat": "static",
+   "from": "Floppy Teddy Yoga",
+   "to": "Floppy Onion"
+  }
+ ]
+};
+function applyEditsV12() { return applyUserBatch(USER_BATCH_V12); }
+
+const USER_BATCH_V13 = {
+ "fills": {
+  "natureconnect|Goose Grass Steeped Drink": {
+   "equipment": "Blender or stick blender (adult use only)\nSieve or muslin cloth\nJug\nCups\nChopping board and knife (adult)",
+   "consumables": "A large handful of young cleavers (goosegrass) tops, about 100 g\n500 ml cold water\nOptional: juice of half a lemon\nOptional: 1 tbsp maple syrup",
+   "notes": "1. An adult positively identifies the cleavers, a sticky climbing plant with whorls of leaves and small round seed burrs. Pick the young tops from clean areas, away from paths used by dogs and from roadsides.\n2. Wash the tops well in cold water.\n3. An adult puts the cleavers and the water in a blender and blends until the mixture is green and smooth.\n4. Pour it through a sieve or muslin into a jug and squeeze out the juice.\n5. Taste and add lemon juice or maple syrup if wished.\n6. Chill if possible, or serve straight away in cups. As with all foraged plants, children taste it only under leader supervision once the plant is identified.\n7. Allergy check: if anyone has a plant allergy, ask first."
+  },
+  "natureconnect|Laying food caches for animals": {
+   "equipment": "Small trowel (optional)",
+   "consumables": "Natural seeds, nuts and berries suitable for wild animals (not bread)",
+   "notes": "1. Talk about how animals such as squirrels, jays and mice hide food for winter.\n2. Children choose different places around the woods, such as under logs, in tree hollows and beside roots, to place small amounts of seeds.\n3. Place the seeds in a small pile or hide them lightly under leaves.\n4. Draw a map of where the caches are.\n5. Return later to see which ones have been visited, looking for signs such as footprints or nibbled seeds.\n6. Watch quietly from a distance without disturbing the animals.\n7. Use only food that is suitable for wild animals and keep caches away from where the group eats."
+  },
+  "natureconnect|Learning the art of stealth and tracking in nature": {
+   "equipment": "Notebooks and pencils (optional)",
+   "consumables": "None",
+   "notes": "1. Choose one technique to look at in this session, such as fox walking (placing the outside of the foot first and rolling to the heel), moving only when the wind moves the leaves, or using cover to get close to an animal.\n2. The leader demonstrates the technique slowly.\n3. Children practise in pairs, with one moving and one watching, and give feedback.\n4. Move on to using it, for example by stalking quietly towards a target such as a cuddly toy, or by looking for tracks and signs of animals.\n5. Talk about how it felt, what worked and what could be improved.\n6. Try a different technique next time."
+  },
+  "projects|Cob Bath Tub": {
+   "equipment": "Spades and wheelbarrow\nTarpaulin for mixing\nBuckets\nGloves\nOld bathtub",
+   "consumables": "Clay-rich soil, sand and straw for cob\nWater\nFirewood for heating",
+   "notes": "1. This is a long-term project, built over several sessions.\n2. Session 1: choose a safe site. An adult sets the bathtub on a raised, level base of stones or bricks with space underneath for a fire.\n3. Mix cob by combining clay-rich soil, sand and straw with water, treading it in with bare feet on a tarp.\n4. Surround and insulate the bathtub with layers of cob, shaped and smoothed, and leave each layer to dry.\n5. Leave a safe opening below the tub for the fire. The fire is lit and tended by an adult only.\n6. An adult lights the fire, fills the tub, checks the water temperature before anyone gets in and keeps watching.\n7. Safety: hot surfaces, steam and fire are a risk. Children are supervised at all times, and the fire is put out and the area made safe afterwards."
+  },
+  "projects|Frame Treenet Bed": {
+   "equipment": "Ropes and straps\nSaw (adult use only)\nDrill (adult use only)\nPadding to protect the bark",
+   "consumables": "Four planks or sturdy poles\nNet or rope\nWebbing straps",
+   "notes": "1. This is a long-term project. Choose four healthy trees that are close enough together to make a rectangle.\n2. Use straps and padding so the ropes do not damage the bark.\n3. An adult fixes the planks between the trees, one on each side, to make a frame, at low height.\n4. Test the frame by pulling hard on it, with the weight of an adult.\n5. Rope or net in the middle, to make a bed that children can climb in, with the net pulled tight.\n6. Check the knots and the trees before each session.\n7. Safety: keep the bed low, limit how many children use it at once and check the ground beneath."
+  },
+  "projects|Jungle Temple": {
+   "equipment": "Saw (adult use only)\nRopes\nSpades\nGloves",
+   "consumables": "Timber, logs and branches\nRope and cordage\nNatural materials for decoration",
+   "notes": "1. This is a long-term project, built over several sessions.\n2. Children design a jungle temple and decide where in the woods it should be.\n3. Build the framework, such as the walls, steps and doorway, from timber and logs.\n4. Add decoration, such as carved patterns and plants.\n5. Check the structure is stable before anyone climbs on it.\n6. Keep adding to it across the term.\n7. Safety: an adult checks every structure for stability and trip hazards before use."
+  },
+  "projects|Roller Coaster": {
+   "equipment": "Saw (adult use only)\nDrill (adult use only)\nHammer\nTape measure",
+   "consumables": "Timber for the track\nNails or screws\nA barrel to roll down the track",
+   "notes": "1. Children design a roller coaster track on paper, thinking about slopes and curves.\n2. An adult cuts the timber to the sizes needed.\n3. Children help to build the track, joining the timber with nails or screws.\n4. Test the track by rolling a small object, and then the barrel.\n5. Adjust the slope and curves so the barrel runs smoothly.\n6. Roll the barrel down the track. Nobody rides in or on the barrel.\n7. Safety: keep everyone clear of the track and the barrel while it rolls, and check the track is stable before use."
+  },
+  "projects|Tree Climb Holds": {
+   "equipment": "Drill (adult use only)\nSaw (adult use only)\nTape measure\nRopes or harness equipment (if used)",
+   "consumables": "Wooden holds\nFixings chosen by the leader\nSandpaper",
+   "notes": "1. An adult chooses suitable trees: healthy, strong and not in use by wildlife.\n2. Children make the holds from pieces of wood, shaping and sanding them so they are smooth and comfortable to grip.\n3. An adult attaches the holds to the tree at the chosen heights, using the fixing method the leader has decided is safe for the tree.\n4. Test every hold with weight before anyone climbs.\n5. Children climb under close supervision, up to a set height, with a soft landing area.\n6. Inspect the holds and the tree before each session and remove any that look loose.\n7. Safety: a trained leader supervises all climbing."
+  },
+  "seasonal|Animal Grafitti": {
+   "equipment": "None needed",
+   "consumables": "Chalk",
+   "notes": "1. Each child chooses an animal, such as a pig.\n2. Children go around the woods and hide chalk drawings of their animal on stones, logs and other surfaces, in as many places as they can.\n3. When everyone has finished, the group walks round and finds each other's animals.\n4. Count how many of each animal were found.\n5. The rain washes the chalk away, so nothing is left behind."
+  },
+  "seasonal|Earth Portal": {
+   "equipment": "Spades\nHeatproof container and old pan for melting wax (adult use only)\nHeat source (adult only)\nFire safety kit with a bucket of water\nGloves",
+   "consumables": "Soy or other vegetable wax (not beeswax)\nWicks\nWater",
+   "notes": "1. Choose a safe spot away from tree roots and hot ground, and agree the shape of the portal.\n2. Children dig a hole or trench in the earth in the chosen shape, down to the earth, such as a spiral or circle.\n3. Line the trench with a wick that runs along its length.\n4. An adult melts the wax in a heatproof container and pours it into the trench, filling it to make a big candle in the ground.\n5. Leave it to set.\n6. An adult lights the candle and the group sits round to share a moment.\n7. An adult puts the candle out and makes the area safe afterwards.\n8. Safety: hot wax and flames are for adults only."
+  },
+  "seasonal|charcoal facepaint": {
+   "equipment": "Metal charcoal tin with a small vent hole\nFire pit and fire safety kit\nTongs and oven gloves\nPestle and mortar\nSmall bowl and spoon\nBrushes or fingers",
+   "consumables": "Untreated twigs, such as willow\nVegetable oil or coconut oil\nWater",
+   "notes": "1. A trained leader runs the fire. Pack twigs tightly in the tin and put the lid on.\n2. An adult places the tin on the fire until no more smoke comes out of the vent hole.\n3. Remove the tin from the fire using tongs and leave it to cool completely before opening.\n4. Children grind the charcoal to a fine powder with a pestle and mortar.\n5. Mix the powder with a little oil until it forms a paste.\n6. Test it on a small patch of skin first to check for allergies.\n7. Children paint patterns on their faces with brushes or fingers, avoiding eyes and mouths.\n8. Wash it off with soap and water at the end.\n9. Safety: only adults handle the hot tin."
+  },
+  "woodland|Pink Nets \u2014 setting up and rigging": {
+   "equipment": "Large pink net\nRopes and straps\nTree padding",
+   "consumables": "None",
+   "notes": "1. The pink net is a large scramble net that can be used as a climbing frame or as a hammock.\n2. An adult chooses suitable trees and fixes the net between them, using straps and padding to protect the bark.\n3. The adult rigs the net low and checks all knots and anchor points.\n4. Test the net with the weight of an adult.\n5. Children use the net for scrambling or lounging, a few at a time.\n6. An adult supervises and takes the net down at the end of the session.\n7. Safety: keep it low, limit numbers and check the ground beneath."
+  },
+  "woodland|Pink Nets (continued)": {
+   "equipment": "Large pink net\nRopes and straps\nTree padding",
+   "consumables": "None",
+   "notes": "1. The pink net is a large scramble net that can be used as a climbing frame or as a hammock.\n2. An adult chooses suitable trees and fixes the net between them, using straps and padding to protect the bark.\n3. The adult rigs the net low and checks all knots and anchor points.\n4. Test the net with the weight of an adult.\n5. Children use the net for scrambling or lounging, a few at a time.\n6. An adult supervises and takes the net down at the end of the session.\n7. Safety: keep it low, limit numbers and check the ground beneath."
+  },
+  "woodland|Tarzan Zipline rigging": {
+   "equipment": "Zipline kit\nRopes and straps\nTree padding\nSafety equipment such as helmets and gloves",
+   "consumables": "None",
+   "notes": "1. The zipline is set up between two trees by trained adults.\n2. An adult chooses two healthy trees and uses straps and padding to protect the bark.\n3. Rig the line at a safe height, with a clear run and a safe stopping point, and check all the equipment.\n4. Test the zipline with a weight before any child uses it.\n5. Children use it one at a time, with an adult at each end.\n6. An adult checks the equipment and takes the zipline down at the end of the session.\n7. Safety: use only rated equipment, keep the landing area clear and supervise closely."
+  }
+ },
+ "removals": [
+  {
+   "cat": "bushcraft",
+   "name": "Log boxes"
+  },
+  {
+   "cat": "bushcraft",
+   "name": "Setting and using animal tracking traps"
+  },
+  {
+   "cat": "bushcraft",
+   "name": "Setting animal tracking traps"
+  },
+  {
+   "cat": "natureconnect",
+   "name": "GR\u00c4SER-HERZEN"
+  },
+  {
+   "cat": "natureconnect",
+   "name": "Setting traps for animals"
+  },
+  {
+   "cat": "woodland",
+   "name": "Building the mini world area"
+  },
+  {
+   "cat": "woodland",
+   "name": "Dressing Up Box Coat Rail build"
+  },
+  {
+   "cat": "woodland",
+   "name": "Habitat Stands - Straw"
+  },
+  {
+   "cat": "woodland",
+   "name": "Hoops for the Beast backpack frame"
+  }
+ ],
+ "merge": []
+};
+function applyEditsV13() { return applyUserBatch(USER_BATCH_V13); }
 
 function loadState() {
   // The built-in list has a few empty slots (stray commas in the literal). forEach skips
@@ -8889,7 +9461,7 @@ function loadState() {
   // defaults over deliberate changes: deleted rows reappeared, renamed rows
   // reverted, deleted sheets were recreated. To add a migration in future:
   // bump SCHEMA_TARGET and gate the new code on `schemaFrom < N`.
-  const SCHEMA_TARGET = 10;
+  const SCHEMA_TARGET = 13;
   const schemaFrom = state.meta.schemaVersion || 0;
   const runV1 = schemaFrom < 1;
   const runV2 = schemaFrom < 2;
@@ -8901,6 +9473,9 @@ function loadState() {
   const runV8 = schemaFrom < 8;
   const runV9 = schemaFrom < 9;
   const runV10 = schemaFrom < 10;
+  const runV11 = schemaFrom < 11;
+  const runV12 = schemaFrom < 12;
+  const runV13 = schemaFrom < 13;
   let metaChanged = false;
   const migrationLog = [];
 
@@ -9454,6 +10029,27 @@ function loadState() {
   if (runV10) {
     const r10 = applyEditsV10();
     migrationLog.push('v10: removed ' + r10.removed + ', merged ' + r10.merged + ', filled ' + r10.filled);
+    purged = true; anySheetMigrated = true;
+  }
+
+  // v11: wide games written from Lewis's descriptions, removals
+  if (runV11) {
+    const r11 = applyEditsV11();
+    migrationLog.push('v11: removed ' + r11.removed + ', filled ' + r11.filled);
+    purged = true; anySheetMigrated = true;
+  }
+
+  // v12: static games written from Lewis's descriptions, removals, moves
+  if (runV12) {
+    const r12 = applyEditsV12();
+    migrationLog.push('v12: removed ' + r12.removed + ', filled ' + r12.filled);
+    purged = true; anySheetMigrated = true;
+  }
+
+  // v13: projects, seasonal and woodland cards from Lewis's descriptions, removals
+  if (runV13) {
+    const r13 = applyEditsV13();
+    migrationLog.push('v13: removed ' + r13.removed + ', filled ' + r13.filled);
     purged = true; anySheetMigrated = true;
   }
 
