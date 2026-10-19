@@ -8230,6 +8230,124 @@ function applyRepairsV8() {
   return n;
 }
 
+// ── v9 (schema 9): vegan sweep of older cards, Flint and Steel newline repair, nettle soup ──
+const VEGAN_SKIP_CATS_V9 = ['songs', 'stories', 'chat', 'journaling', 'morning'];
+const FLAX_V9 = '(1 tbsp ground flaxseed mixed with 3 tbsp water per egg, left to gel for 5 minutes)';
+const VEGAN_PAIRS_V9 = [
+  ['Real eggs (blown) OR wooden/papier-mâché eggs', 'Wooden or papier-mâché eggs'],
+  ['Drill or pin (for blowing eggs)\n', ''],
+  ["hen's eggs", 'wooden or papier-mâché eggs'],
+  ['Blow the contents out before decorating to make them last.', 'Wooden or papier-mâché eggs are used, so nothing needs blowing out.'],
+  ['beat in eggs,', 'beat in flax eggs ' + FLAX_V9 + ','],
+  ['Whisk flour, eggs and milk into', 'Whisk flour, flax eggs ' + FLAX_V9 + ' and plant milk into'],
+  ['Whisk eggs, flour and milk into', 'Whisk flax eggs ' + FLAX_V9 + ', flour and plant milk into'],
+  ['milk, a beaten egg and melted butter', 'plant milk, a flax egg (1 tbsp ground flaxseed mixed with 3 tbsp water) and melted vegan butter'],
+  ['and a beaten egg together, then stir in a splash of milk', 'and a flax egg (1 tbsp ground flaxseed mixed with 3 tbsp water) together, then stir in a splash of plant milk'],
+  ['suet (or a vegan alternative)', 'vegan suet'],
+  ['Whisk eggs (or a chickpea flour batter for the vegan version) with a splash of milk or water and season.', 'Whisk 100 g chickpea flour with 150 ml water and a splash of plant milk into a smooth batter, season it and leave it to rest for 10 minutes.'],
+  ['Pour in the egg mixture', 'Pour in the batter'],
+  ['Spoon a vegan soft cheese into a bowl (or dairy soft cheese if that suits your group) and fold', 'Spoon vegan soft cheese into a bowl and fold'],
+  ['Allergy check: dairy soft cheese contains milk, and vegan soft cheese often contains nuts or soya.', 'Allergy check: vegan soft cheese often contains nuts or soya.'],
+  ['Soft Cheese', 'Vegan soft cheese'],
+  [' (use vegan sausages for a vegan batch)', ''],
+  [' (vegan cheese if needed)', ''],
+  ['and sausages and cheese may contain dairy, soya, gluten', 'and vegan sausages and cheese may contain soya, gluten'],
+  ['chicken stock', 'vegetable stock'],
+  ['Coconut oil or lard (solidified)', 'Coconut oil (solidified)'],
+  ['Melt lard or vegetable suet gently', 'Melt coconut oil or vegetable suet gently'],
+  ['Peanut butter or lard', 'Peanut butter or vegetable fat'],
+  ['peanut butter (or lard/suet)', 'peanut butter (or vegetable suet)'],
+  ['milk or cream', 'plant milk or plant cream'],
+  ['cream cheese', 'vegan cream cheese'],
+  ['vegan butter or vegan butter', 'vegan butter'],
+  [' in the pan (vegan butter for a vegan batch)', ' in the pan'],
+  ['and butter contains milk.', 'and check the vegan butter label for soya and nuts.'],
+  ['butter or vegan butter', 'vegan butter'],
+  ['sheep wool', 'cotton yarn'],
+  ['Fat balls', 'Vegetable-fat bird balls'],
+  ['fat balls', 'vegetable-fat bird balls'],
+  ['Thick leather gloves', 'Thick gardening gloves'],
+  ['thick leather gloves', 'thick gardening gloves'],
+  ['Cord or leather lace', 'Cord or hemp lace'],
+  ['leather or strong fabric', 'strong fabric or hessian'],
+  ['cotton or silk', 'cotton or linen'],
+  ['Oil or ghee', 'Oil or vegan ghee'],
+  ['water or yoghurt', 'water or plant yoghurt'],
+  ['Spoon warm over yoghurt', 'Spoon warm over plant yoghurt']
+];
+const NETTLE_SOUP_V9 = {
+  equipment: 'Large pot with a lid, over the fire or on a stove\nWooden spoon and ladle\nChopping board and knife (adult)\nThick gloves for picking nettles\nColander\nStick blender or potato masher (adult)\nBowls and spoons',
+  consumables: '2 tbsp vegetable oil\n1 onion, finely chopped\n500 g potatoes, peeled and diced\n1 litre vegan vegetable stock\nA large bag of young nettle tops (about 100 g)\nSalt and black pepper\nOptional: a squeeze of lemon juice or a splash of oat cream',
+  foraged: 'Young stinging nettle tops (the top four leaves, picked before the plant flowers)',
+  notes: '1. An adult identifies the stinging nettles and shows the group the young tops to pick (the top four leaves, before the plant flowers). Children wear thick gloves and pick only what the adult points out.\n2. Wash the nettle tops in a colander, still wearing gloves.\n3. An adult heats the oil in the pot over a medium heat and softens the onion for about 5 minutes.\n4. Add the potatoes and stock and bring to the boil, then simmer with the lid on for 15 to 20 minutes until the potato is soft.\n5. Add the nettle tops and simmer for 3 to 5 minutes. Cooking removes the sting.\n6. An adult blends the soup with a stick blender, or mashes it for a chunkier soup, and seasons it to taste. Children keep back while the pot is hot.\n7. Leave to cool a little before serving in bowls. Tasting follows the leader-supervised rule for foraged plants.\n8. Allergy check: check the stock label for celery, soya and gluten, and any oat cream for gluten.'
+};
+
+function veganFixTextV9(t) {
+  let o = t;
+  VEGAN_PAIRS_V9.forEach(p => { if (o.indexOf(p[0]) >= 0) o = o.split(p[0]).join(p[1]); });
+  // allergy lines name what ingredients can contain, so they are left as written
+  if (/allergy check/i.test(o)) return o.split('\n').map(l => /allergy check/i.test(l) ? l : veganFixLineV9(l)).join('\n');
+  return veganFixLineV9(o);
+}
+
+function veganFixLineV9(o) {
+  const before = (s, off, n) => s.slice(Math.max(0, off - n), off).toLowerCase();
+  const veganNear = (s, off) => /(vegan|plant|dairy-free|egg and |\b(no|without) )[^\n,;.()]{0,14}$/.test(before(s, off, 24));
+  o = o.replace(/\bbutter\b/gi, (m, off, s) => {
+    if (veganNear(s, off) || /(peanut |nut |almond |cashew |hazelnut |seed |garlic |herb |no |without )$/.test(before(s, off, 12))) return m;
+    if (s.charAt(off + 6) === '-' || /^ beans?\b/i.test(s.slice(off + 6, off + 13))) return m;
+    return m.charAt(0) === 'B' ? 'Vegan butter' : 'vegan butter';
+  });
+  o = o.replace(/\bmilk\b/gi, (m, off, s) => {
+    const b = before(s, off, 25);
+    if (veganNear(s, off) || /(oat |soya |soy |almond |coconut |rice |cashew |hazelnut |nut |condensed |based |contain |contains |no |without |egg or |or )$/.test(b)) return m;
+    if (/^ (alternative|substitute)/i.test(s.slice(off + 4, off + 16))) return m;
+    if (/^ chocolate/i.test(s.slice(off + 4, off + 14))) return 'dairy-free';
+    return m.charAt(0) === 'M' ? 'Plant milk' : 'plant milk';
+  });
+  o = o.replace(/\bcheese\b/gi, (m, off, s) => {
+    if (veganNear(s, off) || /(cream |contain |contains |no |without )$/.test(before(s, off, 12))) return m;
+    return m.charAt(0) === 'C' ? 'Vegan cheese' : 'vegan cheese';
+  });
+  o = o.replace(/\bmarshmallows?\b/gi, (m, off, s) => veganNear(s, off) ? m : (m.charAt(0) === 'M' ? 'Vegan ' + m.toLowerCase() : 'vegan ' + m));
+  o = o.replace(/\bsausages?\b/gi, (m, off, s) => (veganNear(s, off) || /(dog |veggie |thin )$/.test(before(s, off, 10)) || /^ and cheese may contain/.test(s.slice(off + m.length, off + m.length + 24))) ? m : (m.charAt(0) === 'S' ? 'Vegan ' + m.toLowerCase() : 'vegan ' + m));
+  o = o.replace(/\bwool\b/gi, (m, off, s) => {
+    if (/(cotton |steel |wire |glass |rock |mineral |not |felt )$/.test(before(s, off, 9))) return m;
+    return m.charAt(0) === 'W' ? 'Cotton yarn' : 'cotton yarn';
+  });
+  return o;
+}
+
+function applyRepairsV9() {
+  let n = 0;
+  (state.menuItems || []).forEach(item => {
+    if (!item) return;
+    // literal "\n" typed into equipment-style fields
+    ['equipment', 'consumables', 'resources', 'foraged'].forEach(k => {
+      if (typeof item[k] === 'string' && item[k].indexOf('\\n') >= 0) { item[k] = item[k].split('\\n').join('\n'); n++; }
+    });
+    if (VEGAN_SKIP_CATS_V9.indexOf(item.cat) >= 0) return;
+    if (item.name === 'Decorated blown eggs' && typeof item.equipment === 'string') {
+      const e = item.equipment.replace(/(^|\n)needle or pin(?=\n|$)/i, '').replace(/^\n+/, '');
+      if (e !== item.equipment) { item.equipment = e; n++; }
+    }
+    ['equipment', 'resources', 'consumables', 'foraged', 'notes'].forEach(k => {
+      if (typeof item[k] !== 'string' || !item[k]) return;
+      const t = veganFixTextV9(item[k]);
+      if (t !== item[k]) { item[k] = t; n++; }
+    });
+    if (item.name === 'Stinging Nettle and Potato Soup' && !(item.notes || '').trim()) {
+      item.equipment = NETTLE_SOUP_V9.equipment;
+      item.consumables = NETTLE_SOUP_V9.consumables;
+      if (!item.foraged) item.foraged = NETTLE_SOUP_V9.foraged;
+      item.notes = NETTLE_SOUP_V9.notes;
+      item.autoFilled = { date: '2026-10-19', fields: ['equipment', 'consumables', 'foraged', 'notes'] };
+      n++;
+    }
+  });
+  return n;
+}
+
 function loadState() {
   // The built-in list has a few empty slots (stray commas in the literal). forEach skips
   // them but find() doesn't, which crashed loading. Drop them once, up front.
@@ -8258,7 +8376,7 @@ function loadState() {
   // defaults over deliberate changes: deleted rows reappeared, renamed rows
   // reverted, deleted sheets were recreated. To add a migration in future:
   // bump SCHEMA_TARGET and gate the new code on `schemaFrom < N`.
-  const SCHEMA_TARGET = 8;
+  const SCHEMA_TARGET = 9;
   const schemaFrom = state.meta.schemaVersion || 0;
   const runV1 = schemaFrom < 1;
   const runV2 = schemaFrom < 2;
@@ -8268,6 +8386,7 @@ function loadState() {
   const runV6 = schemaFrom < 6;
   const runV7 = schemaFrom < 7;
   const runV8 = schemaFrom < 8;
+  const runV9 = schemaFrom < 9;
   let metaChanged = false;
   const migrationLog = [];
 
@@ -8807,6 +8926,13 @@ function loadState() {
   if (runV8) {
     const r8 = applyRepairsV8();
     migrationLog.push('v8: rewrote ' + r8 + ' recipes');
+    purged = true; anySheetMigrated = true;
+  }
+
+  // v9: vegan sweep, newline repair, nettle soup
+  if (runV9) {
+    const r9 = applyRepairsV9();
+    migrationLog.push('v9: repaired ' + r9 + ' fields');
     purged = true; anySheetMigrated = true;
   }
 
