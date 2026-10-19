@@ -8348,6 +8348,519 @@ function applyRepairsV9() {
   return n;
 }
 
+// ── v10 (schema 10): activity cards written from Lewis's own descriptions, and removals ──
+const USER_BATCH_V10 = {
+ "fills": {
+  "crafts|Bleach Spraying": {
+   "equipment": "Pump spray bottle (adult use only)\nWashing line or flat surface outdoors\nRubber gloves, eye protection and old clothes for the adult\nBucket of water for rinsing",
+   "consumables": "Plain cotton fabric (old T-shirts, tea towels or pillowcases)\nFerns, leaves and flat seed heads\nHousehold bleach, diluted as the label directs\nCold water",
+   "notes": "1. Choose a spot outdoors, in fresh air and away from plants, drains and children who are not taking part. Bleach is handled by adults only.\n2. Children collect ferns and leaves with interesting shapes and lay them flat on the fabric, pressing them down so no edges lift.\n3. An adult tapes or pins the corners so the leaves cannot blow away, and the group stands well back.\n4. An adult wearing gloves and eye protection sprays the bleach in a fine mist over the fabric and leaves, then stops once the colour starts to lift.\n5. Leave it for a few minutes until the pattern shows, then an adult rinses the fabric thoroughly in plenty of cold water.\n6. Lift off the leaves to reveal the pale shapes where they blocked the spray, then wash and dry the fabric.\n7. Safety: bleach can burn skin and eyes and damage clothes. Children do not touch the bleach, the spray bottle or the wet fabric until it has been rinsed."
+  },
+  "crafts|Blob Monsters Drawing": {
+   "equipment": "Pre-drawn blobs on paper (made by an adult beforehand)\nPens, pencils or felt tips\nTable or clipboards",
+   "consumables": "Paper with blob shapes already drawn on it\nSpare paper",
+   "notes": "1. Before the session, an adult draws a selection of random blobby shapes on paper, one or more per child.\n2. Each child chooses a blob and looks at it closely. What could it become?\n3. Children add eyes, mouths, arms, legs, horns, hair and anything else to turn the blob into a monster.\n4. Children give their monster a name and tell the group about it.\n5. Older children can draw their own blobs for someone else to turn into a monster.\n6. Display the finished monsters on a tree, line or board."
+  },
+  "crafts|Candle Making": {
+   "equipment": "Heatproof container and old pan for melting wax (adult use only)\nHeat source (stove or fire, adult only)\nThermometer\nTongs and oven gloves\nMoulds: clay pinch pots, acorn caps, walnut shells or jars\nScissors",
+   "consumables": "Soy or other vegetable wax (not beeswax)\nWicks\nClay for pinch pots (if making them)\nFound containers such as acorn caps, walnut shell halves or small shells\nSticks to hold the wicks upright",
+   "notes": "1. Choose a mould. Children can make pinch pots from clay, or collect walnut shell halves, acorn caps or other small found containers, and leave clay pots to dry and harden first.\n2. Children fix a wick in the middle of each container, holding it upright with a stick laid across the top or a dab of wax.\n3. An adult melts the vegetable wax slowly in a heatproof container over a gentle heat. Wax is never left alone and never heated over a naked flame.\n4. An adult pours the melted wax into each container while children watch from a safe distance.\n5. Leave to set fully, then trim the wicks to about 1 cm.\n6. Children decorate the outside of their candle with leaves, seeds or drawings.\n7. Safety: hot wax can burn. Only adults handle it. Candles are lit by an adult in a safe place, never left alone, and kept away from clothing and hair."
+  },
+  "crafts|Imbolc Candles": {
+   "equipment": "Heatproof container and old pan for melting wax (adult use only)\nHeat source (adult only)\nMoulds: jars, clay pots, shells or small tins\nScissors",
+   "consumables": "Soy or other vegetable wax (not beeswax)\nWicks\nOptional: dried herbs or flowers for decoration",
+   "notes": "1. Talk about Imbolc as the festival that marks the first stirrings of spring, when the days start to lengthen and light returns.\n2. Children choose a container and fix a wick in the middle.\n3. An adult melts the vegetable wax slowly and pours it into each container. Hot wax is for adults only.\n4. While the wax is still soft, children can press a few dried petals or herbs onto the surface.\n5. Leave to set, then trim the wicks.\n6. The group lights the candles together in a safe circle with an adult, shares a wish for the coming spring and puts them out safely.\n7. Safety: candles are lit and put out by an adult, kept away from clothing and hair, and never left alone."
+  },
+  "crafts|Celtic Heart Knot": {
+   "equipment": "Printed step-by-step pattern sheet\nScissors",
+   "consumables": "Strips of paper or ribbon, or soft cord\nTape or pins to hold the ends",
+   "notes": "1. An adult hands out the printed pattern and shows the group the finished knot.\n2. Children cut their strips or lengths to the size on the sheet.\n3. Follow the pattern step by step, weaving each strand over and under the next.\n4. Pull gently so the knot tightens evenly into a heart shape.\n5. Trim the ends and use the heart as a decoration or gift."
+  },
+  "crafts|Clay Hand Holds": {
+   "equipment": "Clean table or board\nKiln (adult, off site or on site) or access to firing\nPlastic sheet to cover the clay",
+   "consumables": "Air-dry or firing clay, one lump per pair\nWater",
+   "notes": "1. Children work in pairs. Each pair is given a lump of clay about the size of a large orange.\n2. The pair hold hands with the clay between their palms.\n3. Both people press their fingers gently into the clay, leaving the imprint of where each of their fingers sits.\n4. Carefully open the hands and look at the shape. Smooth any rough edges with a wet finger.\n5. Leave the clay to dry slowly, then an adult fires it.\n6. The finished piece fits only between those two pairs of hands, so keep it as a shared memento."
+  },
+  "crafts|Conker Puppets": {
+   "equipment": "Hand drill or bradawl (adult use only)\nScissors\nSticks for the puppet controls",
+   "consumables": "Conkers\nParacord, string or cord\nTwigs for arms and legs\nOptional: leaves, feathers or found items for decoration",
+   "notes": "1. Children collect conkers and sticks. Conkers are never tasted or eaten.\n2. An adult makes a small hole through each conker with a drill or bradawl.\n3. Children thread cord through the conkers to make a body, with the conkers acting as weights.\n4. Attach longer cords from the body to the arms and legs and tie them to a crossed pair of sticks to make a marionette control.\n5. Hold the control and gently move it so the conkers swing and the puppet dances.\n6. Children use the weight of the conkers to experiment with how the puppet moves.\n7. Safety: wash hands afterwards. Conkers are not for eating."
+  },
+  "crafts|CottonWool Splat Monsters": {
+   "equipment": "Wooden mallets\nTrays or old boards to work on\nNewspaper or old sheets to protect the table\nScissors",
+   "consumables": "Cotton wool balls\nWashable ink or watered-down paint\nPaper or card\nPens or paint for decoration",
+   "notes": "1. Soak each cotton wool ball in ink or watered-down paint.\n2. Place a soaked ball on a sheet of paper on the table.\n3. Cover it with a second sheet and tap it firmly with a wooden mallet so it splats.\n4. Peel the top sheet back and look at the splat pattern.\n5. Leave the splats to dry completely.\n6. Children turn each splat into a monster by adding eyes, arms, legs, mouths and horns with pens or paint.\n7. Safety: mallets are used one at a time on a table. Children keep fingers out of the way."
+  },
+  "crafts|Cup and Ball Burn Toys": {
+   "equipment": "Embers in a safe fire bowl or fire pit, tended by a trained adult\nTongs\nFolding saw or bow saw (adult use only)\nSmall shovel or spoon for moving embers\nBucket of water and fire safety kit\nDrill (adult use only)",
+   "consumables": "Softwood branches for the handle and cup\nString\nSmall wooden ball or bead\nOptional: sandpaper",
+   "notes": "1. A trained leader runs this activity. The fire circle is set up with a bucket of water and the rules are agreed before anyone enters.\n2. An adult saws a short piece of softwood to make the handle and head. This is the mallet shape with a flat end.\n3. Using tongs, an adult places a small ember on the flat end of the head, where the dip is to be burned.\n4. Children blow gently on the ember to keep it glowing so it burns a divot that is deep enough to catch the ball.\n5. An adult checks the depth, removes the ember safely and puts any leftover coals out.\n6. Sand the handle smooth. Tie a string around the ball and fix the other end to the handle.\n7. Children play the Victorian game by swinging the ball up and trying to catch it in the cup.\n8. Safety: only a trained leader handles embers. Children stay seated and kneel on one knee at the fire edge."
+  },
+  "crafts|Face Stampers": {
+   "equipment": "Lino cutting tools (adult use only for under 8s)\nCutting boards\nInk pads or paint and brushes\nPencils",
+   "consumables": "Soft carving rubbers or erasers, one per child\nPaper\nInk or paint",
+   "notes": "1. Draw a simple face on a piece of paper, thinking about how the lines will look when stamped.\n2. Children copy the face onto the flat surface of the rubber with a pencil.\n3. With a lino cutter, carefully cut away the parts that should stay blank, always cutting away from the body and holding the rubber on a board.\n4. Press the finished stamp onto an ink pad or paint it, then print it onto paper.\n5. Children print rows of faces and add details such as hair or hats.\n6. Safety: lino cutters are sharp. Children use them under close supervision, cutting away from their hands, and an adult cuts for younger children."
+  },
+  "crafts|Fairy Footprints": {
+   "equipment": "Small paintbrushes\nPots or lids for paint",
+   "consumables": "Washable, non-toxic paint\nWater",
+   "notes": "1. Talk about fairies and where they might walk around camp.\n2. An adult chooses suitable places such as trees, logs, benches and stones, and agrees which are fine to paint.\n3. Children dip a brush in paint and paint tiny footprints, starting with a small oval for the sole and tiny dots for the toes.\n4. Paint footprints leading to hidden places, such as a hole in a tree or a log den.\n5. Leave the footprints for others to discover, and check them next time to see how weather changed them."
+  },
+  "crafts|Flower Stickers": {
+   "equipment": "Scissors\nClean flat table",
+   "consumables": "Greaseproof paper\nForaged flowers and small leaves (picked sparingly, ones the group agrees to pick)\nLarge pieces of clear sticky tape",
+   "notes": "1. Children pick a few small flowers and leaves, taking only what they need and leaving plenty for insects.\n2. Lay a sheet of greaseproof paper on the table.\n3. Arrange the flowers and leaves on it in a pattern, pressing them flat.\n4. Cover them with a large piece of clear tape, pressing down carefully so there are no wrinkles.\n5. Trim round the flowers with scissors to make stickers.\n6. Peel off the greaseproof paper to use the sticker, or hang them in the window to catch the light.\n7. Pressed flowers are for looking at, not tasting."
+  },
+  "crafts|Hand Covered Drawing": {
+   "equipment": "Pens or pencils\nClipboards or tables\nBlindfolds or scarves (optional)",
+   "consumables": "Paper\nCard or scrap paper to cover the hand",
+   "notes": "1. Explain that the group will draw without being able to see what their hands are doing.\n2. Version 1: place a sheet of paper over the back of the pen so the hand and drawing are hidden.\n3. Version 2: draw with eyes closed or covered with a scarf.\n4. Version 3: draw a partner's face or an object while only looking at it, not the paper.\n5. Reveal the drawings and laugh together at the results.\n6. Talk about what felt hard and what surprised you."
+  },
+  "crafts|Marble Crafts": {
+   "equipment": "Hand drill and drill bits sized to a marble (adult use only)\nWooden mallet\nClamp or sawing bench\nSandpaper",
+   "consumables": "Wood pieces such as thick slices or branches\nMarbles\nString, wire or twine\nOptional: dream catcher hoops, lenses or glass beads",
+   "notes": "1. An adult drills holes in pieces of wood, each roughly marble sized.\n2. Children press a marble into a hole and tap it in gently with a wooden mallet until it sits snugly.\n3. Children can use the marbles to create faces, patterns or night skies on the wood.\n4. Make dream catchers by threading string around a hoop and fixing marbles at crossing points.\n5. Make a simple magnifier by fixing a glass lens in a drilled hole and looking through it.\n6. Safety: drills are adult only and marbles are choking risks for under 5s."
+  },
+  "crafts|Nature Mandalas": {
+   "equipment": "Space on the ground or a flat board",
+   "consumables": "Leaves, sticks, petals, seeds, stones and other found items",
+   "notes": "1. Choose a flat spot and clear it of litter.\n2. Children collect natural items in different colours, sizes and shapes, taking only fallen ones and leaving living plants alone.\n3. Start with a small item in the middle and add circles of items around it, repeating colours and shapes outwards.\n4. Children work alone or together, changing the pattern as they go.\n5. Walk around the finished mandala and talk about the patterns and colours.\n6. Leave it for the weather to change, or photograph it before leaving."
+  },
+  "crafts|Salt Gems": {
+   "equipment": "Bowls\nSpoons\nTray\nGloves (optional)",
+   "consumables": "Rock salt\nVegan food colouring\nWater",
+   "notes": "1. Pour a few spoonfuls of rock salt into a bowl.\n2. Add a few drops of food colouring and stir until the salt takes on the colour.\n3. Spread the coloured salt on a tray in the sun or a warm place to dry.\n4. Make several colours and compare how the crystals catch the light.\n5. Children arrange the gems on a tray or use them in a collage.\n6. Safety: salt gems are for looking at, not eating. Wash hands after."
+  },
+  "crafts|Sewn Stick Art": {
+   "equipment": "Large needles (blunt tapestry needles for children)\nScissors\nLarge piece of fabric laid flat or hung",
+   "consumables": "Large piece of cotton fabric or hessian\nThick cotton thread or yarn\nSticks, feathers, leaves and other found objects\nOptional: beads",
+   "notes": "1. Lay the fabric flat on the ground or pin it to a line.\n2. Children collect sticks and found objects to attach.\n3. Thread the needle with a long piece of yarn and tie a knot at the end.\n4. Place a stick on the fabric and sew over it with big stitches to hold it in place.\n5. Add more sticks and objects, building a pattern or picture across the fabric.\n6. Several children can work on the same blanket together.\n7. When finished, roll the blanket up to carry or unroll it to show others.\n8. Safety: needles are counted in and out, and children under 5 are helped by an adult."
+  },
+  "crafts|Spooky Reflective Eyes": {
+   "equipment": "Scissors\nTape or tacks (adult use only)",
+   "consumables": "Reflective stickers or reflective card\nPen for tracing",
+   "notes": "1. Draw eye shapes on the back of the reflective card.\n2. Cut out the eyes with scissors.\n3. Stick or fix pairs of eyes to tree trunks around camp.\n4. Walk around camp at dusk or in the dark with torches and see the eyes light up.\n5. Talk about which animals have shiny eyes at night and why.\n6. Remove the eyes after the session so nothing is left behind."
+  },
+  "crafts|Squirrel challenge pads": {
+   "equipment": "Saw (adult use only)\nRope\nString",
+   "consumables": "Logs and branches\nSmall planks\nNatural items for the course\nOptional: bird seed",
+   "notes": "1. Talk about how squirrels move through trees and what challenges they face.\n2. Children design a squirrel obstacle course on a small scale.\n3. Build features such as a mini zip line from string, a balanced plank on a log like a seesaw, and a ladder from sticks.\n4. Use only light, safe materials for the course and keep all of it low to the ground.\n5. Leave a few seeds at the end of the course and watch from a distance to see if a squirrel tries it.\n6. Take down or check the course at the end of the session."
+  },
+  "crafts|Tree Hole Mosaics": {
+   "equipment": "Gloves (optional)",
+   "consumables": "Leaves, petals, seeds and other found objects\nA hole, cut or hollow in a tree that is safe to use (not a nest or den)\nOptional: clay to hold the pieces",
+   "notes": "1. An adult chooses a tree with a natural hole, knot or cut that will frame the mosaic and checks no animal is using it.\n2. Children collect colourful leaves and found objects in groups by colour.\n3. Press clay or mud into the frame to make a sticky base, if needed.\n4. Arrange the pieces in a pattern, picture or face inside the frame.\n5. Step back and look at the finished mosaic from a distance.\n6. Photograph it, and leave it for the weather to change.\n7. Take care not to damage the tree."
+  },
+  "crafts|Wax-dipped Leaves": {
+   "equipment": "Heatproof container and old pan (adult use only)\nHeat source (adult only)\nTongs\nBaking paper to dry the leaves on",
+   "consumables": "Soy or other vegetable wax (not beeswax)\nFallen autumn leaves, dry and in good condition",
+   "notes": "1. Children collect fallen autumn leaves with bright colours and few holes.\n2. An adult melts the wax gently in a heatproof container over a low heat. Wax is never left alone.\n3. An adult holds each leaf by the stem with tongs, dips it into the wax and lifts it out.\n4. Lay the leaves on baking paper to cool and harden.\n5. Children use the waxed leaves for garlands or table decorations.\n6. Safety: hot wax is for adults only, and children stand well back while it is being used."
+  },
+  "bushcraft|Birch Bark Glue": {
+   "equipment": "Two metal tins: a larger one for the bark (a biscuit or paint tin) and a smaller one to catch the tar\nNail and hammer (adult) to punch a hole in the base of the larger tin\nFoil and clay to seal the joint\nSpade to bury the small tin\nFire pit and fire safety kit with a bucket of water\nLong tongs or a split stick for handling hot tins (adult only)\nSmall sticks for testing and spreading the glue\nOven gloves",
+   "consumables": "Dry birch bark from dead or fallen wood (never stripped from a living tree)\nKindling and firewood\nString\nClay",
+   "notes": "1. A trained leader runs this activity. Only use bark from dead or fallen birch and leave any trees that wildlife is using.\n2. An adult punches a hole in the centre of the base of the larger tin with a nail and hammer.\n3. Children tear the bark into strips as tall as the tin, roll them into a tight bundle, and pack them into the tin.\n4. Bury the small tin in the ground at the fire site with its rim just showing. Set the large tin upside down on top, with the hole over the small tin, and pack clay or earth round the join so air cannot get in.\n5. An adult builds a fire around and over the large tin and keeps it burning steadily for at least 30 minutes, longer for a bigger tin. Children keep well back. Do not move the tins while the fire is burning, because the vapours are flammable.\n6. When the fire has died down, an adult clears the ashes and lifts the top tin away with tongs.\n7. The small tin now holds a dark, oily tar. An adult may need to simmer it gently on warm embers to thicken it, until a little on a stick sets sticky when it cools.\n8. The adult scrapes the warm tar onto the end of a stick. To use it as glue, warm the tar over embers for a second or two until it softens and press it quickly onto the two surfaces to join.\n9. Safety: tar and tins are very hot, and the vapours can ignite. Only adults handle the tins and tar. Children watch from the fire circle and do not touch the glue until it has cooled."
+  },
+  "bushcraft|Bolas": {
+   "equipment": "Knives for whittling (knife rules apply)\nSaw (adult use only)\nCutting boards or logs to work on\nTargets such as straw bales, cardboard or marked trees\nThrowing line marked on the ground",
+   "consumables": "Three small pieces of wood per bola (about 10 to 15 cm long, green or dry)\nString or cordage, about 1 m per piece\nOptional: sandpaper",
+   "notes": "1. Talk about how bolas were used as hunting tools to tangle the legs of animals. Today they are thrown at targets only.\n2. Children choose three short pieces of wood of similar size and whittle each one into a smooth, rounded weight, with a notch or groove around the middle to hold the string.\n3. Tie each wood piece to a length of string, then knot the three strings together at the other end. Check the pieces are even.\n4. An adult marks a throwing line and sets up targets. Everyone else stays behind the line.\n5. Swing the bola gently overhead and throw it at the target when the leader gives the signal. Watch how the strings wrap round the target.\n6. Children retrieve their bolas only when the leader says the range is clear.\n7. Safety: Knife safety: children use knives only after the knife rules are taught, working in a seated knife circle with an arm's length of space, cutting away from the body, with a first aid kit to hand. Throw only when the range is clear. Never throw at people or animals and keep the wood pieces light."
+  },
+  "bushcraft|Burn Spoons": {
+   "equipment": "Carving knives and axe (adult use only for the axe)\nChopping block\nEmbers in a fire pit, tended by a trained adult\nMetal tongs\nSmall shovel or spoon for moving embers\nBucket of water and fire safety kit\nOven gloves\nBlowing straws or small tubes (optional)",
+   "consumables": "Green hardwood or softwood for the spoon blank\nSandpaper\nVegetable oil for finishing (optional)",
+   "notes": "1. A trained leader runs this activity. Set up the fire circle with a bucket of water and agree the fire rules.\n2. Carve the spoon as usual. An adult uses the axe to rough out the blank and children use knives to shape the handle and the outside of the bowl. Knife safety: children use knives only after the knife rules are taught, working in a seated knife circle with an arm's length of space, cutting away from the body, with a first aid kit to hand.\n3. Leave the middle of the bowl uncarved.\n4. Using tongs, an adult places a small glowing ember on the middle of the bowl.\n5. Children blow gently on the ember to keep it glowing so it slowly burns a hollow into the wood. Add more embers as needed and brush off the charcoal as it builds up.\n6. An adult checks the depth. Stop when the bowl is the shape and depth wanted, then put out the coals.\n7. Scrape the burnt surface smooth with a knife or sandpaper. Rub with a little vegetable oil if wished.\n8. Safety: only the trained adult handles embers. Children stay seated and kneel at the fire edge to blow, and never blow towards others."
+  },
+  "bushcraft|Clay Marble Run": {
+   "equipment": "Clean table or board\nSticks or pencils for shaping\nSmall pot of water\nMarbles for testing",
+   "consumables": "Clay\nWater\nOptional: leaves, sticks and shells for decoration",
+   "notes": "1. Look at some marble runs and talk about how a marble travels downhill.\n2. Children roll out clay and shape ramps, tubes, bowls and tunnels.\n3. Press the pieces together with a little water so they stay joined, and build them on a slope or stack them in levels.\n4. Test the run with a marble and change the angles if it gets stuck.\n5. Decorate with small statues, animals or characters to line the track.\n6. Leave it to dry, or fire it if wished, then use it for races.\n7. Marbles are a choking risk for under 5s."
+  },
+  "bushcraft|Cotton rolling firelighting": {
+   "equipment": "Two flat boards or pieces of bark\nFire pit and fire safety kit with a bucket of water\nTinder bundle and kindling\nTongs or a heatproof tray for the ember",
+   "consumables": "Cotton wool\nFine wood ash\nDry tinder bundle and kindling",
+   "notes": "1. A trained leader runs this activity. Set up the fire circle with a bucket of water and agree the fire rules.\n2. Mix a little fine wood ash into a pad of cotton wool.\n3. Place the pad between two boards and roll it firmly back and forth, pressing down with the top board.\n4. Keep rolling steadily. The friction heats the cotton until it starts to smoulder.\n5. Check carefully, open the boards and transfer the ember to a tinder bundle with tongs.\n6. Blow gently until the bundle flames, then add kindling. An adult tends the fire from there.\n7. It takes practice. Children take turns and encourage each other, and the leader helps if it is not catching.\n8. Safety: embers and flames are handled by the adult. Children stay seated and kneel to blow."
+  },
+  "bushcraft|Deadfall Traps": {
+   "equipment": "Knives (knife rules apply)\nSaw (adult use only)\nTape measure\nPens and paper for sketching",
+   "consumables": "Sticks of different thicknesses\nString or cordage\nA heavy flat stone, log or board (as the weight)",
+   "notes": "1. Talk about how traps were used for hunting and survival, and why they are a skill and not a game.\n2. The leader demonstrates the common types: the figure-four trigger, spring or snare traps, and simple deadfall traps with a stick propped against a weight.\n3. In small groups, children choose one type and build a model version with sticks and string.\n4. Test the mechanism with nothing underneath, to see how the trigger releases.\n5. The group compares how each trap works and how reliable it was, and sketches the designs.\n6. All traps are taken apart at the end of the session and the sticks returned to the woods.\n7. Safety: traps are models only. Nothing is baited and nothing is ever set where an animal or person could be caught. Use light weights and keep fingers clear. Knife safety: children use knives only after the knife rules are taught, working in a seated knife circle with an arm's length of space, cutting away from the body, with a first aid kit to hand."
+  },
+  "bushcraft|Fire pit mosaic building": {
+   "equipment": "Spade and trowel\nWheelbarrow\nGloves\nBuckets for water\nTape measure and string for marking",
+   "consumables": "Flat stones, bricks or tiles\nSand or fine soil\nClay or mortar\nWater",
+   "notes": "1. This is a long-term project that is built across several sessions.\n2. Session 1: an adult marks out the fire pit area and the group clears and levels the ground around it.\n3. Session 2: children collect and sort stones and tiles by colour, shape and size.\n4. Session 3: lay a bed of sand, then arrange the stones in a pattern around the pit before fixing them.\n5. Session 4: bed each stone into the sand or clay, press level and fill the gaps.\n6. Session 5: finish, water down any dust and let it settle, then check it is safe to use around the fire.\n7. Safety: lift stones with a straight back and in pairs for heavy ones. Wear gloves."
+  },
+  "bushcraft|Hammer making with scotch eye auger": {
+   "equipment": "Scotch eye auger (adult use only for under 8s)\nClamp or vice to hold the block\nSaw (adult use only)\nCarving knife\nMallet\nSandpaper",
+   "consumables": "A large block of hardwood for the head\nGreen or dry stick for the handle (a good fit for the hole)\nOptional: wood wedge",
+   "notes": "1. An adult secures the block of wood in a clamp.\n2. Children use the scotch eye auger to drill a hole through the block for the handle, turning the handle steadily and keeping the auger straight.\n3. Find a stick that is about the width of the hole. An adult cuts it to length and children whittle one end until it fits.\n4. Tap the stick into the hole with a mallet until it is snug.\n5. An adult cuts any extra stick that sticks out and can add a small wedge to lock the handle.\n6. Sand the head and handle smooth.\n7. Test the hammer by gently tapping a peg. Safety: knife rules apply and the auger is only used under close supervision."
+  },
+  "bushcraft|Making elder beads and duck calls": {
+   "equipment": "Saw (adult use only)\nPocket knife\nTent pegs\nSandpaper\nSmall pieces of paper",
+   "consumables": "Elder branches\nString",
+   "notes": "1. An adult cuts lengths of dry elder, which has a soft pith in the middle.\n2. Beads: cut the elder into short pieces of about 1 cm. Push the soft pith out of each piece with a tent peg to make a hole.\n3. Sand the beads smooth and thread them on a string to make a necklace or bracelet.\n4. Duck calls: cut a short length of stick and carve out a small section from the middle.\n5. Place a small piece of paper over the opening and fix it so it can vibrate, like a kazoo.\n6. Blow gently into the call to make a quacking sound.\n7. Safety: knife rules apply, and elder pith is not eaten."
+  },
+  "bushcraft|Making fire starters (wax and sawdust)": {
+   "equipment": "Heatproof container and old pan for melting wax (adult use only)\nHeat source (adult only)\nSilicone ice cube tray or muffin tin\nTongs and oven gloves\nSpoon for stirring",
+   "consumables": "Soy or other vegetable wax, or old candle ends (not beeswax)\nSawdust\nOptional: pencil bark or fine bark shavings",
+   "notes": "1. An adult melts the wax slowly in a heatproof container over a gentle heat and never leaves it unattended.\n2. Children fill the ice cube tray with a spoonful of sawdust per cup.\n3. An adult pours the melted wax over the sawdust, filling each cup and stirring so it is soaked.\n4. Leave to cool and set completely.\n5. Pop the fire starters out and store them in a dry tin.\n6. To use them, an adult places one under kindling and lights it. Each starter burns for several minutes.\n7. Safety: hot wax is for adults only. Do not leave fire starters near heat."
+  },
+  "bushcraft|Making stretchers & rescue drills": {
+   "equipment": "Tarp or strong fabric\nTwo long, strong poles (green wood or dead and sound)\nRope or paracord\nFirst aid kit\nSaw (adult use only)",
+   "consumables": "Optional: bandages for first aid practice",
+   "notes": "1. Talk about when and why a stretcher might be needed and how to stay calm in an emergency.\n2. An adult checks the poles are strong enough and free of cracks.\n3. In small teams, lay the tarp on the ground, place the poles along the sides and fold the tarp over them, or lash it to the poles with rope.\n4. One child lies on the stretcher as the casualty. An adult supervises closely.\n5. Teams lift on the leader's count, keeping the stretcher low, and carry the casualty a short distance on flat ground.\n6. Practise first aid and communication: one child is the team leader and the rest follow instructions.\n7. Swap roles so everyone has a turn.\n8. Safety: lift with straight backs, keep the stretcher below waist height and stop if anyone feels unsafe."
+  },
+  "bushcraft|Making Yetis": {
+   "equipment": "Saw (adult use only)\nScissors\nBucket of water to soak the wood",
+   "consumables": "Long green stems such as hazel or willow\nString or cordage\nLeaves, bracken, grass or other camouflage\nSticks to cross the frame",
+   "notes": "1. Talk about camouflage and how people have used natural cover to hide.\n2. Choose a long, bendy green stick and bend it into a teardrop shape, tying the ends together at the narrow point.\n3. Thread string through the middle, back and forth, to make a mesh across the frame.\n4. Weave leaves, grass and other natural materials through the string until the frame is covered.\n5. Add straps or a stick to hold the yeti, so it can be worn as a backpack.\n6. Wear it or crouch behind it and see how well you can hide in the woods.\n7. Safety: bend green wood gently and keep faces away from the ends as it springs back."
+  },
+  "bushcraft|Rope bridge building": {
+   "equipment": "Strong ropes (rated for load)\nSaw (adult use only)\nGloves\nTape measure",
+   "consumables": "Posts or sturdy trees\nSticks for the walkway\nString for lashings",
+   "notes": "1. Choose a low, flat spot, such as a dip or small ditch, where nobody can fall far.\n2. An adult checks the anchor points. Trees must be healthy, strong and protected from rope damage with padding.\n3. Using knots such as the clove hitch, bowline and round turn with two half hitches, an adult and older children fix two hand ropes between the anchors at waist height.\n4. Add a foot rope or walkway of sticks or planks just above the ground, fixed with lashings.\n5. Test the bridge with weight in stages, starting with an adult, and check the knots.\n6. Children cross one at a time, holding the hand ropes.\n7. Untie the bridge at the end of the session and check the ground and trees.\n8. Safety: keep the bridge low (no higher than about 40 cm), and never let more than one child on at a time."
+  },
+  "bushcraft|Shrunken Head Carving": {
+   "equipment": "Carving knives (knife rules apply)\nCutting board or log to sit on\nSandpaper\nFirst aid kit",
+   "consumables": "Sticks or short logs\nOptional: pens or paint for detail",
+   "notes": "1. Choose a straight stick or short log with no cracks.\n2. Children mark where the face will go: a forehead, a nose and a mouth.\n3. Using a knife, whittle small cuts into the stick to shape a nose, then eyes and a mouth.\n4. Add details such as lines for wrinkles or a pointed chin, and sand it smooth.\n5. Colour with pens or paint if wished.\n6. Safety: Knife safety: children use knives only after the knife rules are taught, working in a seated knife circle with an arm's length of space, cutting away from the body, with a first aid kit to hand."
+  },
+  "woodland|Stone Altar": {
+   "equipment": "Spade and trowel\nGloves\nWheelbarrow\nBuckets",
+   "consumables": "Stones of varied sizes\nClay (as mortar)\nWater\nSticks, moss and leaves for decoration",
+   "notes": "1. Choose a quiet corner of the woodland for the altar and clear the ground.\n2. Gather flat and chunky stones, sorting them by size.\n3. Mix clay with a little water until it is workable and use it like mortar.\n4. Build the stones up in layers, with the clay between them, like a dry stone wall or wattle and daub, leaving a flat top.\n5. Press the stones in firmly so the structure is stable.\n6. Decorate the altar with moss, leaves and objects that are special to the group.\n7. Leave it to dry and use it as a place for a gathering or a quiet moment.\n8. Safety: lift stones carefully and in pairs for heavy ones."
+  },
+  "woodland|Pizza Oven building": {
+   "equipment": "Spades\nWheelbarrow\nBuckets\nGloves\nTape measure",
+   "consumables": "Clay, sand and straw\nBricks or stones\nWater",
+   "notes": "1. This is a long-term project that is built across several sessions.\n2. Session 1: choose a site and clear and level the ground.\n3. Session 2: build a firm base from stones or bricks.\n4. Session 3: build the floor and dome with clay and sand.\n5. Session 4 and beyond: add layers, let each dry, and finish with a chimney or vent.\n6. Fire the oven slowly to dry it before first use."
+  },
+  "woodland|Pond glow-up": {
+   "equipment": "Spades\nWheelbarrow\nGloves\nBuckets",
+   "consumables": "Stones and logs for edge habitats\nNative water plants",
+   "notes": "1. This is a long-term project that is built across several sessions.\n2. Look at the pond and talk about what lives in it.\n3. Clear litter and fallen debris carefully.\n4. Add stones and logs around the edge as habitat for frogs and insects.\n5. Plant native water plants.\n6. Check back to see what visits.\n7. Safety: stay at least an arm's length from the water, and an adult is always within reach."
+  },
+  "static|Clap Vs Stomp": {
+   "equipment": "A flat open space",
+   "consumables": "None",
+   "notes": "1. The leader stands in front of the group and claps or stomps.\n2. The group does the opposite: if the leader claps, the group stomps, and if the leader stomps, the group claps.\n3. Start slowly, then build speed.\n4. Use a sequence such as clap, clap, stomp: the group stomps, stomps, claps.\n5. Children who make a mistake stay in and keep going, or a leader can start a new round.\n6. Children can take turns leading."
+  },
+  "static|Crab Wrestling": {
+   "equipment": "Soft, flat ground clear of sticks and stones\nMats (optional)",
+   "consumables": "None",
+   "notes": "1. Agree the rules together: no hitting, pulling hair or clothes, or grabbing the neck or head. Anyone says stop and the game stops.\n2. Children pair up with someone of a similar size and agree to play.\n3. Everyone moves around on all fours, with their bellies facing up like a crab.\n4. Each child tries to grab the other's ankles or wrists, and gently pull them so their bottom touches the ground.\n5. The first to make the other child's bottom touch the ground scores a point, and then they swap partners.\n6. The leader watches closely and stops any rough play.\n7. Safety: check the ground, and keep rounds short."
+  },
+  "static|Game that Name": {
+   "equipment": "Whiteboard or paper for the sentences\nPens",
+   "consumables": "None",
+   "notes": "1. The leader comes up with a sentence or objective on the spot, such as Mr Christmas's Sneak Up.\n2. In groups, children invent a game that fits the name.\n3. Each group decides the rules, how to win and what equipment is needed.\n4. Groups teach their game to everyone and play it.\n5. Talk about what worked and what to change next time."
+  },
+  "static|Metronome Tag": {
+   "equipment": "A drum or a loud metronome\nCones to mark the boundary",
+   "consumables": "None",
+   "notes": "1. Mark out a playing area.\n2. The leader plays a steady beat on the drum, in 4/4.\n3. Children may only take one step on the first beat of each bar and must wait on the other three: step, wait, wait, wait.\n4. Players try to get close to each other, and anyone who gets tagged joins the chasers or sits out, as agreed.\n5. The leader can change the speed of the beat to make it easier or harder.\n6. Play for a few minutes and then swap who leads."
+  },
+  "static|String Head Painting": {
+   "equipment": "Paintbrushes\nPaint\nString\nPaper or board",
+   "consumables": "Paper\nPaint",
+   "notes": "1. Tie a paintbrush to the middle of a length of string.\n2. Two children each hold or fix one end of the string to their heads, so the brush dangles between them.\n3. A board or paper is set up in front of them at the right height.\n4. They work together to complete a painting by moving their heads gently, so the brush moves over the paper.\n5. Swap partners and try again.\n6. Talk about what was hard and what it was like to cooperate."
+  },
+  "static|That\ufffds My Spot": {
+   "equipment": "Soft, flat ground clear of sticks and stones\nA mat or blanket for the spot",
+   "consumables": "None",
+   "notes": "1. Agree the rules: no hitting, kicking, grabbing the neck, head or hair. Anyone says stop and the game stops.\n2. One child sits in the spot, and another tries to move them out of it.\n3. The challenger tries to move them without hurting them, by gently pulling or pushing.\n4. The sitter tries to stay put.\n5. Rounds are short, and children take turns in each role.\n6. Play in similar sized pairs, with a leader watching closely.\n7. Safety: stop any rough play at once."
+  },
+  "wide|That's My Spot": {
+   "equipment": "Soft, flat ground clear of sticks and stones\nA mat or blanket for the spot",
+   "consumables": "None",
+   "notes": "1. Agree the rules: no hitting, kicking, grabbing the neck, head or hair. Anyone says stop and the game stops.\n2. One child sits in the spot, and another tries to move them out of it.\n3. The challenger tries to move them without hurting them, by gently pulling or pushing.\n4. The sitter tries to stay put.\n5. Rounds are short, and children take turns in each role.\n6. Play in similar sized pairs, with a leader watching closely.\n7. Safety: stop any rough play at once."
+  },
+  "static|Wo ist Betty?": {
+   "equipment": "A cuddly toy called Betty",
+   "consumables": "None",
+   "notes": "1. One child is the seeker and turns around with their back to the group.\n2. The rest of the group strike poses, and one child hides Betty behind them or in their pose.\n3. The seeker spins round and looks at the poses.\n4. They try to guess who has Betty.\n5. If they guess correctly, they swap with the child who held Betty.\n6. If they are wrong, they have another go or the group reveals Betty."
+  },
+  "wide|Toaster Tag": {
+   "equipment": "Cones to mark the boundary",
+   "consumables": "None",
+   "notes": "1. Choose one or two taggers. Everyone else runs.\n2. If you are tagged, you become half a toaster and stand still with your arms stretched out in front of you.\n3. Find another tagged player and link arms to make a whole toaster.\n4. To free the toaster, another player stands inside it, and both sides of the toaster go down and pop the bread, freeing everyone.\n5. The game ends when everyone is a toaster or after a set time.\n6. Swap taggers and play again."
+  },
+  "misc|Fire Torch Making": {
+   "equipment": "Heatproof container and old pan for melting wax (adult use only)\nHeat source (adult only)\nFire pit and fire safety kit with a bucket of water\nTongs and oven gloves\nGloves",
+   "consumables": "Strips of cotton fabric (not synthetic)\nSoy or other vegetable wax (not beeswax)\nLarge sticks about 1 m long",
+   "notes": "1. A trained leader runs this activity. Set up the fire circle with a bucket of water.\n2. An adult melts the wax gently in a heatproof container.\n3. Children wrap the fabric strips tightly round the top end of each stick and tie them on.\n4. An adult dips each wrapped end into the wax and leaves it to soak, then lets it cool and set.\n5. Only an adult lights the torch, in the fire circle, with the group seated and well back.\n6. The adult holds the torch while the children watch it burn, then puts it out safely in the bucket.\n7. Safety: only trained adults handle melted wax and lit torches. Keep hair and clothing well away."
+  },
+  "misc|Kern Building": {
+   "equipment": "Gloves",
+   "consumables": "Stones of different sizes",
+   "notes": "1. Gather a collection of stones of different sizes, taking only from the ground and not from walls or streams.\n2. Choose a quiet spot and agree what the cairn is for, such as marking a place or remembering something.\n3. Start with the largest, flattest stones at the base.\n4. Build up the cairn in layers, with smaller stones towards the top.\n5. Take turns adding a stone and saying why.\n6. Stand back and look at the finished cairn together.\n7. Safety: lift heavy stones in pairs."
+  }
+ },
+ "removals": [
+  {
+   "cat": "crafts",
+   "name": "Camp mural \u2014 final additions"
+  },
+  {
+   "cat": "crafts",
+   "name": "Clay for the Pizza Oven"
+  },
+  {
+   "cat": "crafts",
+   "name": "Decorating the stage"
+  },
+  {
+   "cat": "crafts",
+   "name": "Deer hats and beast costumes (new round)"
+  },
+  {
+   "cat": "crafts",
+   "name": "Den build \u2014 final decoration"
+  },
+  {
+   "cat": "crafts",
+   "name": "Den build \u2014 finishing touches"
+  },
+  {
+   "cat": "crafts",
+   "name": "hungry caterpillar"
+  },
+  {
+   "cat": "crafts",
+   "name": "Making blackberry protection signs"
+  },
+  {
+   "cat": "crafts",
+   "name": "Making new hanging spots around camp"
+  },
+  {
+   "cat": "crafts",
+   "name": "Qork - String Game"
+  },
+  {
+   "cat": "crafts",
+   "name": "New camp sign carving"
+  },
+  {
+   "cat": "crafts",
+   "name": "Paper Mache Building (continued)"
+  },
+  {
+   "cat": "crafts",
+   "name": "Skull Masks"
+  },
+  {
+   "cat": "crafts",
+   "name": "Winter Wonderland"
+  },
+  {
+   "cat": "crafts",
+   "name": "Y-Stick Weaving (continued)"
+  },
+  {
+   "cat": "bushcraft",
+   "name": "Build a team raft"
+  },
+  {
+   "cat": "bushcraft",
+   "name": "Build a team raft using logs and rope"
+  },
+  {
+   "cat": "bushcraft",
+   "name": "Bum Shuffle River Boat Races"
+  },
+  {
+   "cat": "bushcraft",
+   "name": "Bum Shuffle River Boat Races (return leg!)"
+  },
+  {
+   "cat": "bushcraft",
+   "name": "Collaborative dragon lair den build (continued)"
+  },
+  {
+   "cat": "bushcraft",
+   "name": "Cotton rolling firelighting / straw firelighting"
+  },
+  {
+   "cat": "bushcraft",
+   "name": "Den build continuation"
+  },
+  {
+   "cat": "bushcraft",
+   "name": "Firelighting refresher & stormproof shelters"
+  },
+  {
+   "cat": "bushcraft",
+   "name": "Making a tripod from sticks"
+  },
+  {
+   "cat": "bushcraft",
+   "name": "Prophecy den building"
+  },
+  {
+   "cat": "bushcraft",
+   "name": "Setting animal snares (mock-ups)"
+  },
+  {
+   "cat": "bushcraft",
+   "name": "Sword making workshop"
+  },
+  {
+   "cat": "bushcraft",
+   "name": "Tree climbing with ropes"
+  },
+  {
+   "cat": "bushcraft",
+   "name": "Tree climbing with ropes (safely supervised)"
+  },
+  {
+   "cat": "bushcraft",
+   "name": "Pencil Bark & Wax Firelighters"
+  },
+  {
+   "cat": "woodland",
+   "name": "Bum Shuffle River feature improvements"
+  },
+  {
+   "cat": "woodland",
+   "name": "Burying the tunnel feature"
+  },
+  {
+   "cat": "woodland",
+   "name": "Clearing invasive plant species"
+  },
+  {
+   "cat": "woodland",
+   "name": "Helping clear invasive plant species"
+  },
+  {
+   "cat": "woodland",
+   "name": "Constructing a simple tripod cooking structure"
+  },
+  {
+   "cat": "morning",
+   "name": "Constructing a tripod cooking structure"
+  },
+  {
+   "cat": "woodland",
+   "name": "Cutting back holly to make room for juniper"
+  },
+  {
+   "cat": "woodland",
+   "name": "Clearing Holly for juniper planting"
+  },
+  {
+   "cat": "woodland",
+   "name": "Final woodland tidy"
+  },
+  {
+   "cat": "woodland",
+   "name": "Final woodland tidy and care"
+  },
+  {
+   "cat": "woodland",
+   "name": "Final woodland tidy before end of term"
+  },
+  {
+   "cat": "woodland",
+   "name": "Pizza Oven Clay"
+  },
+  {
+   "cat": "woodland",
+   "name": "Pizza Oven clay digging and building"
+  },
+  {
+   "cat": "static",
+   "name": "Dragons Egg quest variant"
+  },
+  {
+   "cat": "static",
+   "name": "Fox and Hare"
+  },
+  {
+   "cat": "static",
+   "name": "Sensei"
+  },
+  {
+   "cat": "seasonal",
+   "name": "May You Walk in Sunshine \u2014 final ceremony"
+  },
+  {
+   "cat": "seasonal",
+   "name": "Sun and moon circle \u2014 spring balance discussion"
+  },
+  {
+   "cat": "seasonal",
+   "name": "Sun and moon circle \u2014 spring balance"
+  },
+  {
+   "cat": "wide",
+   "name": "Deer Dance Game"
+  },
+  {
+   "cat": "wide",
+   "name": "Deer Dance Game (second round)"
+  },
+  {
+   "cat": "wide",
+   "name": "Team Log Rolling"
+  },
+  {
+   "cat": "misc",
+   "name": "Making New Pen Pots"
+  },
+  {
+   "cat": "misc",
+   "name": "Practicing with Fire Torch"
+  }
+ ],
+ "merge": [
+  [
+   "Pencil Bark & Wax Firelighters",
+   "Making fire starters (wax and sawdust)"
+  ]
+ ]
+};
+
+function applyEditsV10() {
+  const out = { removed: 0, merged: 0, filled: 0 };
+  const items = () => state.menuItems || [];
+  USER_BATCH_V10.merge.forEach(m => {
+    const from = items().find(i => i && i.name === m[0]);
+    const to = items().find(i => i && i.name === m[1]);
+    if (from && to) {
+      renameActivityEverywhere(m[0], m[1]);
+      state.menuItems = items().filter(i => i !== from);
+      out.merged++;
+    }
+  });
+  USER_BATCH_V10.removals.forEach(r => {
+    const before = items().length;
+    state.menuItems = items().filter(i => !(i && i.name === r.name && i.cat === r.cat));
+    if (items().length < before) {
+      out.removed += before - items().length;
+      if (!items().some(i => i && i.name === r.name)) cascadeRemoveFromSessions(r.name);
+    }
+  });
+  Object.keys(USER_BATCH_V10.fills).forEach(key => {
+    const cat = key.slice(0, key.indexOf('|'));
+    const name = key.slice(key.indexOf('|') + 1);
+    const f = USER_BATCH_V10.fills[key];
+    items().forEach(item => {
+      if (!item || item.cat !== cat || item.name !== name) return;
+      if ((item.notes || '').trim()) return;
+      const fields = [];
+      if (!(item.equipment || '').trim() && f.equipment) { item.equipment = f.equipment; fields.push('equipment'); }
+      if (!(item.consumables || '').trim() && f.consumables) { item.consumables = f.consumables; fields.push('consumables'); }
+      item.notes = f.notes; fields.push('notes');
+      item.autoFilled = { date: '2026-10-19', fields: fields };
+      out.filled++;
+    });
+  });
+  return out;
+}
+
 function loadState() {
   // The built-in list has a few empty slots (stray commas in the literal). forEach skips
   // them but find() doesn't, which crashed loading. Drop them once, up front.
@@ -8376,7 +8889,7 @@ function loadState() {
   // defaults over deliberate changes: deleted rows reappeared, renamed rows
   // reverted, deleted sheets were recreated. To add a migration in future:
   // bump SCHEMA_TARGET and gate the new code on `schemaFrom < N`.
-  const SCHEMA_TARGET = 9;
+  const SCHEMA_TARGET = 10;
   const schemaFrom = state.meta.schemaVersion || 0;
   const runV1 = schemaFrom < 1;
   const runV2 = schemaFrom < 2;
@@ -8387,6 +8900,7 @@ function loadState() {
   const runV7 = schemaFrom < 7;
   const runV8 = schemaFrom < 8;
   const runV9 = schemaFrom < 9;
+  const runV10 = schemaFrom < 10;
   let metaChanged = false;
   const migrationLog = [];
 
@@ -8933,6 +9447,13 @@ function loadState() {
   if (runV9) {
     const r9 = applyRepairsV9();
     migrationLog.push('v9: repaired ' + r9 + ' fields');
+    purged = true; anySheetMigrated = true;
+  }
+
+  // v10: cards written from Lewis's descriptions, removals
+  if (runV10) {
+    const r10 = applyEditsV10();
+    migrationLog.push('v10: removed ' + r10.removed + ', merged ' + r10.merged + ', filled ' + r10.filled);
     purged = true; anySheetMigrated = true;
   }
 
