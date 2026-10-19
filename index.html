@@ -6335,13 +6335,13 @@ function applyActivityFills(table, cat) {
     Object.keys(t).forEach(field => {
       const cur = item[field] || '';
       const rule = t[field];
-      const hit = (rule.whenContains && cur.indexOf(rule.whenContains) >= 0) || (rule.whenMissing && cur.indexOf(rule.whenMissing) < 0 && cur.trim());
+      const hit = (rule.whenContains && cur.indexOf(rule.whenContains) >= 0) || (rule.whenMissing && cur.indexOf(rule.whenMissing) < 0 && cur.trim()) || (rule.whenEquals !== undefined && cur.replace(/\\n/g, '\n').trim() === rule.whenEquals);
       if (hit) {
         if (field === 'equipment' && item.resources === cur) item.resources = rule.to;
         item[field] = rule.to; if (done.indexOf(field) < 0) done.push(field);
       }
     });
-    if (done.length) { item.autoFilled = { date: '2026-10-18', fields: done }; n++; }
+    if (done.length) { item.autoFilled = { date: (table === ACTIVITY_FILLS_V4 || table === ACTIVITY_FILLS_V5) ? '2026-10-19' : '2026-10-18', fields: done }; n++; }
   });
   return n;
 }
@@ -6598,6 +6598,641 @@ function applyActivityEditsV3() {
   return out;
 }
 
+// ── v4 clean-up (schema 4): retire meadowsweet/yarrow recipes, merge flapjacks, fill 11 blank recipes ──
+const ACTIVITY_FILLS_V4 = {
+ "Blackberry Stems Tea": {
+  "equipment": "Kettle or pan over the fire or stove\nTeapot or heatproof jug\nFine sieve or muslin\nMugs\nGloves and scissors (adult)",
+  "consumables": "A handful of fresh, young blackberry (bramble) leaves and soft stem tips\nWater\nGolden syrup (optional)",
+  "notes": "1. An adult picks fresh, green bramble leaves and soft young stem tips from unsprayed plants away from paths, wearing gloves and trimming off the thorns. Check the plant is blackberry before picking.\n2. Rinse the leaves and tips and tear them into pieces.\n3. Put a good handful into the teapot (or one rounded teaspoon of crumbled dried leaves per mug).\n4. An adult pours over freshly boiled water, about 250 ml per mug, and children stand back.\n5. Leave to steep for about 5 minutes, then strain.\n6. Let it cool until it is comfortable to hold. Add a little golden syrup if wanted."
+ },
+ "Dandelion Hummus": {
+  "equipment": "Tin opener\nSieve\nFood processor or stick blender (adult), or a potato masher and bowl\nChopping board and knife (adult)\nSpoon and serving bowl",
+  "consumables": "1 tin (400 g) chickpeas, drained and rinsed\n2 tbsp tahini\nJuice of 1 lemon\n1 small garlic clove\n3 tbsp olive oil\n2 to 3 tbsp cold water\n1/2 tsp salt\nA small handful of dandelion petals (yellow only) or young dandelion leaves, washed and finely chopped\nBread, oatcakes or vegetable sticks to serve",
+  "notes": "1. Drain and rinse the chickpeas. Rub them in cold water to loosen the skins and tip away any that float off.\n2. An adult crushes the garlic. Put the chickpeas, tahini, lemon juice, garlic, olive oil and salt in the food processor, or in a bowl if mashing by hand.\n3. Blend, adding the cold water a spoonful at a time, until smooth and creamy. If mashing by hand, mash well and beat in the liquid.\n4. Wash the dandelion petals or leaves. For petals, pull off the green parts so only the yellow is used. Chop finely.\n5. Stir most of the dandelion into the hummus and scatter the rest on top.\n6. Serve with bread, oatcakes or vegetable sticks.\n7. Allergy check: contains sesame (tahini). Check anyone tasting wild food has no allergy to the daisy family (this includes dandelions)."
+ },
+ "Chickpea Syrup Crunch Bites": {
+  "equipment": "Oven and baking tray lined with baking parchment\nClean tea towel\nSieve\nMixing bowl and spoon\nOven gloves",
+  "consumables": "1 tin (400 g) chickpeas, drained and rinsed\n1 tsp oil\n2 tbsp golden syrup\n1/2 tsp vanilla extract\n1/4 tsp cinnamon\n2 tbsp caster sugar",
+  "notes": "1. Drain and rinse the chickpeas, then spread them on a clean tea towel and leave to air dry for about 15 minutes. Pat dry.\n2. Heat the oven to 165C (150C fan). Line a tray with baking parchment.\n3. Toss the chickpeas with the oil and spread them in a single layer on the tray.\n4. Bake for 30 to 35 minutes until crunchy. An adult takes the tray out.\n5. While they bake, stir the golden syrup, vanilla and cinnamon together in a bowl.\n6. Tip the hot chickpeas into the syrup mix and stir until coated, then sprinkle over the sugar and stir gently.\n7. Return to the tray and bake for another 5 to 15 minutes until the glaze crisps up. Watch closely so they do not burn.\n8. Leave to cool completely. They crunch up as they cool.\n9. Safety: whole crunchy chickpeas are a choking risk for under 5s, so crush them for younger children."
+ },
+ "Hazel Catkin Shortbread": {
+  "equipment": "Oven and baking tray lined with baking parchment\nMixing bowl and wooden spoon\nPestle and mortar, or a rolling pin and bag\nSteamer or colander over a pan (adult)\nFork, knife (adult) and wire rack",
+  "consumables": "75 g hazelnuts, lightly roasted, skins rubbed off\n100 g vegan block butter\n50 g soft dark brown sugar\n150 g wholemeal plain flour\nA small handful of young, firm hazel catkins (optional)",
+  "notes": "1. An adult picks a few young, firm hazel catkins in late winter or early spring, once the tree is identified as hazel. Take only a little from each tree. Catkins that have started to shed pollen are bitter, so leave those.\n2. Steam the catkins for about 5 minutes to soften them, then chop finely.\n3. Heat the oven to 160C (140C fan). Line a tray with baking parchment.\n4. Crush the roasted hazelnuts to a fine powder.\n5. Beat the butter and sugar together until light and fluffy.\n6. Mix in the ground hazelnuts, the flour and the chopped catkins to make an even dough.\n7. Shape into two rounds, each cut into eight wedges, or press into a small baking tin. Prick the top well with a fork.\n8. Bake for 35 minutes to an hour, checking from 30 minutes. Fan ovens cook faster.\n9. Leave to cool on the tray until firm, then move to a wire rack.\n10. Allergy check: contains hazelnuts (tree nuts) and wheat. Hazel catkins release pollen, so check for nut and pollen allergies before anyone tastes it."
+ },
+ "Pea Fritters": {
+  "equipment": "Saucepan and colander\nFrying pan\nFood processor or potato masher\nBaking tray and greaseproof paper\nPastry brush\nMixing bowl and tablespoon",
+  "consumables": "250 g frozen peas\n1 tbsp olive oil, plus extra for brushing\n1 onion, diced\n3 garlic cloves, crushed\n140 g gram (chickpea) flour\n1 tsp bicarbonate of soda\nA pinch of salt\n2 tbsp mixed herbs, chopped\nTo serve: 250 g soya yoghurt, chopped herbs and the juice of 1 lemon",
+  "notes": "1. Heat the oven to 180C (160C fan) and line a baking tray with greaseproof paper.\n2. Boil the peas according to the packet and drain well.\n3. An adult heats the oil in a frying pan and softens the onion and garlic for a few minutes.\n4. Blend the peas, onion and garlic to a thick paste, or mash by hand.\n5. Stir in the gram flour, bicarbonate of soda, salt and herbs.\n6. With wet hands, scoop a tablespoon of the mix, roll into a ball and flatten into a patty on the tray. Makes about 10.\n7. Brush the tops with olive oil.\n8. Bake for 15 to 18 minutes, turning halfway, until golden.\n9. For the dip, mix the yoghurt, herbs and lemon juice with a pinch of salt.\n10. Allergy check: the dip contains soya."
+ },
+ "Potato Churros": {
+  "equipment": "Medium saucepan and wooden spoon\nPotato masher\nPiping bag with a large star tip (or a strong food bag with the corner cut off)\nScissors\nDeep, heavy pan and slotted spoon (adult)\nFrying thermometer\nKitchen paper\nShallow dish",
+  "tidy": {
+   "consumables": {
+    "whenEquals": "potatoes\nflour\nbutter\noil",
+    "to": "100 g plain mashed potato (no milk or butter added)\n110 g plain flour\n60 g vegan butter\n185 ml water\n1/2 tsp salt\n1 flax egg (1 tbsp ground flaxseed mixed with 2 tbsp water)\n1 tsp vanilla extract\nVegetable oil for frying (not groundnut)\n4 tbsp caster sugar and 2 tsp cinnamon, to coat"
+   }
+  },
+  "notes": "1. Make the flax egg first: mix the ground flaxseed with the water and leave for about 5 minutes to thicken.\n2. Mix the sugar and cinnamon in a shallow dish and put some kitchen paper nearby.\n3. In a saucepan, bring the water, vegan butter and salt to the boil.\n4. Take off the heat, add the flour all at once and stir hard until a ball forms. Leave to cool for 3 to 4 minutes.\n5. Stir in the mashed potato until smooth, then beat in the flax egg and the vanilla.\n6. Spoon the dough into the piping bag.\n7. An adult heats the oil in a deep pan to about 190C, never more than a third full. Hot oil is for adults only: an adult stays at the pan the whole time and children are kept well back.\n8. The adult pipes lengths of 7 to 10 cm straight into the oil, snipping them off with scissors, a few at a time.\n9. Fry for about 4 to 5 minutes, turn, and fry for 2 to 3 minutes more until golden.\n10. Lift out with a slotted spoon and drain on kitchen paper. Let them cool for a few minutes, then roll in the cinnamon sugar.\n11. Allergy check: contains wheat. Check the label on the frying oil and avoid groundnut (peanut) oil."
+ },
+ "Wheatabix Cake": {
+  "equipment": "Large mixing bowl and whisk\nSmall bowl for the flax eggs\n20 x 20 cm (or similar) baking dish, greased\nSpoon\nOven and oven gloves",
+  "notes": "1. Mix the ground flaxseed with the water in a small bowl and leave for 5 to 10 minutes to gel.\n2. Heat the oven to 180C (160C fan) and grease the baking dish.\n3. In the large bowl, whisk the vegan cream, plant milk, condensed milk, vanilla and flax eggs until smooth.\n4. Break the biscuit wheats into the dish in a layer and pour over about half of the mixture. Leave to soak for a few minutes.\n5. Dot half of the chocolate hazelnut spread over the top, add a second layer of biscuit wheats, then pour over the rest of the mixture.\n6. Spoon over the remaining spread.\n7. Bake for about 40 minutes until set with a slight wobble in the middle. An adult takes the dish out.\n8. Leave to cool slightly and serve warm with vegan custard.\n9. Allergy check: contains wheat and hazelnuts, and check the cream, condensed milk and spread labels for nuts, soya and coconut."
+ },
+ "Pizza Dogs": {
+  "equipment": "Large mixing bowl and wooden spoon\nClean tea towel or cling film\nTwo baking trays lined with baking parchment\nOven (or campfire)\nScissors\nPeeled green sticks or corn dog sticks",
+  "tidy": {
+   "consumables": {
+    "whenEquals": "Flour\nYeast\nWater\nSugar",
+    "to": "700 g strong white bread flour, plus extra for dusting\n475 ml warm water\n2 tsp sugar\n14 g fast-action dried yeast (2 sachets)\n2 tsp fine salt\n1 tsp garlic powder (optional)\n8 vegan hot dog sausages\nPizza sauce, for dipping (optional)"
+   }
+  },
+  "notes": "1. Mix the warm water, sugar and yeast in a large bowl and leave for 5 minutes until it looks foamy.\n2. Add half of the flour and mix well. Add the garlic powder, the rest of the flour and the salt and stir to a rough dough.\n3. Knead on a floured surface for about 10 minutes, adding flour if it is too sticky.\n4. Cover with a damp cloth and leave somewhere warm for 45 to 60 minutes until doubled in size.\n5. Heat the oven to 200C (180C fan) and line two trays with baking parchment.\n6. Push a stick into the centre of each sausage.\n7. Roll out the dough and cut long strips with scissors. Roll a strip into a thin snake and wrap it around a sausage from top to bottom, pinching both ends closed.\n8. Place on the tray and bake for 10 to 15 minutes until the dough is just golden. Cool for 2 to 3 minutes before eating.\n9. Over the fire: wrap the dough around a peeled green stick instead, cook slowly over hot embers (not flames), turning often, for about 10 to 15 minutes until golden and cooked through. Split one open to check the dough is cooked in the middle.\n10. Allergy check: contains wheat. Check the sausage label for soya and gluten."
+ },
+ "Birthday Cake": {
+  "equipment": "15 cm round cake tin, lined with baking parchment and oiled\nMixing bowl and whisk or spatula\nOven and oven gloves\nWire rack\nSmall bowl and spoon for the icing",
+  "tidy": {
+   "consumables": {
+    "whenEquals": "self raising flour\nlemonade\nsugar\nicing sugar",
+    "to": "220 g self-raising flour\n130 g caster sugar\n240 ml lemonade (fizzy, not cloudy)\n120 ml light olive oil\n1 tsp lemon extract (optional)\n1/2 tsp salt\nFor the icing: 100 g icing sugar and 1 to 2 tbsp lemon juice or lemonade\nCandles (optional)"
+   }
+  },
+  "notes": "1. Heat the oven to 180C (160C fan). Line the tin with baking parchment and oil the sides.\n2. Whisk the flour, sugar and salt together in a bowl.\n3. Add the lemonade, oil and lemon extract and stir until the batter is smooth.\n4. Pour into the tin and bake for 50 to 60 minutes. After 40 minutes, cover the top loosely with foil so it does not darken too much.\n5. It is done when it is golden and a skewer in the middle comes out clean. An adult takes the tin out.\n6. Cool in the tin for 10 minutes, then turn out onto a wire rack and cool for 2 hours.\n7. Mix the icing sugar with the lemon juice or lemonade a spoonful at a time until thick but runny enough to drizzle. Spread over the cooled cake and add candles.\n8. Allergy check: contains wheat. Check the lemonade is vegan."
+ },
+ "Sweet Corn Fitter Sticks": {
+  "tidy": {
+   "equipment": {
+    "whenEquals": "frying pan",
+    "to": "Tall, narrow, heavy pot (adult)\nFrying thermometer\nWooden skewers, soaked in water for 30 minutes\nMixing bowls and whisk\nKitchen paper and a tray\nOven gloves"
+   },
+   "consumables": {
+    "whenEquals": "corn on the cob\nwooden skewers\nflour\noil",
+    "to": "6 corn on the cob, husks and silks removed\n190 g plain flour, plus extra for dusting\n1 tsp baking powder\n1 tsp bicarbonate of soda\n2 tbsp caster sugar\n1/4 tsp salt\n1 flax egg (1 tbsp ground flaxseed mixed with 2 tbsp water)\n300 ml plant milk mixed with 1 tbsp lemon juice\n50 g vegan butter, melted and cooled\n1/2 tsp vanilla extract\nVegetable oil for frying (not groundnut)\nTo serve: icing sugar or maple syrup"
+   }
+  },
+  "notes": "1. Soak the skewers in water for 30 minutes. An adult pushes two skewers into each cob, about three quarters of the way through.\n2. Mix the ground flaxseed with the water and leave for about 5 minutes. Stir the lemon juice into the plant milk and leave to thicken.\n3. Whisk the flour, baking powder, bicarbonate of soda, sugar and salt in a large bowl.\n4. In another bowl, whisk the flax egg, soured plant milk, cooled melted butter and vanilla.\n5. Pour the wet mix into the dry and stir until just combined. The batter should be thick and a bit lumpy. Leave it to rest for 5 minutes.\n6. Lightly dust each cob with flour and shake off the extra, then spoon the batter over it evenly.\n7. An adult heats the oil in the tall pot to about 175C. Never fill it more than a third with oil. Hot oil is for adults only: an adult stays at the pot the whole time and children are kept well back.\n8. The adult lowers each cob in carefully, holding the skewers, and fries for about 2 minutes until puffed and golden.\n9. Lift out onto kitchen paper and let it cool for a few minutes before anyone eats it. Dust with icing sugar or drizzle with maple syrup.\n10. Allergy check: contains wheat. Check the label on the frying oil and avoid groundnut (peanut) oil."
+ },
+ "Cowboy Jam": {
+  "equipment": "Large heavy-based saucepan and wooden spoon\nChopping board and knife (adult)\nGloves for chopping chillies (adult)\nSaucer chilled in a freezer or cold water\nClean jars with lids",
+  "tidy": {
+   "consumables": {
+    "whenEquals": "golden syrup\nsweet fruit\nchilis\nwater",
+    "to": "500 g sweet fruit (such as apples, pears, plums or berries), chopped\n2 red chillies, seeds removed for a milder jam\n150 g golden syrup\n100 ml water\nJuice of 1 lemon"
+   }
+  },
+  "notes": "1. An adult wears gloves to chop the chillies, removes the seeds, and keeps hands away from eyes and faces. Chop the fruit into small pieces.\n2. Put the fruit, chillies, golden syrup, water and lemon juice in the saucepan over a medium heat and stir until the syrup melts.\n3. Bring to a rolling boil, then simmer for 20 to 30 minutes, stirring often, until thick and glossy. An adult stays at the pan and children keep back.\n4. To test, spoon a little onto a cold saucer, chill for 5 minutes and push it with a finger. If it wrinkles, it is ready. If not, boil for 5 more minutes and test again.\n5. Leave to stand for 5 minutes, then spoon into clean jars.\n6. Cool completely before sealing. Keep in the fridge and eat within a week.\n7. Serve on bread, oatcakes or with vegan cheese. Wash hands well after handling chillies."
+ }
+};
+const ACTIVITY_REMOVALS_V4 = [
+ { name: 'Meadowsweet Cordial', cat: 'recipes' },
+ { name: 'Meadowsweet infusion', cat: 'recipes' },
+ { name: 'Yarrow tea', cat: 'recipes' }
+];
+function mergeFlapjacksV4() {
+  const keepName = 'Golden Syrup FlapJacks';
+  const donors = ['Golden Syrup & Oat Flapjacks', 'Honey & Oat Flapjacks'];
+  const keep = state.menuItems.find(i => i && i.cat === 'recipes' && i.name === keepName);
+  if (!keep) return 0;
+  let merged = 0;
+  donors.forEach(dn => {
+    const idx = state.menuItems.findIndex(i => i && i.cat === 'recipes' && i.name === dn);
+    if (idx < 0) return;
+    const notes = (keep.notes || '').replace(/\\n/g, '\n');
+    if (notes.trim() && notes.indexOf('Dutch oven') < 0) {
+      const nums = (notes.match(/^\s*(\d+)[.)]/gm) || []).map(s => parseInt(s, 10));
+      const n = (nums.length ? Math.max.apply(null, nums) : 0) + 1;
+      keep.notes = notes.replace(/\s+$/, '') + '\n\n' + n + '. Campfire version: grease a cast-iron Dutch oven and press the mixture firmly into the base. Set it on a bed of hot embers and shovel more hot coals onto the lid so the heat surrounds it. Bake for 18 to 20 minutes, lifting the lid carefully once near the end to check. An adult handles the lid with thick gloves.\n\n' + (n + 1) + '. It is ready when a skewer pushed into the centre comes out clean. Let it cool completely in the pot before cutting into bars, because they firm up as they cool.';
+    }
+    state.menuItems.splice(idx, 1);
+    // point session entries at the surviving recipe, then drop any row that now lists it twice
+    renameActivityEverywhere(dn, keepName);
+    (state.sheets || []).forEach(sheet => Object.values(sheet.sessions || {}).forEach(day => Object.keys(day).forEach(k => {
+      if (!Array.isArray(day[k])) return;
+      let seen = false;
+      day[k] = day[k].filter(a => { if (a && typeof a === 'object' && a.text === keepName) { if (seen) return false; seen = true; } return true; });
+    })));
+    merged++;
+  });
+  return merged;
+}
+function applyActivityEditsV4() {
+  const out = { removed: 0, removedFromSessions: 0, merged: 0, filled: 0, fixed: 0 };
+  ACTIVITY_REMOVALS_V4.forEach(r => {
+    const before = state.menuItems.length;
+    state.menuItems = state.menuItems.filter(i => !(i && i.name === r.name && i.cat === r.cat));
+    if (state.menuItems.length < before) { out.removed += before - state.menuItems.length; out.removedFromSessions += cascadeRemoveFromSessions(r.name); }
+  });
+  // meadowsweet is no longer suggested as a taste for children
+  state.menuItems.forEach(i => {
+    if (i && i.name === 'End-of-term forest blend' && i.cat === 'recipes' && i.foraged === 'Seasonal foraged herbs (mint, lemon balm, elderflower, meadowsweet)') {
+      i.foraged = 'Seasonal foraged herbs (mint, lemon balm, elderflower)'; out.fixed++;
+    }
+  });
+  out.merged = mergeFlapjacksV4();
+  out.filled = applyActivityFills(ACTIVITY_FILLS_V4, 'recipes');
+  return out;
+}
+
+// ── v5 clean-up (schema 5): crafts and bushcraft cards used in sheets, and beeswax out of materials lists ──
+const ACTIVITY_FILLS_V5 = {
+ "Birch Sap Collecting": {
+  "equipment": "Hand drill and clean drill bit (adult use only)\nFood-grade tubing\nClean collecting bottle or jug\nWooden peg to plug the hole\nString to secure the bottle\nClear cups for looking at the sap",
+  "notes": "1. An adult identifies a healthy birch tree with a trunk wide enough to tap. Sap is only collected in early spring while it is rising, so March suits.\n2. The group talks about how trees move water and sugars up from the roots in spring.\n3. An adult drills one small hole into the trunk, angled slightly upwards, and fits the tubing.\n4. Children place the bottle under the tube end and secure it with string so the sap drips inside.\n5. The group returns during the session to listen for drips and see how much has gathered.\n6. Before leaving, an adult removes the tube and presses a wooden peg firmly into the hole so the tree can heal.\n7. Children pour a little sap into clear cups to look at and compare with tap water. The sap is for looking at, not tasting."
+ },
+ "Lucet Weaving": {
+  "equipment": "Lucets (one per child)\nScissors (an adult cuts the yarn for under 5s)",
+  "consumables": "Cotton or hemp yarn",
+  "notes": "1. An adult cuts a length of yarn for each child and shows the group the two horns of the lucet.\n2. Children make a loop around the left horn, leaving a short tail hanging down through the hole in the middle.\n3. The working yarn is carried across the front to the right horn and wrapped once around it, so each horn holds a loop.\n4. Children lift the lower loop over the top strand and over the tip of the horn, then gently pull the working yarn to tighten.\n5. The lucet is turned and the steps repeated, and a round cord slowly grows through the hole in the middle.\n6. When the cord is long enough, an adult helps to tie it off and trim the ends.\n7. The finished cord can be used as a bracelet, a bookmark or a lanyard."
+ },
+ "Deer Trail Challenge — find and follow the signs": {
+  "notes": "1. Before the session, an adult lays a trail through the woodland using natural signs such as stick arrows, small stone piles, crossed twigs and leaf patterns.\n2. The group gathers and hears the story of a deer who has passed through, leaving signs for others to follow.\n3. Children learn the first few signs together and what each one means.\n4. In small groups, children look for the first sign and follow the trail from sign to sign.\n5. Children take turns being the lead tracker, and the rest of the group follows quietly.\n6. At the end of the trail the group finds a quiet spot to sit together and share what they noticed.\n7. Older children can make their own trail signs for the group to follow."
+ },
+ "DIY Wooden Blocks": {
+  "equipment": "Folding saw or bow saw (adult use only)\nSawing bench or clamp\nFallen, dry branches of similar width\nMedium and fine sandpaper\nPaintbrushes (optional)",
+  "consumables": "Sandpaper\nPlant-based oil (optional)",
+  "notes": "1. An adult chooses dry, fallen branches of similar width with no signs of rot.\n2. An adult secures each branch and saws it into blocks, making some the same length and some different.\n3. Children peel away loose bark if they wish and rub each block with medium sandpaper, then fine sandpaper.\n4. Children check each block by touch and keep sanding any rough edges.\n5. An adult can rub a plant-based oil into the blocks to bring out the grain.\n6. Children stack, sort and build with the finished blocks, and the set stays at camp for others to use."
+ },
+ "Sailboats": {
+  "equipment": "None needed"
+ },
+ "Making different water filters compared": {
+  "consumables": "Cotton cotton yarn\nCoffee filters\nSand\nGravel\nActivated charcoal\nMuddy water",
+  "notes": "1. An adult cuts the bottom off each plastic bottle so it can be turned upside down and used as a funnel.\n2. Children set each bottle neck down in a container and choose which materials to layer inside, such as cotton wool, coffee filter, sand, gravel or charcoal.\n3. Children fill each filter in a different order so the group can compare results.\n4. Muddy water is measured in a jug and poured slowly through each filter.\n5. Children look at how clear the water is from each filter and compare it with the muddy water.\n6. The group talks about which layers seemed to work best and why.\n7. The filtered water is not clean enough to drink, and the group talks about why. It is poured onto the ground when finished."
+ },
+ "Exploring tree rings — can we find a log older than Luke?": {
+  "notes": "1. An adult saws or brings a selection of log slices from different trees and sets them out for the group.\n2. Children look closely with magnifying glasses and notice the pale and dark rings.\n3. The group learns that each pair of light and dark rings usually shows one year of growth.\n4. Children count the rings on a slice, marking each tenth ring with a pencil dot or small stone to help keep track.\n5. Children measure the width of rings with a ruler and compare wide and narrow rings.\n6. The group compares the number of rings on each slice with Luke's age and decides which logs are older.\n7. Children share ideas about why some rings are wider than others."
+ },
+ "Dragon lair collaborative den": {
+  "notes": "1. The group gathers and shares ideas about what a dragon lair might need, such as a cave entrance, a treasure space and a lookout.\n2. Children and adults choose a site together, checking above for hanging branches.\n3. An adult saws longer poles to length and helps the group lean or tie them into the main frame.\n4. Children gather natural materials and weave or lay them over the frame.\n5. A tarpaulin is tied over the top with rope, with an adult checking the knots.\n6. Children decorate the lair with natural materials and make a doorway or sign.\n7. The group spends time inside the lair and shares stories, then tidies away loose materials at the end."
+ },
+ "Making elder beads and duck calls from branches": {
+  "notes": "1. An adult identifies the elder and cuts stems with a folding saw, then sorts the thicker, straighter pieces from the thinner ones.\n2. For beads, an adult saws each stem into short sections.\n3. Children push the soft pith out of each section with a thin stick, or an adult drills it out.\n4. Children sand the ends and sides of each bead until smooth.\n5. For duck calls, an adult uses a knife to shape a mouthpiece and cut a small notch in a hollowed length of stem. Children test the call and an adult adjusts it.\n6. Children thread the beads onto cord or decorate the duck calls with sanded patterns.\n7. Not for under-5s. Pieces are not put in mouths."
+ },
+ "Navigation using sun and landmarks (final challenge)": {
+  "notes": "1. The group looks at where the sun is and talks about how its position changes through the day.\n2. Children use a compass to find north and match it against the map.\n3. Children pick out landmarks such as a large tree, a gate or a stream and find them on the map.\n4. In small groups, each team is given a route made of a few landmarks and a direction to head in.\n5. Teams walk from landmark to landmark, using the sun, compass and map to check their way, with an adult close by.\n6. Children draw a simple sketch map of their route as they go.\n7. The group meets back together and shares how each team found its way."
+ },
+ "Knot-tying challenges with natural materials": {
+  "notes": "1. An adult shows two or three simple knots, such as an overhand knot, a reef knot and a clove hitch, using a rope length and a stick.\n2. Children practise each knot with rope lengths and use the reference cards for help.\n3. Children make short lengths of natural cordage and test how strong they are.\n4. Challenge cards set small tasks, such as tying two sticks together or hanging a stick from a branch.\n5. Children work in pairs, and each takes a turn leading and helping.\n6. The group shares which knots plant-fibre felt easiest and where they might use them at camp."
+ },
+ "Autumn Leaf Crowns": {
+  "consumables": "Card strips\nStaples, tape or string",
+  "notes": "1. An adult cuts card strips long enough to go around each child's head, with a little extra to overlap.\n2. Children collect fallen leaves in different colours and shapes.\n3. Children sort their leaves and arrange them along the card strip before fixing anything.\n4. An adult staples each leaf in place and folds the staples flat or covers them with tape, or children tuck stems in using tape or string.\n5. An adult fits the strip to each child's head and fastens the ends with a staple or a twist tie.\n6. Children wear their crowns and share the colours and shapes they chose."
+ },
+ "Autumn colour bunting": {
+  "consumables": "Card triangles\nString\nPaint or ink (optional)",
+  "notes": "1. An adult cuts card triangles ahead of time, or cuts them with the group if children are over 5.\n2. Children collect leaves in a range of colours and shapes.\n3. Children glue or stick leaves onto the card triangles, or use paint or ink to print them.\n4. Children leave the triangles to dry.\n5. Children punch two holes along the top of each triangle with a hole punch.\n6. Children thread the triangles onto string in their chosen order.\n7. An adult helps hang the bunting between trees."
+ },
+ "Birch Twig Stars bound with twine": {
+  "consumables": "Natural twine\nPaint (optional)",
+  "notes": "1. Children collect straight birch or hazel twigs and an adult snips them to a similar length.\n2. Children lay five twigs out in a star shape so each twig crosses two others.\n3. Children wrap twine around each point where twigs cross and tie it off, with adult help if needed.\n4. Children adjust the twigs so the points sit evenly.\n5. Children add a loop of twine at the top for hanging.\n6. Children can paint tips or leave the stars natural, and hang them on a tree or take them home."
+ },
+ "Christmas garland for camp": {
+  "notes": "1. An adult identifies the greenery and cuts the sprigs with secateurs. Holly is prickly, so children wear gloves.\n2. Children sort the greenery, pine cones and dried orange slices into groups.\n3. An adult lays out a long length of string or ribbon as the base.\n4. Children bind small bunches of greenery onto the string with wire or thin string, overlapping each bunch to cover the last.\n5. Children add pine cones and dried orange slices along the garland.\n6. An adult helps hang the garland around the camp and children decide where it goes."
+ },
+ "Cinnamon Stick Reindeer": {
+  "notes": "1. An adult sets out the materials and uses the hot glue gun. Children under 8 use craft glue.\n2. Children choose two cinnamon sticks per reindeer and place them side by side as the body.\n3. An adult glues the two sticks together, or children use craft glue and hold them while it sets.\n4. Children twist a pipe cleaner around the top of the sticks and shape the ends into antlers.\n5. Children glue on googly eyes and a red pompom nose.\n6. Children tie a ribbon loop to the back so the reindeer can be hung.\n7. Beads, shells and googly eyes are for ages 5 and over, or with close supervision."
+ },
+ "Making stick and hoop games": {
+  "consumables": "String for binding",
+  "notes": "1. An adult saws hazel or willow sticks to length and children sand the ends smooth.\n2. Children bend a fresh green willow or hazel wand (or a dried willow wand soaked beforehand) into a circle and overlap the ends.\n3. Children bind the overlap tightly with string, with adult help for tying off.\n4. Children leave the hoop to dry in its circle.\n5. Children test the game by tossing a hoop to land over a stick pushed into the ground, or rolling the hoop and catching it with a stick.\n6. Children invent their own rules and take turns."
+ },
+ "Star Weavings": {
+  "consumables": "Cotton or hemp yarn",
+  "notes": "1. Children gather six sticks of the same length.\n2. Children lay the sticks across each other so they fan out like the spokes of a wheel, and secure the middle with a rubber band.\n3. Children tie the end of the cotton yarn at the centre of the star.\n4. Children wrap the cotton yarn around one stick, then move to the next stick and wrap once, continuing round in a circle.\n5. Children change colour by tying on a new yarn and continuing round.\n6. When the star is full, an adult helps tie off and tuck in the end.\n7. Children attach a loop for hanging."
+ },
+ "Wildflower Bookmarks": {
+  "consumables": "Card strips\nPVA glue\nClear sticky-back plastic or laminating pouches",
+  "notes": "1. Before the session, an adult identifies common small flowers and children pick only a few from places where there are plenty. Flowers are pressed flat for about one to two weeks.\n2. Children cut or tear card strips (an adult cuts for under 5s).\n3. Children arrange pressed flowers on a card strip and move them around until they like the pattern.\n4. Children glue flowers down with a small amount of PVA.\n5. An adult covers each bookmark with sticky-back plastic or seals it in a laminating pouch.\n6. An adult trims the edges and punches a hole for a tassel if wished."
+ },
+ "Autumn altar construction": {
+  "notes": "1. The group talks about what an autumn altar is, a quiet place to show the things we notice and appreciate in nature.\n2. Children choose a calm spot and place a flat wood slice or board on the ground as the base.\n3. Children collect conkers, leaves, seed heads, pine cones, stones and feathers. Conkers are poisonous and are not tasted. Berries are left out for under 5s, and any others are adult-identified and for looking at only.\n4. Children sort their materials by colour, shape or size.\n5. Children arrange the materials on the base, working together and agreeing where things go.\n6. The group sits quietly beside the altar and shares something they are grateful for.\n7. At the end, the materials are returned to the woodland."
+ },
+ "Cobweb installation in trees": {
+  "consumables": "White cotton yarn or string",
+  "notes": "1. An adult picks a couple of trees or a frame of sticks for the web.\n2. Children tie a few sticks together into a star shape, or an adult helps them tie cotton yarn between branches as spokes.\n3. Children weave the white cotton yarn around the spokes in a spiral, working from the centre outwards.\n4. Children tie the end off with adult help.\n5. An adult can brush on a little water-based white or silver paint if wished, or leave the web unpainted.\n6. Children place spiders on the web if wished, and step back to see how it looks."
+ },
+ "Harvest Scarecrows": {
+  "consumables": "Straw or newspaper\nString",
+  "notes": "1. An adult uses a hammer and nails to join two poles into a cross frame, and pushes the stake into the ground.\n2. Children choose old clothes and dress the frame, with adults helping with tricky bits.\n3. Children stuff the clothes with straw or scrunched newspaper.\n4. Children tie the ends with string at the wrists and ankles so the stuffing stays in.\n5. Children make the head from a stuffed bag or old hat, and add a face.\n6. The group chooses a spot to stand the scarecrow, and tells its story."
+ },
+ "Harvest festival decorations": {
+  "consumables": "Paper or card\nPaint\nString or twine",
+  "notes": "1. The group talks about harvest and what grows in the area.\n2. Children collect leaves, corn, rosehips and gourds, and look at them closely. Any wild plants are adult-identified and are not for tasting.\n3. Children paint paper or card shapes such as leaves, sheaves and fruits.\n4. Children leave the shapes to dry.\n5. Children thread natural materials and painted shapes onto string or twine.\n6. An adult helps hang the decorations around the camp."
+ },
+ "Love heart woodland installation": {
+  "consumables": "Ribbon or cotton yarn",
+  "notes": "1. Children gather long, bendy sticks and branches.\n2. Children bend the sticks into heart shapes, with adults helping with the thicker ones.\n3. An adult cuts craft wire and children help bind the crossing points.\n4. Children wrap red and white ribbon or cotton yarn around the frame.\n5. Children decorate with pine cones, red leaves or petals. Berries are left out for under 5s.\n6. An adult helps hang the hearts from trees, and the group walks through to see them."
+ },
+ "Painted Acorn Faces": {
+  "consumables": "Acrylic paint\nVarnish (optional)",
+  "notes": "1. Children collect acorns with their caps and an adult checks for holes.\n2. Children brush off any dirt and leave them to dry.\n3. Children think about the face they want, such as happy, sleepy or surprised.\n4. Children paint a base colour on the acorn and leave it to dry.\n5. Children use fine brushes to add eyes, nose and mouth.\n6. An adult brushes on varnish if wished and leaves the acorns to dry.\n7. Beads, shells and googly eyes are for ages 5 and over, or with close supervision."
+ },
+ "Painted Shell Pendants": {
+  "consumables": "Acrylic paint\nCord or string",
+  "notes": "1. Before the session, an adult makes a small hole in each shell with a drill or bradawl.\n2. Children choose a shell and look at its shape and texture.\n3. Children paint the shell with a base colour and leave it to dry.\n4. Children add patterns with fine brushes.\n5. Children leave the shell to dry fully.\n6. Children thread cord through the hole and an adult helps tie it."
+ },
+ "Painting gratitude banners for the summer": {
+  "consumables": "Fabric paint\nFabric lengths",
+  "notes": "1. The group sits together and talks about what they are grateful for this summer.\n2. Children are given a length of fabric and lay it flat on the ground.\n3. Children choose words, pictures or patterns for their banner.\n4. Children paint their designs with fabric paint.\n5. Children leave the banners to dry flat.\n6. An adult threads string through the top and the group hangs the banners at camp."
+ },
+ "Star and snowflake tree decorations": {
+  "consumables": "White and silver cotton yarn or twine\nPaint (optional)",
+  "notes": "1. Children collect dry, straight twigs and an adult snips them to the same length.\n2. Children lay three twigs across each other at the centre to make a six-armed snowflake, or two to make a simple star.\n3. Children bind the centre with cotton yarn or twine.\n4. Children wrap cotton yarn around the arms for extra decoration.\n5. Children paint tips white if wished and leave them to dry.\n6. Children add a loop of string and hang the decorations on a tree."
+ },
+ "Winter nature altar": {
+  "notes": "1. The group talks about what makes winter special and what they notice outdoors.\n2. Children choose a calm spot and clear a flat space.\n3. An adult identifies the evergreens and places them on the ground. Children do not taste any leaves or berries, and berries are left out for under 5s.\n4. Children add pine cones, stones and ribbons to the arrangement.\n5. An adult places candles in jars on a level spot, using plant wax candles, set well away from the evergreens, or use battery lights instead. An adult lights them and stays close.\n6. The group sits quietly and shares something they are thankful for, then an adult puts out the candles.\n7. Greenery and decorations are returned to the woodland."
+ },
+ "Making stepping directional stones from painted wood slices": {
+  "consumables": "Exterior acrylic paint\nWeatherproof varnish",
+  "notes": "1. The group talks about the paths around camp and where children might need a sign.\n2. An adult sets out the wood slices and the group chooses which to use.\n3. Children paint a base colour on each slice and leave it to dry.\n4. Children paint arrows, footprints or symbols on top.\n5. An adult brushes weatherproof varnish on the sides only and leaves the tops unvarnished or uses a non-slip finish, as varnish is slippery when wet. Leave the slices to dry.\n6. An adult helps place the slices along the paths, flat and on level ground."
+ },
+ "Bluebell and daffodil spotting map": {
+  "consumables": "Paper",
+  "notes": "1. The group talks about spring flowers and how to look at them without picking or trampling. Bluebells are protected and are only looked at. Do not touch or pick them. Bluebells and daffodils are poisonous, so wash hands after any contact.\n2. Children draw a simple outline of the site with landmarks such as paths, trees and the fire circle.\n3. The group walks around in small groups with an adult, keeping to paths.\n4. Children mark where they spot bluebells and daffodils with a coloured symbol. Any wild flowers are adult-identified and not for tasting.\n5. Children add colour with coloured pencils.\n6. The group compares maps and shares where flowers grew most."
+ },
+ "Harvesting and drying herbs for decoration": {
+  "consumables": "Spare string for tying\nBrown paper bags (optional, for catching seeds)",
+  "notes": "1. An adult identifies the herbs and shows children which plants are being gathered.\n2. Children smell and look closely at each herb before any cutting begins.\n3. An adult or older children with secateurs cut stems on a dry morning, leaving plenty of the plant growing. Children under 5 pick leaves and sprigs by hand.\n4. Shake each bunch gently to let any small creatures move away.\n5. Tie five or six stems together with string to make a small bundle.\n6. Hang the bundles upside down in a warm, airy, shady spot, such as a shelter beam or washing line.\n7. Leave them for one to two weeks until crisp, then use them to decorate the camp or tie into garlands.\n8. Herbs are for smelling and looking at, and are not eaten on this activity."
+ },
+ "Leaf Paintbrushes": {
+  "consumables": "Paint\nPaper",
+  "notes": "1. Children collect leaves of different shapes and sizes and a stick each, around 20cm long.\n2. Lay a leaf against the end of a stick, with the stalk overlapping the stick.\n3. Bind the leaf on firmly with string, wrapping several times and tying a knot. An adult helps with knots as needed.\n4. Pour a small amount of paint into a lid or palette for each child.\n5. Dab, stroke and swish the leaf brush on paper and notice the different marks each leaf makes.\n6. Try swapping to another leaf brush and compare the marks.\n7. Lay finished paintings flat to dry in a sheltered spot."
+ },
+ "Snowdrop pressing and display": {
+  "consumables": "Blotting paper (replaced if damp)\nCard or paper for display",
+  "notes": "1. An adult picks a few snowdrops from an abundant clump, or uses flowers that have already fallen. Snowdrops are left alone where they are scarce. Snowdrops are poisonous if eaten, so wash hands after handling.\n2. Lay a sheet of blotting paper in the flower press or open book.\n3. Children arrange a flower flat on the paper, with the stem and petals spread out.\n4. Cover with a second sheet of blotting paper and close the press or book. Add more heavy books on top.\n5. Leave for one to two weeks, then open carefully.\n6. Children glue the pressed flowers on to card with PVA glue, using a small brush or fingertip. An adult cuts card to size for under 5s.\n7. Display the cards in the shelter or take them home."
+ },
+ "Designing a May Day map of camp": {
+  "consumables": "Paper for drafts",
+  "notes": "1. Walk around camp together and notice the main places: the story circle, the fire area, dens, paths and trees.\n2. Children sketch a quick draft on small paper, marking places that matter to them.\n3. Lay out a large sheet of paper or card and agree where north, the entrance and the main paths sit.\n4. Draw the paths and key places in pencil, using rulers for straight edges if wanted.\n5. Add colour, symbols and names with coloured pens, plus a key to explain the symbols.\n6. Mark where May Day activities will happen, such as the maypole and the stage.\n7. Display the finished map at the camp entrance for the community to use."
+ },
+ "Bird Nesting Rings": {
+  "consumables": "Dry moss, grass, small feathers and twigs\nPaper or card for labels",
+  "notes": "1. An adult makes or checks rings first: wire rings with the ends tucked and taped, or twigs bent into a circle and tied. An adult trims any wire.\n2. Children collect soft, safe materials such as dried moss, grass, small twigs and found feathers. No wool, string or thread, as it can tangle birds.\n3. Weave and tuck the materials through and around each ring so they hang loosely and are easy for birds to pull out.\n4. Offer only moss, dry grass, feathers and small twigs, never wool, string or thread.\n5. Hang each ring from a low branch or fence with string, in a quiet spot away from paths.\n6. Sit quietly nearby and watch to see which birds visit over the coming days."
+ },
+ "Decorating the story circle with bunting": {
+  "consumables": "Paint or pens\nExtra string",
+  "notes": "1. An adult cuts card or fabric into triangles, or older children cut their own. Scissors are used by an adult for children under 5.\n2. Children decorate each triangle with paints or pens, using patterns, shapes or woodland pictures.\n3. Leave the paint to dry in a sheltered spot.\n4. An adult punches two holes along the top edge of each triangle.\n5. Thread a long piece of string through the holes, spacing the triangles evenly along it.\n6. Tie the bunting between trees or posts around the story circle at a comfortable height.\n7. Sit together in the circle and enjoy the new space."
+ },
+ "Deer hats and beast costume making": {
+  "consumables": "Card and plant-fibre felt offcuts\nRibbon lengths",
+  "notes": "1. An adult cuts headband strips from card and measures them around each head. Older children can cut their own.\n2. Children draw and cut antler, ear or horn shapes from card or plant-fibre felt. An adult cuts for under 5s.\n3. Decorate the shapes with leaves, feathers and colour as wanted.\n4. An adult staples or glues the shapes on to the headband, and fixes the ends with a stapler or elastic to fit.\n5. Add ribbons, tails or fur patterns made from card or plant-fibre felt to complete a beast costume.\n6. Try the costumes on and move like the animals you have made.\n7. Use them for a story or game in the story circle."
+ },
+ "Halloween camp decorations": {
+  "notes": "1. An adult cuts the tops from pumpkins and carves faces, using a knife. Children scoop out the seeds and flesh with spoons or hands.\n2. Children paint or draw patterns on whole pumpkins or on card shapes with black and orange paint.\n3. Stretch cobweb yarn between branches, stakes and shelter poles to make webs.\n4. Hang leaf, stick and card decorations from trees using string.\n5. If candles are used, an adult places and lights vegan soy wax candles in jars or holders well away from the cobweb yarn and other decorations, and stays nearby.\n6. Walk around camp together to enjoy the finished scene."
+ },
+ "Hanging forest charms from trees": {
+  "consumables": "Natural twine",
+  "notes": "1. Children collect small sticks, twigs and found feathers from the ground.\n2. Cut lengths of twine, about 30cm. An adult cuts for under 5s.\n3. Tie two sticks into a cross, or lash several twigs together into a small shape.\n4. Thread beads or shells on to the twine and tie them to the charm.\n5. Attach a loop of twine at the top for hanging.\n6. Choose a tree and hang the charm loosely, taking care not to tie anything tight around a branch.\n7. Revisit the charms over the coming weeks to see how they change in the weather.\n8. Beads, shells and googly eyes are for ages 5 and over, or with close supervision."
+ },
+ "Holly and ivy garland": {
+  "consumables": "Spare string",
+  "notes": "1. An adult identifies and cuts the holly and ivy with secateurs, choosing fallen or plentiful growth and leaving the plants healthy.\n2. Wear gloves for holly and ivy and wash hands afterwards. Children collect cut pieces and sort them by plant.\n3. An adult cuts a long length of string or wire to the garland length wanted.\n4. Lay sprigs along the string, overlapping so each one covers the stem of the one before.\n5. Bind each sprig on with a few turns of string and a knot. Children help hold and pass sprigs.\n6. Continue until the garland is the length needed, with ivy trailing between holly clusters.\n7. An adult hangs it at the camp entrance or over the shelter. Remove all berries before the garland is made, as holly and ivy berries are poisonous."
+ },
+ "Mini maypoles with natural materials and wool": {
+  "consumables": "Cotton yarn or ribbon lengths",
+  "notes": "1. An adult drills a hole in the centre of each wood disc, sized to fit the dowel snugly.\n2. Children push a dowel into the base and check that it stands up.\n3. Cut ribbons or cotton yarn into equal lengths, about 50cm. An adult cuts for under 5s.\n4. Tie the ribbons together at the top of the dowel with a knot, and tuck flowers into the knot.\n5. Each child holds one ribbon and walks around the pole, weaving over and under to plait the ribbons down the pole.\n6. Walk the other way to unwind the pattern and try again.\n7. Display the maypoles at the May Day celebration."
+ },
+ "Space and Dolls mini world building": {
+  "consumables": "Moss pieces\nDry moss, grass, small feathers and twigs or string",
+  "notes": "1. Choose a small area, a tray, a log end or a patch of ground, as the base for each world.\n2. Children shape the ground with sand and soil, using a trowel or their hands.\n3. Add stones, sticks and moss to make hills, houses, paths and rivers.\n4. Place small dolls or figures into the scene and add small plants or moss for trees and grass.\n5. Invent a story for the world as it grows, adding details as ideas arrive.\n6. Leave the worlds in place for others to discover, and return found items to the woodland at the end."
+ },
+ "Spring equinox bunting": {
+  "consumables": "Paint\nExtra string",
+  "notes": "1. Talk about the spring equinox, when day and night are about the same length, and the colours children notice around camp.\n2. An adult cuts card or fabric triangles. Older children can cut their own.\n3. Children paint triangles in spring colours, such as greens, yellows and pale pinks, with flowers, suns or buds.\n4. Leave to dry, then an adult punches two holes along the top of each triangle.\n5. Thread a long string through the holes, spacing the triangles evenly.\n6. Tie the bunting between trees or across the shelter."
+ },
+ "Star map installation": {
+  "consumables": "Paint or tacks for the stars\nPaper for drafts",
+  "notes": "1. Look at pictures of constellations, such as Orion, the Plough and Cassiopeia.\n2. Children sketch their chosen constellation on paper first, with dots for the stars.\n3. Lay out a dark card or board and copy the dots using gold or silver paint, or tacks pushed in by an adult.\n4. Join the stars with string or thin paint lines to show the pattern.\n5. An adult drills or pierces holes in the board's top edge with a drill or bradawl, and threads wire through for hanging.\n6. Hang the star maps in the shelter or on a fence, and compare them with the night sky."
+ },
+ "Sun Catchers using string and sticks": {
+  "consumables": "Spare thread or cotton yarn\nPaper",
+  "notes": "1. Children collect twigs of similar lengths and find natural items such as shells, seeds and pressed leaves.\n2. Make a frame by tying two twigs into a cross, or four into a square, with thread or cotton yarn. An adult helps with knots as needed.\n3. Cut lengths of thread. An adult cuts for under 5s.\n4. Tie natural items on to the threads and fix them along the frame.\n5. Add a loop of thread at the top.\n6. Hang the sun catcher where it can catch the light and wind, and watch it move and glint."
+ },
+ "Add family flags to the entrance of camp": {
+  "consumables": "Spare string\nPaper for design sketches",
+  "notes": "1. Talk about what makes each family special, such as colours, animals, places or favourite things.\n2. Children sketch a design on paper first.\n3. Lay a fabric rectangle flat on a protected surface and paint the design with fabric paints.\n4. Leave the flags to dry in a sheltered spot.\n5. An adult staples or sews one edge of each flag around a dowel or stick, or ties it on with string.\n6. Push or tie the flags along the entrance of camp so each family can find theirs.\n7. Welcome each family beneath their flag."
+ },
+ "Yule log decorating": {
+  "consumables": "Moss and greenery",
+  "notes": "1. An adult selects a thick log section and drills holes where candle holders will sit.\n2. Children wash and paint the log with bark, leaf or winter designs and leave it to dry.\n3. Gather holly, ivy and other greenery. An adult identifies them and handles any holly.\n4. Arrange the greenery around the log and tie it on with ribbon or string.\n5. An adult fixes vegan soy wax candles in holders. Candles are lit only by an adult, who stays nearby, and use battery tea lights instead, or keep the greenery on the table and off the log.\n6. Place the log on a clear surface for the midwinter gathering."
+ },
+ "Build an autumn den": {
+  "consumables": "Spare string",
+  "notes": "1. Walk around the site and choose a spot sheltered from the wind, with a firm tree or frame to build against.\n2. Children and adults gather long sticks and branches, and check the ground for hazards.\n3. Build a frame by leaning branches against a tree or tying them between two supports with rope. An adult helps with knots as needed.\n4. Cover the frame with a tarpaulin, pegged or tied down at the edges.\n5. Pile leaves and smaller branches over the top and around the sides for warmth.\n6. Add a soft layer of leaves inside and try the den out together.\n7. At the end of the session, take down any rope and tarpaulin and leave the natural materials in place."
+ },
+ "Journey Sticks — tying on objects from our walk": {
+  "consumables": "Small card tags (optional)",
+  "notes": "1. Give each child a sturdy stick, around 40cm long.\n2. Wrap string or an elastic band around one end to make an anchor point.\n3. Set off on a walk and notice the things along the way, such as a feather, leaf, seed or smooth stone.\n4. Collect only items already on the ground, and ask before taking anything.\n5. At each stop, children tie or tuck one object on to the stick with string.\n6. After the walk, take turns to tell the story of the journey using the stick."
+ },
+ "Building a forest obstacle course": {
+  "consumables": "Spare string",
+  "notes": "1. Walk the site together and choose a safe route, checking the ground for hazards.\n2. Children suggest challenges, such as balancing, crawling, climbing and jumping.\n3. Lay logs on the ground for balancing, and set low rope lines for stepping over.\n4. Stretch a tarpaulin low between trees to make a crawl-under tunnel.\n5. An adult checks every item is stable and at a safe height for the age group.\n6. Walk through the course together, then try it again and change parts of it.\n7. Take everything down at the end and return logs to their place."
+ },
+ "Knot-tying challenges": {
+  "consumables": "Spare rope",
+  "notes": "1. Give each child a length of rope and show the reference sheet.\n2. An adult demonstrates one knot slowly, such as a reef knot or bowline.\n3. Children copy the steps, helping each other as they go.\n4. Offer challenge cards for each knot, from simple to harder, such as tying a rope around a log.\n5. Try the knots in real use, such as tying a rope to a tree or bundling sticks.\n6. Practise a favourite knot to show the group."
+ },
+ "Making simple cordage": {
+  "consumables": "String for tying bundles",
+  "notes": "1. An adult identifies the plant material and shows children what to gather. Wear gloves for nettles and brambles.\n2. Remove the leaves and thorns from stems, and strip bramble thorns with gloved hands. An adult handles thorny material.\n3. Split or flatten the fibres, and take a length around 30cm.\n4. Hold two strands together and twist each one clockwise.\n5. Twist each strand clockwise, then cross the strands over each other anticlockwise, and repeat.\n6. Keep going and add new fibre as it runs short by overlapping the ends.\n7. Tie a knot at the end and test the cord by pulling on it."
+ },
+ "Building & decorating wooden fairy doors": {
+  "consumables": "Moss and seeds",
+  "notes": "1. An adult cuts thin wood offcuts or bark slabs to size with a saw, and smooths rough edges with a knife.\n2. Children rub the pieces with sandpaper until they feel smooth.\n3. Paint the door in watercolour or natural paint and leave to dry.\n4. Add a handle, steps or windows with sticks, seeds and tiny shells.\n5. An adult fixes the parts together with a hot glue gun.\n6. Prop each door at the base of a tree or against a log and add moss around it.\n7. Children invent a story for who lives behind the door."
+ },
+ "Mini fairy house village": {
+  "notes": "1. Pick a flat area for the village and talk about what a house needs.\n2. An adult cuts sticks and bark to size with small saws and knives.\n3. Children build walls and roofs from sticks, bark and clay, pressing air-dry clay between pieces to hold them.\n4. Paint the finished houses with watercolour paints, and leave them to dry.\n5. An adult uses the hot glue gun to fix any pieces that need extra strength.\n6. Set the houses along paths made from stones and moss to form a village.\n7. Visit the village in coming sessions to see how it changes."
+ },
+ "Camo challenge with big netting": {
+  "consumables": "Fresh leaves and grasses",
+  "notes": "1. An adult identifies safe plants and checks the area for brambles and nettles.\n2. Lay a large camouflage net over a frame of branches, or drape it over a low bush.\n3. Children collect leaves, grasses and small branches from the ground and weave them into the netting.\n4. Take turns to hide under the net while others look from a distance.\n5. Talk about what makes someone hard to see, such as colour, outline and stillness.\n6. Swap places and try a new hiding spot.\n7. At the end, remove the netting and scatter the plant material."
+ },
+ "Elder Bubble Wands": {
+  "consumables": "Bubble mixture (washing-up liquid and water)",
+  "notes": "1. An adult identifies and cuts elder stems, around 15cm long, with a knife.\n2. An adult pushes the soft pith out of the centre with a skewer to make a hollow tube.\n3. Children rub the ends smooth with sandpaper if needed.\n4. Mix washing-up liquid and water in a small tray.\n5. Dip one end of the tube into the mixture, then blow gently through the other end.\n6. Try different stem sizes and see how bubble size changes.\n7. Rinse the wands and leave them to dry. Children blow out only and never suck in. Wands are never chewed. Not for under-5s."
+ },
+ "Harvesting nettle fibre and making cordage": {
+  "consumables": "Spare string",
+  "notes": "1. An adult identifies mature nettles with long, straight stems and cuts them with snips, while everyone wears thick gloves.\n2. Strip the leaves from each stem, sliding gloved hands down.\n3. Squeeze and split the stem along its length, and peel away the soft inner core.\n4. Collect the long fibres from the outer part and lay them in a bundle.\n5. Twist two strands together, turning each clockwise and crossing them anticlockwise.\n6. Add new fibre by overlapping as the strands shorten, and keep twisting.\n7. Tie off the cord with a knot and compare lengths of cord."
+ },
+ "Navigation using sun and landmarks": {
+  "consumables": "Pencils for marking",
+  "notes": "1. Talk about the sun and how it moves: it rises roughly in the east and sets roughly in the west, and is in the south at midday.\n2. Pair children up and give each pair a compass and a copy of the map.\n3. Find north with the compass and mark it on the map.\n4. Use the sun and an analogue watch to check the direction, and never look at the sun directly. In winter (GMT), point the hour hand at the sun and south sits halfway between the hour hand and twelve. In summer (BST), south is halfway between the hour hand and one o'clock.\n5. Choose landmarks around the site, such as a big oak or a gate, and mark them on the map.\n6. Take turns to lead the pair from one landmark to the next, using the compass and the map.\n7. Share which clues helped most."
+ },
+ "Create natural dyes from plants": {
+  "consumables": "Dye plants\nWater\nFabric scraps (if not already provided)",
+  "notes": "1. An adult identifies and picks the dye plants. Children help sort and chop them.\n2. An adult simmers the plants in water in a large pot over the fire for about an hour, and strains the liquid through muslin.\n3. Use plant-fibre fabric such as cotton or linen. An adult prepares an alum mordant (or a soya milk soak) in a pot kept for dyeing only and soaks the fabric in it. Children keep a safe distance from the hot pots and wear rubber gloves for dyeing.\n4. Lift the soaked fabric into the cooled dye bath.\n5. Stir gently and leave the fabric for at least an hour, or overnight for deeper colour.\n6. Rinse in a bucket of cool water and hang the fabric to dry.\n7. Compare the colours from the different plants. The dye is not tasted."
+ },
+ "Build a bug hotel": {
+  "notes": "1. An adult cuts the bamboo canes and any wood to length with a saw, and drills holes of different sizes into a few blocks of untreated wood.\n2. Choose a sheltered, partly shaded spot and make a base from pallets or stacked wood, with an adult doing any hammering of the frame.\n3. Children fill the gaps in the frame with separate layers: bamboo canes, pine cones, straw, moss and rolled corrugated cardboard.\n4. Pack each layer firmly enough that it stays in place, and leave some drilled holes open for solitary bees.\n5. Add a small roof of wood or bark so the filling stays drier.\n6. Return in a few weeks to look from a distance at who has moved in."
+ },
+ "Ice Sun Catchers": {
+  "notes": "1. Collect natural materials such as leaves, petals, seed heads and pine needles. Leave out berries for under 5s and never use holly or yew. Adults identify any wild plants and children do not taste them.\n2. Lay the round containers or trays outside on a flat surface.\n3. Children arrange the natural materials in the bottom of each container.\n4. Pour in water to just cover the materials.\n5. Lay a loop of string or cotton yarn in the water with the two ends sitting in the liquid, so the loop hangs out of the top.\n6. Leave outside overnight on a frosty night, or in a freezer if it is not cold enough.\n7. Loosen the ice by running a little warm water over the back of the container, then lift out and hang from a branch where the light comes through."
+ },
+ "Nature Valentines": {
+  "notes": "1. Fold a piece of card in half to make the base of each Valentine. An adult cuts the card for under 5s.\n2. Choose pressed or dried flowers and leaves and arrange them on the front before gluing.\n3. Spread a thin layer of PVA glue and press the natural pieces down.\n4. Leave the glue to dry flat.\n5. An adult or older child punches a hole in the corner and threads natural twine through to tie a bow or hang the card.\n6. Write a message inside and place the card in an envelope."
+ },
+ "Easter Egg Dyeing with Natural Dyes": {
+  "notes": "1. An adult makes each dye by simmering the colouring material in a pot of water over the fire: onion skins for yellow and brown, red cabbage for purple, turmeric for yellow.\n2. An adult adds a splash of spirit vinegar to help the colour take (test the colour on a spare piece first), then strains the dye into a cool container once it has cooled enough to handle.\n3. Children wrap leaves against the wooden eggs or stones with elastic bands if they would like a pattern.\n4. Wearing rubber gloves, children lower the eggs or stones into the dye.\n5. Leave for a while, checking the colour now and then, as a longer soak gives a deeper shade.\n6. Lift out, remove the bands and leaves, and leave to dry on a rack or cloth."
+ },
+ "Leaf Print Cards": {
+  "notes": "1. Collect fresh leaves of varied shapes and look at the veins on the underside, which print best.\n2. Squeeze a little ink or thick paint on the printing board and roll it out thinly with the foam roller.\n3. Lay a leaf vein side up on a clean surface and roll or brush the paint across it.\n4. Place the leaf paint side down on the blank card and press gently with the fingers.\n5. Peel the leaf away slowly and look at the print.\n6. Leave to dry, then fold the card or add a message."
+ },
+ "Moss Art Creations": {
+  "notes": "1. Collect small amounts of moss and bark from the ground. Take only what has already fallen or is loose, and leave the rest of the patch to regrow.\n2. Children plan a picture or woodland scene on the card or wooden backing.\n3. Spread PVA glue on the area where moss is to go and press the moss down.\n4. Add bark pieces to make trees, paths or hills. An adult uses the hot glue gun for any heavier pieces.\n5. Paint details onto the backing or the bark with the brushes.\n6. Leave to dry flat before moving."
+ },
+ "Twig Bunnies": {
+  "notes": "1. Choose thin forked twigs. The fork becomes the ears, or the two back legs.\n2. An adult trims the twigs to size with scissors if needed.\n3. Cut two ear shapes and a small tail from plant-fibre felt. An adult cuts for under 5s.\n4. An adult glues each piece with hot glue and sets it down to cool, while children choose where the pieces go. Children use PVA glue for any pieces they stick themselves.\n5. Tie a piece of natural twine around the neck as a collar.\n6. Leave to cool and set before the bunny is handled.\n7. Beads, shells and googly eyes are for ages 5 and over, or with close supervision."
+ },
+ "Beltane Crowns": {
+  "notes": "1. An adult cuts flexible stems of willow or honeysuckle with secateurs. Only adult-identified plants are used, and children do not taste any of the materials.\n2. Measure a stem around the child's head and form a circle, twisting the ends together.\n3. Wind a second stem around the circle to make it firm.\n4. Tuck in hawthorn blossom or garden-grown flowers that an adult has identified and picked. Do not pick bluebells.\n5. Tie ribbons to the back so they trail.\n6. Wear the crown or hang it up to take home."
+ },
+ "Mini maypoles": {
+  "notes": "1. An adult drills a hole in the centre of the base block, one stick wide.\n2. Push the long straight stick into the hole so it stands firm.\n3. Tie ribbons of different colours to the top of the stick.\n4. Children hold a ribbon each and walk around the pole, passing over and under one another to weave the ribbons.\n5. Walk back the other way to unwind the weave.\n6. Scissors are used by an adult for under 5s to trim the ribbon ends."
+ },
+ "Cross stitch on natural fabric": {
+  "notes": "1. Look at a simple printed pattern sheet and choose a shape or design.\n2. Stretch a piece of hessian or calico across an embroidery hoop and tighten it.\n3. Thread a blunt needle with embroidery thread and knot the end. An adult helps with threading for under 5s.\n4. Bring the needle up from the back and make a diagonal stitch, then cross it with a second stitch in the other direction.\n5. Continue across the pattern, making each cross stitch the same way.\n6. Finish with a knot on the back. An adult trims the thread."
+ },
+ "Wildflower Crowns": {
+  "notes": "1. Collect flexible stems of willow, clover or grass. Wildflowers are picked only by adults or where an adult has identified them, and children do not taste them.\n2. Measure a stem around the child's head, form a circle and tie it with natural twine.\n3. Wind a second stem around to strengthen the ring.\n4. Tuck the flower stems in between the wound stems so that the heads face outwards.\n5. Add more flowers until the ring is full.\n6. Wear the crown or hang it on a branch."
+ },
+ "Grass Dollies": {
+  "notes": "1. Collect long grasses or rushes, picked by an adult who has identified them, and dampen them so they do not snap.\n2. Bundle a handful together and tie natural twine near the top to make a head.\n3. Fold the grasses down over the tie and tie again lower down to form a neck and body.\n4. Divide some stems out on each side to make arms and tie each at the wrist.\n5. Trim the skirt level with scissors. An adult trims for under 5s.\n6. Leave the dolly to dry and tidy any loose ends."
+ },
+ "Daisy Chains": {
+  "notes": "1. Pick daisies with long stems, keeping the stems as long as possible. Adults identify any other wild plants and children do not taste them.\n2. Use a fingernail to make a small slit in the stem of one daisy, about halfway down.\n3. Thread the stem of a second daisy through the slit and pull until the head sits against the slit.\n4. Make a slit in the second stem and repeat with a third daisy.\n5. Keep going until the chain is the length wanted.\n6. Join the last stem to the first and wear it or hang it."
+ },
+ "Nature Masks": {
+  "notes": "1. Cut a mask shape from thin card, with eye holes. An adult cuts for under 5s.\n2. Children paint the mask with acrylic paints and leave it to dry.\n3. Collect leaves, feathers and seeds from the ground.\n4. Glue them onto the mask with PVA glue to make fur, hair, wings or a beard.\n5. Punch a hole at each side. An adult can help.\n6. Thread elastic through the holes, measure it to the child's head and tie."
+ },
+ "Leaf Print Totes": {
+  "notes": "1. Place a sheet of paper inside the tote bag so the paint does not soak through to the back.\n2. Practise on the paper first. Paint fabric paint on the veined side of a fresh leaf with a brush or roller.\n3. Press the leaf paint side down on the tote and press gently with the fingers.\n4. Peel back the leaf to show the print.\n5. Repeat with different leaves and colours.\n6. Leave the bag flat to dry fully. An adult can heat set the paint later by ironing if the paint instructions advise it."
+ },
+ "Pine Cone Bees": {
+  "notes": "1. Choose a pine cone for each bee and brush off any loose bits.\n2. Paint bands of yellow and black around the cone and leave to dry.\n3. An adult attaches googly eyes with hot glue.\n4. Use pipe cleaner or felt wings with the ends folded over. An adult cuts them.\n5. An adult glues the wings onto the back of each bee.\n6. Leave to cool and set before the bees are played with.\n7. Beads, shells and googly eyes are for ages 5 and over, or with close supervision."
+ },
+ "Autumn Leaf Garland": {
+  "notes": "1. Collect freshly fallen autumn leaves in a range of colours, and choose ones that are still soft and bendy.\n2. Cut a long length of natural twine or strong thread. An adult cuts for under 5s.\n3. Thread a large blunt or plastic needle. An adult checks the knot.\n4. Push the needle through the middle of each leaf and slide it along the twine.\n5. Space the leaves along the length, overlapping a little.\n6. Tie loops at each end and hang the garland between two trees or on a branch."
+ },
+ "Cobweb Dreamcatchers": {
+  "notes": "1. Start with a willow or twig ring, one per child.\n2. Tie the end of the yarn to the ring and wind it once around.\n3. Pull the yarn across to the other side of the ring and loop it around, making a web with a hole in the centre.\n4. Carry on around the ring, looping onto the previous strand.\n5. Thread on beads as the web is made.\n6. Tie off the yarn and add feathers found on the ground. Hang from a branch.\n7. Beads, shells and googly eyes are for ages 5 and over, or with close supervision."
+ },
+ "Pinecone Gnomes": {
+  "notes": "1. Pick a pine cone for each gnome and sit it upright.\n2. Cut a plant-fibre felt triangle for a hat and roll it into a cone. An adult cuts for under 5s.\n3. An adult glues the hat to the top of the cone with hot glue.\n4. Attach cotton wool or plant based fibre below the hat for a beard.\n5. Glue a small wooden bead as a nose on the beard.\n6. Leave to set before the gnomes are moved.\n7. Beads, shells and googly eyes are for ages 5 and over, or with close supervision."
+ },
+ "Woodland coat hanger": {
+  "equipment": "Tree or sturdy branch to tie to\nScissors (adult for under 5s)\nA coat or bag to test the hanger"
+ },
+ "Collaborative dragon lair den build": {
+  "notes": "1. Gather as a group and decide where the dragon lair will go and which way the entrance faces.\n2. Choose a sturdy frame, such as a rope between two trees or a lean-to against a fallen branch.\n3. An adult checks the frame for dead branches overhead and hammers in the wooden stakes.\n4. Drape a tarpaulin over the frame and fasten it with rope tied to the stakes. Only an adult attaches or releases bungees, with faces kept out of line.\n5. Children add a roof layer of large leaves and branches, picked by an adult who has identified them.\n6. Decorate and furnish the lair with natural materials.\n7. Take it down and return the materials to the woodland at the end."
+ },
+ "Dragonfly Stick Puppets": {
+  "notes": "1. Choose a straight stick for each dragonfly body.\n2. Cut four wing shapes from cellophane or tissue paper. An adult cuts for under 5s.\n3. An adult attaches the wings to the stick with PVA glue, two on each side, and holds them until set.\n4. Glue on two googly eyes near the top.\n5. Wind natural twine along the stick to make a body pattern.\n6. Leave to set, then fly the puppets in the air.\n7. Beads, shells and googly eyes are for ages 5 and over, or with close supervision."
+ },
+ "Conker Comets": {
+  "equipment": "Hand drill (adult only)\nScissors (adult for under 5s)",
+  "notes": "1. Collect conkers from the ground. Children do not taste them.\n2. An adult drills a hole through the middle of each conker with a hand drill. Children keep clear.\n3. Cut streamers or paper into long strips. An adult cuts for under 5s.\n4. Thread a strip through the hole and knot it at the end.\n5. Add more streamers in different colours.\n6. Toss the comet into the air and watch the tail trail behind."
+ },
+ "Mini Broom Bunting": {
+  "notes": "1. Gather a handful of pine needles for each broom. An adult identifies them.\n2. Hold the needles together at one end and tie them to a twig with string.\n3. Trim the bristles level. An adult trims for under 5s.\n4. Make a number of brooms of different sizes.\n5. Tie each broom to a long piece of string, leaving space between them.\n6. Hang the bunting between two trees."
+ },
+ "Fabric Spiral Decorations": {
+  "equipment": "Scissors (adult only)\nFabric scraps\nChalk or pencil\nString",
+  "notes": "1. Draw a circle on the fabric.\n2. Draw a spiral line inside it from the edge to the centre.\n3. An adult cuts along the spiral line with scissors.\n4. Lift the centre to let the spiral hang down.\n5. Tie a piece of string to the centre and hang the decoration from a branch."
+ },
+ "Headband Painting": {
+  "equipment": "Paint brushes\nCard or fabric strips\nPaints\nStapler or tape (adult)",
+  "notes": "1. Cut a strip of card or fabric long enough to go around the head. An adult cuts for under 5s.\n2. Lay it flat on a table or board.\n3. Children paint their own pattern or design on the strip.\n4. Leave to dry fully.\n5. An adult staples or tapes the strip to fit the child's head."
+ },
+ "Storm shelter building": {
+  "notes": "1. A leader checks the site first for dead branches overhead, wind direction and ground slope, and picks a sheltered spot.\n2. Agree the plan together: which way the open side faces and where the tarpaulin edges will be anchored.\n3. A leader ties the ridgeline between two sturdy trees, using a wide tie or padding to protect the bark, and tests it by pulling.\n4. Drape the tarpaulin over the line, then pull the edges down low on the windward side and fix with rope and pegs. Only an adult attaches or releases bungees, with faces kept out of line. An adult uses the mallet for pegs while children stand back.\n5. If a folding saw is needed for pole lengths, a trained adult cuts the wood.\n6. A leader safety checks the whole shelter, ropes and anchors before anyone goes underneath. Keep ropes and cord away from necks.\n7. Test the shelter by sitting inside together during a shower or by an adult sprinkling water, then adjust.\n8. Take it all down together, coil the ropes and dry the tarpaulin before storing.\n9. Do not build or sit under a shelter in high winds or thunderstorms, and follow the site's wind policy."
+ },
+ "Winter animal shelter project": {
+  "notes": "1. Decide which animal the shelter is for, such as hedgehogs, insects or small birds, and choose a quiet spot in the woodland edge. Never disturb existing nests or dens.\n2. A trained adult cuts wood offcuts to size with the bow saw, with the wood held firmly and children kept back.\n3. Children help assemble the frame, hammering nails with adult supervision. Hold nails with pliers or a clothes peg to protect fingers.\n4. Close the frame so there is one small entrance and a roof that sheds rain, leaving gaps for air.\n5. Fill with dry straw or dried leaves for bedding. If chicken wire is used, an adult handles and cuts it and covers or folds back all sharp edges.\n6. Place hedgehog houses at ground level in a sheltered spot and insect or bird shelters off the ground, and leave them undisturbed. Wash hands after handling materials."
+ },
+ "Firelighting in wet conditions": {
+  "consumables": "Cotton cotton yarn\nChar cloth\nKindling\nFirewood",
+  "notes": "1. Set up the fire circle with a clear working area, seating beyond it and a marked entry point. Have a bucket of water, fire blanket and fire gloves within reach of the leader. Only a Forest School leader lights fires, with children who know the fire rules.\n2. Set up the tarpaulin as a rain shelter over the fire area, well above and to the windward side of the fire, at the height agreed in the site risk assessment. A leader checks it is secure and not melting or scorching.\n3. Gather dry kindling from standing dead wood or from the dry store, and snap or split it to reach dry inner wood. Sort it by thickness.\n4. Keep the cotton wool and char cloth in a tin until needed so they stay dry.\n5. With adult supervision, strike the flint and steel with a quick, glancing movement so sparks land on the char cloth, then transfer the glowing cloth to a pinch of cotton wool.\n6. Feed the flame with the thinnest kindling first, then thicker pieces, adding firewood only when the fire is established. Only the leader tends the fire.\n7. Put the fire out with water from the outside edge inward until the ash is cold to a hovering hand, and never leave it unattended."
+ },
+ "Whittling Gnomes and Peg Dolls": {
+  "notes": "1. Set up a whittling zone, a clear area of arm's length plus knife length around each child where nobody else enters, and keep a blood bag (first aid kit) beside the leader. Only children who have passed the knife safety talk take part.\n2. Each child wears thumb guards, sits down and cuts away from the body, with a leader supervising directly.\n3. Show the safe cuts: small shavings made away from the body with the blade moving away from the other hand.\n4. Shape the blank into a gnome body and pointed hat, or a simple peg doll head and body.\n5. When finished, sheath or close the knife first, then pass it handle first.\n6. Sand the carving smooth, then add faces and clothing with pencil or paint if wanted.\n7. Finish with a plant-based oil such as linseed or olive oil if wanted, and wash hands afterwards.\n8. Under-5s watch only."
+ },
+ "Whittling simple tools and tent pegs": {
+  "consumables": "Hazel or willow sticks",
+  "notes": "1. Set up a whittling zone of arm's length plus knife length around each child and keep a blood bag (first aid kit) beside the leader. Only children who have passed the knife safety talk take part, wearing thumb guards.\n2. A leader checks each stick for splits and cracks, and a trained adult cuts the lengths with the saw if needed.\n3. Children sit down and whittle away from the body under direct supervision, taking small shavings.\n4. Taper one end to a point for a peg, and for a simple tool shape the handle or tip as the leader shows.\n5. For a tent peg, leave a notch or a knob near the top so the rope will not slip.\n6. When finished, sheath or close each knife first, then pass it handle first.\n7. Sand rough edges, and have an adult test the pegs in soft ground with a mallet.\n8. Under-5s watch only."
+ },
+ "Whittling sticks to create tent pegs": {
+  "notes": "1. Set up a whittling zone of arm's length plus knife length around each child and keep a blood bag (first aid kit) beside the leader. Only children who have passed the knife safety talk take part, wearing thumb guards.\n2. Give each child a straight, green hazel stick and check for splits. A leader supervises directly.\n3. Sit down and cut small shavings away from the body to make a pointed tip at one end.\n4. Cut a notch near the top so a rope can hold, or leave a small knob.\n5. When finished, sheath or close each knife first, then pass it handle first.\n6. Sand the peg smooth and compare them for strength.\n7. A leader or trained adult pushes the pegs into the ground to test, using a mallet.\n8. Under-5s watch only."
+ },
+ "Fire lighting with flint and steel": {
+  "consumables": "Char cloth\nDry tinder bundle\nKindling",
+  "notes": "1. Only a Forest School leader trained in fire lighting runs this activity. Set up the fire circle, with a fire safety bucket of water, and brief children on the fire rules, including kneeling on one knee and never walking through the circle.\n2. The leader shows how the char cloth tin is opened, and how a piece of char cloth sits on the flint edge.\n3. The leader demonstrates the strike, with the steel struck down and away from the body along the flint, so that the sparks land on the char cloth.\n4. Children take turns under close supervision, one at a time, while the others stay seated.\n5. When the char cloth glows, the leader moves it into the dry tinder bundle and blows gently until it flames.\n6. The leader places the bundle into the kindling, and the fire is built up gradually.\n7. Put the fire out with water poured from the outside inwards, and check for heat. Return the char cloth to the tin and close the lid to put out any glow.\n8. Under-5s watch only."
+ },
+ "Primitive firemaking techniques (friction fire)": {
+  "consumables": "Dry tinder bundle",
+  "notes": "1. Set up the fire circle with a clear working area, seating beyond it and a marked entry point. Have a bucket of water, fire blanket and fire gloves within reach of the leader. Friction fire is led by a Forest School leader.\n2. Show the parts of the set: spindle, hearth board, handhold and, for a bow drill, the bow and cord. Talk about why dry softwood is used.\n3. Prepare the tinder bundle and kindling in advance so they are ready once an ember forms.\n4. The leader demonstrates, then children try in turn with the leader steadying the hearth board and supervising directly. Take breaks as it is hard work.\n5. Once the dust smoulders, the leader moves the ember into the tinder bundle and blows gently.\n6. Move the flame to the fire circle only when the leader says so. Only the leader tends the fire.\n7. Put out the fire with water from the outside edge inward and never leave it unattended.\n8. Under-5s watch only."
+ },
+ "Building waterproof shelters — tested with bucket of water!": {
+  "notes": "1. A leader checks the site for dead branches overhead and sets the ridgeline between two sturdy trees, protecting the bark.\n2. Working in teams, drape the tarpaulin over the line and pull the edges down so water will run off.\n3. Fix with rope and pegs. Only an adult attaches or releases bungees, with faces kept out of line. An adult uses the mallet while children stand back.\n4. A leader safety checks each shelter and its ropes before anyone sits underneath.\n5. Fill the buckets with water, and an adult pours it over the shelter slowly while everyone stands outside, nobody inside. Children check from outside where it leaks, then go in only once a leader has checked it.\n6. Adjust the shelter by tightening, lowering the roof or overlapping the edges, then test again.\n7. Talk about what worked, then take down, empty the water away from the shelter and dry the tarpaulin."
+ },
+ "Making bow drill sets for friction firelighting": {
+  "notes": "1. Set up a whittling zone of arm's length plus knife length around each child and keep a blood bag (first aid kit) beside the leader. Only children who have passed the knife safety talk take part, wearing thumb guards.\n2. A trained adult cuts the spindle and board to length with the folding saw.\n3. Children whittle the spindle to a smooth shape with a blunt end and a slightly rounded tip, sitting down under direct supervision.\n4. A leader cuts the notch and the small hollow in the hearth board.\n5. Smooth the handhold with sandpaper, and tie the natural cordage to the bow, with the leader checking the knot.\n6. When finished, sheath or close each knife first, then pass it handle first.\n7. The set is used only for firemaking with a Forest School leader at the fire circle.\n8. Under-5s watch only."
+ },
+ "Whittling herb labels — calm creative bushcraft": {
+  "notes": "1. Set up a whittling zone of arm's length plus knife length around each child and keep a blood bag (first aid kit) beside the leader. Only children who have passed the knife safety talk take part, wearing thumb guards.\n2. Choose a flat piece of dry wood and check it for splits.\n3. Sit down and whittle one end to a point, so the label can stand in a pot or bed, taking small shavings away from the body under direct supervision.\n4. Smooth the flat face with sandpaper.\n5. A leader uses the wood burning pen, if used, to write the herb name, with children watching from a safe distance. Otherwise write with a pencil.\n6. Rub on a little oil if wanted, and wash hands afterwards.\n7. Place the labels in the herb bed and have an adult name each plant.\n8. Under-5s watch only."
+ },
+ "Winter shelter building — staying warm": {
+  "notes": "1. A leader checks the site for dead branches overhead and picks a spot sheltered from the wind.\n2. Set the ridgeline between two sturdy trees and drape the tarpaulin over it, keeping the open side away from the wind.\n3. Fix the edges with rope and pegs. Only an adult attaches or releases bungees, with faces kept out of line. An adult uses the mallet while children stand back.\n4. Pull the tarpaulin low on the windward side so the wind cannot get underneath.\n5. Add a layer of dry leaf litter on the ground inside to keep the cold away, collected by an adult from the ground.\n6. A leader safety checks the shelter and ropes before anyone sits in it.\n7. Sit inside together and talk about what keeps you warm.\n8. Do not build or sit under a shelter in high winds or thunderstorms, and follow the site's wind policy."
+ },
+ "Luke's Sword Making Workshop": {
+  "notes": "1. Set up a whittling zone of arm's length plus knife length around each child, and keep a blood bag (first aid kit) beside the leader. Only children who have passed the knife safety talk take part, wearing thumb guards.\n2. A trained adult cuts the wood blanks to length with the bow saw, holding the wood in a clamp or bench vise.\n3. Children whittle the blade shape and a handle under direct supervision, sitting down and cutting away from the body.\n4. Round all edges and the tip so there are no sharp points.\n5. Sand the sword smooth, starting with a coarse grit and finishing with a finer one.\n6. Agree sword rules before play, such as no hitting, swords stay down when not in a game and use only in the marked area.\n7. When finished, sheath or close each knife first, then pass it handle first.\n8. Under-5s watch only."
+ },
+ "Low ropes obstacle course & giant scramble net": {
+  "notes": "1. A leader checks the site for hazards, selects strong trees or posts, and protects the bark.\n2. A trained adult rigs the ropes and scramble net low to the ground, with the leader pulling hard on every anchor point to test it.\n3. Check the ground below for roots, stones and stumps and clear or cover it.\n4. A leader safety checks the full course, including all knots and carabiners, before any child uses it, and rechecks it during the session.\n5. Teach the rules: one child at a time, no ropes around the neck, wait for the person ahead.\n6. Children try the course in turn with an adult spotting at every part, supporting only as the leader directs.\n7. Take everything down after the session and check the ropes for wear before storing."
+ },
+ "Knot-tying challenges and natural material traps": {
+  "notes": "1. Give each child a length of rope and show the knot cards. Keep rope away from necks and from other people.\n2. Start with simple knots such as an overhand knot and a reef knot.\n3. Move on to a clove hitch and a round turn and two half hitches, which are useful for shelters.\n4. Set challenges in pairs: tie a knot to a stick, join two ropes, or tie the knot with eyes closed.\n5. Use the natural cordage and sticks to make a simple frame or a mechanism, such as a lever, as the leader guides.\n6. A leader checks the finished knots before anything is relied on."
+ },
+ "Charcoal drawing using homemade charcloth": {
+  "consumables": "100% cotton fabric scraps\nPaper or smooth bark pieces\nCharcoal sticks",
+  "notes": "1. A Forest School leader trained in the skill makes the charcloth in advance or demonstrates it at the fire circle, with children seated outside the circle and a water bucket to hand.\n2. Pack 100% cotton scraps into a tin with a small hole in the lid and place it in the hot embers. The leader removes it with gloves or tongs once smoke from the hole stops.\n3. Leave the tin sealed and let it cool completely before opening. The cloth should be black and crumbly.\n4. Children look closely at the charcloth and charcoal and talk about how they were made.\n5. Children draw on paper or smooth bark with charcoal sticks or pieces of charcloth, smudging with fingers to make shading.\n6. Wash hands well afterwards, as charcoal is messy.\n7. Put out the fire fully with water and check it is cold before leaving.\n8. Under-5s watch only."
+ },
+ "Clay Christmas Trees": {
+  "notes": "1. Cover the work surface and give each child a lump of air-dry clay.\n2. Roll the clay into a ball, then shape it into a cone with a flattened base so the tree stands up.\n3. Use modelling tools to press in branches, lines or tree texture.\n4. Press beads or sequins gently into the clay as decorations.\n5. Leave to dry fully following the instructions on the clay pack, usually a day or more.\n6. Once dry, paint the trees green and brown and let the paint dry.\n7. Wash hands and tools in the water bowls and keep clay out of drains and the soil.\n8. Not for under-5s unless the beads are large and closely supervised, as small pieces are a choking risk."
+ },
+ "Clay Dice Making": {
+  "notes": "1. Give each child a lump of air-dry clay and roll it into a ball.\n2. Gently press and pat the ball into a cube, checking that all six faces are flat and similar in size.\n3. Use a pencil or skewer to press dots into each face. Opposite faces on a standard die add up to 7 (1 opposite 6, 2 opposite 5, 3 opposite 4). Skewers are pointed, so children use them seated and point them away from people.\n4. Smooth any rough edges with a damp finger or modelling tool.\n5. Leave to dry fully following the clay pack instructions.\n6. Once dry, colour the dots with paint or marker if wanted.\n7. Roll the dice to play a game together.\n8. Not for under-5s unless the beads are large and closely supervised, as small pieces are a choking risk."
+ },
+ "Clay Leaf Imprints": {
+  "notes": "1. Collect fresh autumn leaves with clear veins. A leader identifies any plants and children do not taste any plant material.\n2. Roll the clay out on a board to an even thickness with a rolling pin.\n3. Lay a leaf vein side down on the clay and roll over it gently so the pattern presses in.\n4. Peel the leaf off carefully from the stalk end.\n5. Use a tool or a cut-out shape to trim around the imprint, and make a hole near the top if it will hang.\n6. Leave to dry fully following the clay instructions, then paint or varnish if wanted.\n7. Wash hands after handling clay and leaves."
+ },
+ "Jack o'lantern display": {
+  "notes": "1. Gather pumpkins or squash of different sizes and let children choose and handle them.\n2. A trained adult cuts around the top with a knife and lifts off the lid. Children do not use the carving tools.\n3. Children scoop out the inside with a large spoon. Put the flesh and seeds aside for the compost.\n4. Children draw their face designs on the outside with marker pens.\n5. An adult carves along the marked lines using pumpkin carving tools, working seated and with children kept at a safe distance.\n6. Place an LED tea light inside. If a real tea light is used, only an adult lights it, on a stable surface away from leaves and clothing, with a water bucket close by.\n7. Arrange the pumpkins as a display and talk about the different faces."
+ },
+ "Dark sky candle lantern trail": {
+  "notes": "1. Walk the trail route in daylight first. A leader checks for trip hazards, low branches and anything that could catch light.\n2. Children decorate jam jars or paper bags with leaves, paper cut-outs and holes punched in patterns. Paper bags are not used with real flames.\n3. If using string handles for jars, a leader checks that they are tied securely and are not too long.\n4. A leader places LED tea lights in the lanterns. Use LED lights only.\n5. Walk the trail together slowly in a line with leaders at the front and back. Keep lanterns away from clothing and plants.\n6. Stop at points along the trail to notice the dark, the stars and the night sounds.\n7. At the end the leader blows out or switches off all lights and collects the lanterns."
+ },
+ "Clay Beads firing": {
+  "notes": "1. Give each child air-dry clay or kiln-fire clay. Roll small, even balls.\n2. Push a skewer through the centre of each ball to make a hole, rolling gently to keep the shape round. Skewers are pointed, so children use them seated and point them away from people.\n3. Leave the beads on skewers or a rack to dry fully following the clay pack instructions.\n4. If using kiln-fire clay, a trained adult takes the beads to a kiln and fires them following the manufacturer's instructions. Children are not present for firing.\n5. Smooth rough edges with sandpaper once dry or fired.\n6. Paint with acrylic paints and let dry.\n7. Thread the beads onto elastic thread and tie off to make bracelets or necklaces.\n8. Not for under-5s unless the beads are large and closely supervised, as small pieces are a choking risk."
+ },
+ "Building waterproof shelters": {
+  "notes": "1. Choose the site with a leader, checking overhead for dead branches and looking for flat, well-drained ground away from paths.\n2. Agree a simple design together, such as an A-frame or a lean-to, using trees or posts as anchor points.\n3. A leader ties or checks the main ridge line and tarpaulin fixings. Children help hold and tie rope under guidance. Only an adult attaches or releases bungees, with faces kept out of line.\n4. A leader or trained adult hammers in any stakes with the mallet. Children keep back and wear gloves if handling.\n5. Angle the tarpaulin so water runs off and away from the sleeping area, and tuck in the edges.\n6. A leader safety checks the finished shelter, including the anchor points, ropes and tension, before anyone goes inside.\n7. Take the shelter down at the end, check all stakes are removed from the ground, and dry the tarpaulin."
+ },
+ "Making clay lanterns": {
+  "notes": "1. Give each child clay and roll it out on a board, or shape a pot form with their hands.\n2. Build the lantern walls by pinching or coiling the clay, and make sure the walls are an even thickness.\n3. Use tools and sticks to cut windows, patterns or holes so light can shine through. Leave enough clay between cut-outs so the walls keep their strength.\n4. Smooth joins with a little water from the bucket.\n5. Leave to dry fully in a sheltered place, following the clay instructions. Natural clay can take several days.\n6. Place a battery tea light inside once dry. Use LED tea lights only, as air-dry clay is not made to be heated.\n7. Wash hands after handling clay."
+ },
+ "Carving swords from blanks": {
+  "notes": "1. Before starting, the leader sets up a whittling zone, a clear space at arm's length plus knife length around each child, and has a first aid kit and blood bag ready. Review the safety rules together and check children are ready to use a knife.\n2. Children sit down, use the knife only when seated in the whittling zone, and cut away from their body.\n3. Children hold a pre-cut hazel or willow blank and carve it to shape the blade edge and handle. A leader watches closely and works with children one to one where needed.\n4. Gouges, chisels and the mallet are used only by a trained adult or the leader, not by children.\n5. Whenever the knife is not in use it is closed or sheathed. Children put the knife down before walking anywhere.\n6. Sand the swords smooth with 80, then 120, then 240 grit sandpaper.\n7. Agree safe sword play rules, such as no hitting people, before the swords are used in games.\n8. Under-5s watch only."
+ },
+ "Primitive firemaking techniques": {
+  "consumables": "Dry tinder\nKindling\nFirewood",
+  "notes": "1. Set up the fire circle with log seats, a water bucket and a leader to manage the fire. Children enter only when invited, and long hair and loose clothing are tied back.\n2. A Forest School leader trained in the skill demonstrates the bow drill, explaining each part: bow, spindle, hearth board and handhold.\n3. Prepare a tinder bundle and a small pile of kindling beside the fire before anyone starts.\n4. Children try the bow drill with leader support, working one to one with a leader. Expect many attempts, as this is a hard skill.\n5. When a coal forms, a leader helps transfer it to the tinder bundle and blow it into flame.\n6. The leader places the flame on the fire. Children add fuel only when asked to.\n7. Put out the fire with water and check it is cold before leaving.\n8. Under-5s watch only."
+ },
+ "Flint and steel firelighting": {
+  "consumables": "Char cloth\nDry tinder\nKindling\nFirewood",
+  "notes": "1. Set up the fire circle with log seats, a water bucket and a leader in charge of the fire. Children enter only when invited.\n2. A Forest School leader trained in the skill demonstrates how to hold the flint, with a piece of char cloth pinned under the thumb on the edge of the flint.\n3. Strike the steel down along the edge of the flint to send sparks onto the char cloth until it glows.\n4. Move the glowing char cloth into a tinder bundle and blow gently until it flames.\n5. Children practise with a leader supervising, striking away from themselves and others.\n6. The leader places the lit tinder under the kindling in the fire. Children add fuel only when asked to.\n7. Close the char cloth in a tinder box to snuff it out, put out the fire with water and check it is cold before leaving.\n8. Under-5s watch only."
+ },
+ "Building waterproof shelters — bucket test": {
+  "notes": "1. Use the shelter that the group built earlier. A leader safety checks the ropes, stakes and tension first, and that nobody is inside.\n2. Agree a prediction together: will the shelter keep the inside dry?\n3. Place a dry object, such as a spare tarpaulin sheet or towel, underneath where children would sit.\n4. Children take turns to pour a bucket of water slowly over the top of the tarpaulin to mimic rain.\n5. Look together at where the water runs off and where it collects or drips through.\n6. Adjust the angle, tension or fixings with a leader's help and test again.\n7. A leader safety checks the shelter again before anyone goes inside. Take the shelter down afterwards and dry the tarpaulin."
+ },
+ "Camouflaging shelters": {
+  "notes": "1. A leader or trained adult builds or checks the base shelter with a tarpaulin and ropes, and safety checks it before children use it.\n2. A leader identifies the plants in the area. Children only collect plant material a leader has identified, and never taste it.\n3. Collect fallen branches, grass clumps without stripping living plants. Take only a small amount from each patch.\n4. Lean or weave the leafy branches against the shelter, building up layers from the bottom so they overlap.\n5. Step back and look at the shelter from a distance to see which parts stand out, and adjust.\n6. Wash hands after handling plants, and check for ticks afterwards.\n7. At the end, return the plant material to where it was found and check for sharp or snagging bits."
+ },
+ "Whittling herb labels": {
+  "notes": "1. Before starting, the leader sets up a whittling zone, a clear space at arm's length plus knife length around each child, and has a first aid kit and blood bag ready. Review the safety rules together.\n2. Children sit down, use the knife only when seated in the whittling zone, and cut away from their body. A leader supervises closely.\n3. Cut one side of the stick flat, or shave the top into a point so it can be pushed into soil.\n4. Whenever the knife is not in use it is closed or sheathed.\n5. Sand the flat side smooth with sandpaper.\n6. Write the herb name on the flat side with a permanent marker.\n7. Push the labels into the herb bed beside each plant.\n8. Under-5s watch only."
+ },
+ "Low ropes obstacle course": {
+  "notes": "1. A leader chooses a site with flat ground and checks overhead for dead branches and for trip hazards.\n2. A leader ties and sets up all rope runs low to the ground and well away from neck height. Stakes are hammered in by a trained adult, not children.\n3. Create a variety of challenges, such as a balance walk along a rope or a crawl under a tarpaulin.\n4. A leader safety checks all ropes, knots and stakes before the group uses the course. Re-check after use.\n5. Brief the group on rules, such as one person at a time, no ropes around the neck and no pulling or swinging.\n6. Children take turns, with leaders spotting and offering support only when asked.\n7. At the end, leaders take down all ropes and stakes and make sure nothing is left on the ground."
+ },
+ "Whittling sticks for tent pegs": {
+  "consumables": "Green hazel sticks",
+  "notes": "1. A Forest School leader checks every knife and sheath, and children only whittle once the leader has taught the knife rules and agreed they are ready.\n2. Set up a whittling zone, a clear area marked out so that children sit at least an arm's length plus a knife's length from anyone else, with a first aid kit and blood bag within reach.\n3. The leader demonstrates the safe grip and cutting away from the body, with the stick resting on a stump or log and never held against the leg.\n4. Children cut a point at one end of the hazel stick, taking off thin shavings and working in short, controlled strokes while the leader directly supervises.\n5. Shape the other end with a flat top so that it can be tapped in without splitting, and smooth any rough spots.\n6. Knives go back in their sheaths and are handed back to the leader as soon as a child stands up or finishes, and are never carried around.\n7. The leader pushes or taps the finished pegs into the ground to test them before they are used with a shelter or tent.\n8. Under-5s watch only."
+ },
+ "Shelter building with tarps": {
+  "notes": "1. A leader chooses the spot, checks above for dead branches and hazards, and checks the ground is clear and flat.\n2. The leader and children agree the shape of the shelter, then tie a ridgeline between two sturdy trees or posts, with the leader tying and checking each knot.\n3. Drape the tarp over the ridgeline and secure the corners with rope to pegs or low anchor points.\n4. Wooden stakes are tapped in with the mallet by the leader while children stand well back. Children may tap only a pre-started stake held in a stake holder.\n5. The leader pulls on the ridgeline, tarp and each anchor to check the shelter is secure before any child goes inside.\n6. Let the children add finishing touches such as a doorway or groundsheet, then invite them in to hold space and enjoy the shelter, with an adult always nearby.\n7. At the end, the leader and children untie everything together, shake out and dry the tarp, and count the pegs and tools back in."
+ },
+ "Hammers and nails — building bird feeders": {
+  "consumables": "Nails (assorted)\nWire or twine\nReclaimed or sawn wood pieces\nSandpaper",
+  "notes": "1. A leader sets up a tool area with sturdy work surfaces such as a stump or workbench and has the children stand or kneel with space between them.\n2. The leader teaches how to hold a nail steady and use the hammer, and explains the rules: only hit the nail, hold the nail with pliers or a clothes peg, and stop if the leader says so.\n3. The leader or a trained adult measures, marks and saws the wood pieces, with children helping to hold and mark. Saws are only used by the leader or with direct supervision.\n4. Sand any rough edges so the pieces are smooth.\n5. Children nail the pieces together into a simple platform or tray feeder, with an adult close by to support.\n6. Add wire or twine for hanging, checked by the leader for sharp ends.\n7. Hang the feeder in a spot chosen with the leader, where birds are less likely to be disturbed."
+ },
+ "Bow drill fire": {
+  "consumables": "Dry tinder bundle\nKindling",
+  "notes": "1. Only a Forest School leader trained in fire lighting runs this activity. Set up the fire circle with seating a safe distance away, a bucket of water, a blanket and fire gloves close to hand, and brief the children on the fire rules.\n2. The leader prepares the bow drill set, checks the spindle and hearth board are dry, and cuts the notch in the hearth board. Children do not use knives for this.\n3. Place the bark slab under the notch to catch the coal and have the tinder bundle ready next to it.\n4. The leader demonstrates the technique. Children then take turns in pairs, one drilling and one steadying, with the leader directly supervising at each go. Everyone else stays seated.\n5. Keep going until smoke appears, then the leader tips the coal onto the bark slab and moves it into the tinder bundle, blowing gently to form a flame.\n6. The leader places the lit bundle into the prepared kindling in the fire circle, and only the leader or supervised children feed it.\n7. At the end, put the fire out with water poured from the outside inwards, and check there is no heat by holding a hand above the ashes. A lit fire is never left unattended.\n8. Under-5s watch only."
+ },
+ "Stormproof fire building": {
+  "consumables": "Char cloth\nDry tinder\nKindling\nSeasoned logs",
+  "notes": "1. A trained Forest School leader leads and supervises this activity. Prepare the fire circle with a bucket of water, a fire blanket and gloves, and agree the fire rules with the children.\n2. Talk with the children about wet weather, and which wood stays driest, such as dead standing wood, and keep spare wood in a dry store.\n3. The leader prepares the dry tinder, kindling and seasoned logs, and sorts them by size so they are easy to add in order.\n4. Build the fire lay in the circle, starting with the driest tinder and kindling on a dry base. The leader uses the fire steel and striker or char cloth to light it, with children taking turns to watch and help under close supervision.\n5. Shelter the fire from the worst of the wind and rain, and feed it a little at a time, with only the leader or a supervised child adding wood.\n6. Put the fire out with water poured from the outside inwards, and check for heat by holding a hand above the ashes. Never leave a lit fire unattended.\n7. Under-5s watch only."
+ },
+ "Clay Imprints": {
+  "consumables": "Air-dry clay\nLeaves, feathers and seed heads for printing",
+  "notes": "1. Children wash their hands, and an adult checks any leaves and seed heads gathered are safe to handle. Nothing is tasted.\n2. Roll the clay out on a board to an even thickness, about the thickness of a finger.\n3. Press a leaf, feather or seed head firmly into the clay, then carefully peel it off to leave the imprint.\n4. Use a clay tool or a cutter to trim around the imprint and smooth the edges with a damp finger.\n5. Leave the imprints on the board to dry slowly, away from direct heat. Air-dry clay can crack if dried too quickly.\n6. Optional: once dry, add paint or varnish, with an adult applying any varnish."
+ },
+ "Clay Bead Bracelets": {
+  "consumables": "Air-dry clay\nElastic cord\nAcrylic paint\nVarnish",
+  "notes": "1. Children wash their hands, then roll small balls of air-dry clay for beads in their palms.\n2. Make a hole through each bead with a skewer, turning it gently, and have the leader supervise the skewers, which are pointed.\n3. Leave the beads to dry fully on a rolling mat, turning them occasionally.\n4. Paint the beads with acrylic paint and let them dry.\n5. An adult applies the varnish, and the beads are left to dry again.\n6. Thread the beads onto elastic cord, and an adult ties a secure knot, checking the fit on the wrist.\n7. Not for under-5s unless the beads are large and closely supervised, as small pieces are a choking risk."
+ },
+ "Willow Heart Decorations": {
+  "consumables": "Fresh willow withies\nNatural twine or raffia",
+  "notes": "1. An adult or an older child trained by the leader uses the secateurs, keeping fingers clear of the blades, to cut the withies to equal lengths, two per heart.\n2. Soak the withies in the bucket of water so they stay springy and easier to bend.\n3. Bend each withy into a gentle curve and cross the two pieces over to make the heart shape.\n4. Tie the ends together with natural twine or raffia, and tie again at the crossing point. An extra pair of hands to hold the shape helps.\n5. Add a loop of twine to hang the heart.\n6. Check that any cut ends are not sharp before taking the hearts home."
+ },
+ "Clay pinch pots": {
+  "consumables": "Natural clay or air-dry clay\nSlip\nPaint or glaze (optional)",
+  "notes": "1. Children wash their hands, then roll a ball of clay about the size of a small apple in their palms.\n2. Press a thumb into the middle of the ball, stopping before the base goes through.\n3. Pinch and turn the clay slowly between thumb and fingers to thin the walls of the pot evenly.\n4. Smooth the surface with a damp finger, and use the clay tools for patterns. Use slip to stick on handles or feet.\n5. Dry the pots slowly on the boards. Air-dry clay can be painted once dry; natural clay left to dry is fragile and is not waterproof.\n6. If using glaze, an adult applies it and checks the glaze type is suitable for children and the clay."
+ },
+ "Willow Weaving": {
+  "consumables": "Willow withies",
+  "notes": "1. An adult or an older child trained by the leader uses secateurs, keeping fingers clear of the blades, to cut the withies to length.\n2. Soak the withies in the bucket of water before use so that they bend rather than snap.\n3. Make a simple frame by pushing thicker withies upright into soft ground or tying a ring, as agreed with the leader.\n4. Weave thinner withies over and under the uprights, pushing each row down gently.\n5. Tuck in the ends firmly and snip any sharp ends, with an adult using the secateurs.\n6. Check the finished piece is stable and has no sharp ends before children handle it."
+ },
+ "Hapa Zome — hammer leaf printing": {
+  "consumables": "Calico or cotton fabric\nFresh leaves and flowers",
+  "notes": "1. An adult identifies and picks the plants, preferring fallen leaves, and avoids anything that irritates skin. Children do not taste any plant materials, and wash their hands afterwards.\n2. Set up the hard flat boards on firm ground and place a piece of backing fabric underneath to protect from staining.\n3. Place a leaf or flower on the calico and cover it with a second layer of fabric, holding it still without fingers under the hammer.\n4. Tap gently with a small hammer or smooth stone, with the hammer head kept flat, until the colour comes through. The aim is to gently crush the plant, not smash it.\n5. The leader shows the safe technique, and children take turns with space between them.\n6. Peel back the fabric to reveal the print and remove the plant material, then leave it to dry."
+ },
+ "Nature fans with leaves and willow": {
+  "consumables": "Fresh willow withies or hazel sticks\nLarge flat leaves\nNatural twine",
+  "notes": "1. An adult identifies and collects the leaves, and children do not taste any plant materials. An adult or trained older child uses secateurs to cut the sticks.\n2. Choose a stick as the handle and lay the large leaves out in a fan shape.\n3. Overlap the leaves and tie them to the stick with natural twine, building up layers.\n4. Trim leaf edges with the scissors if needed.\n5. Test the fan with a gentle wave and adjust any loose leaves.\n6. Check ends are smooth before children take them home."
+ },
+ "Clay Pendants": {
+  "consumables": "Air-dry clay\nAcrylic paint\nVarnish\nHemp cord or cotton cord\nSandpaper",
+  "notes": "1. Children wash their hands, then roll the clay out and cut or shape a pendant, such as a leaf or a disc.\n2. Make a hole near the top with a skewer, with the leader supervising the skewers, which are pointed.\n3. Leave the pendants to dry fully on the rolling mat.\n4. Smooth any rough edges gently with sandpaper, outdoors, to avoid breathing in dust.\n5. Paint with acrylic paint, and an adult applies the varnish once the paint is dry.\n6. Thread the pendant onto cord and tie a secure knot, checking the length.\n7. Not for under-5s unless the beads are large and closely supervised, as small pieces are a choking risk."
+ },
+ "Pumpkin Carving": {
+  "consumables": "Pumpkins\nNewspaper\nSoy or plant wax tea lights (if not using battery candles)",
+  "notes": "1. Cover the work area with newspaper and set up the pumpkins, with one pumpkin per two children.\n2. Children draw the design on the pumpkin with marker pens.\n3. An adult uses the carving knife to cut the lid and design, and children do not use the carving knives. Keep children at a safe distance while the adult carves.\n4. Children scoop out the inside with the scoops, with an adult supervising.\n5. Place a battery candle inside. If using real tea lights, the leader lights them, and they are kept stable and out of children's reach and always supervised.\n6. Display the pumpkins, and compost the scraps."
+ },
+ "Handmade Lanterns": {
+  "consumables": "Card or thick paper\nColoured tissue paper\nPVA glue",
+  "notes": "1. Cut or fold the card into a lantern shape, with windows cut out. Adults can pre-cut the shapes for younger children.\n2. Brush PVA glue around each window using the glue brush.\n3. Stick coloured tissue paper over the windows and leave to dry.\n4. Decorate the card with drawings or leaves.\n5. Form the lantern into shape and fix it with glue, and attach a stick as a handle.\n6. Place a battery tea light inside, and no real flames are used."
+ },
+ "Clay Poppies": {
+  "consumables": "Air-dry clay\nRed acrylic paint\nBlack acrylic paint\nVarnish",
+  "notes": "1. Children wash their hands, then roll the clay out on the mat.\n2. Shape five or so petals, and press them together into a poppy flower. Add a small ball for the centre.\n3. Smooth edges with a damp finger and use the clay tools for texture.\n4. Leave to dry fully.\n5. Paint the petals red and the centre black, and let them dry.\n6. An adult applies the varnish once the paint is dry."
+ }
+};
+const BEESWAX_LINES_V5 = {
+  'Linseed oil or beeswax (finishing)': 'Linseed oil (finishing)',
+  'Linseed oil or beeswax (finish)': 'Linseed oil (finish)',
+  'Soy or beeswax pellets': 'Soy wax pellets',
+  'Beeswax or clay (ballast)': 'Modelling clay (ballast)',
+  'Beeswax or tiny tea lights': 'Tiny LED tea lights',
+  'Air-dry clay or beeswax sheets': 'Air-dry clay'
+};
+function applyActivityEditsV5() {
+  const out = { filled: 0, vegan: 0 };
+  out.filled = applyActivityFills(ACTIVITY_FILLS_V5, 'crafts') + applyActivityFills(ACTIVITY_FILLS_V5, 'bushcraft');
+  state.menuItems.forEach(item => {
+    if (!item) return;
+    ['equipment', 'resources', 'consumables'].forEach(k => {
+      const cur = item[k];
+      if (!cur || cur.toLowerCase().indexOf('beeswax') < 0) return;
+      const sep = cur.indexOf('\n') >= 0 || cur.indexOf('\\n') < 0 ? '\n' : '\\n';
+      const next = cur.split(sep).map(l => BEESWAX_LINES_V5[l.trim()] || l).join(sep);
+      if (next !== cur) { item[k] = next; out.vegan++; }
+    });
+  });
+  return out;
+}
+
 function loadState() {
   // The built-in list has a few empty slots (stray commas in the literal). forEach skips
   // them but find() doesn't, which crashed loading. Drop them once, up front.
@@ -6626,11 +7261,13 @@ function loadState() {
   // defaults over deliberate changes: deleted rows reappeared, renamed rows
   // reverted, deleted sheets were recreated. To add a migration in future:
   // bump SCHEMA_TARGET and gate the new code on `schemaFrom < N`.
-  const SCHEMA_TARGET = 3;
+  const SCHEMA_TARGET = 5;
   const schemaFrom = state.meta.schemaVersion || 0;
   const runV1 = schemaFrom < 1;
   const runV2 = schemaFrom < 2;
   const runV3 = schemaFrom < 3;
+  const runV4 = schemaFrom < 4;
+  const runV5 = schemaFrom < 5;
   let metaChanged = false;
   const migrationLog = [];
 
@@ -7135,6 +7772,20 @@ function loadState() {
   if (runV3) {
     const r = applyActivityEditsV3();
     migrationLog.push('v3: removed ' + r.removed + ' (' + r.removedFromSessions + ' session entries), ' + r.honey + ' honey edits, ' + r.renamed + ' renames, ' + r.fixed + ' field repairs');
+    purged = true; anySheetMigrated = true;
+  }
+
+  // v4: retire meadowsweet and yarrow recipes, merge duplicate flapjacks, fill 11 blank recipes
+  if (runV4) {
+    const r4 = applyActivityEditsV4();
+    migrationLog.push('v4: removed ' + r4.removed + ' (' + r4.removedFromSessions + ' session entries), merged ' + r4.merged + ', filled ' + r4.filled + ', fixed ' + r4.fixed);
+    purged = true; anySheetMigrated = true;
+  }
+
+  // v5: complete crafts and bushcraft cards used in sheets, remove beeswax from materials lists
+  if (runV5) {
+    const r5 = applyActivityEditsV5();
+    migrationLog.push('v5: completed ' + r5.filled + ' crafts and bushcraft cards, ' + r5.vegan + ' beeswax lines made vegan');
     purged = true; anySheetMigrated = true;
   }
 
