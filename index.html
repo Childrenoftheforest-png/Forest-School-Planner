@@ -6233,6 +6233,371 @@ function borrowConflictRepoint(i) {
   onRemoved();
 }
 
+// One-time activity completions (schema v2). Only ever fills a field that is empty; the few 'tidy'
+// entries correct misfiled text and apply only when the exact marker text is still there.
+const ACTIVITY_FILLS_V2 = {
+ "Chocolate Crisp Bark": {
+  "equipment": "Campfire or stove\nSaucepan\nHeatproof bowl\nWooden spoon\nBaking tray lined with baking parchment",
+  "consumables": "Vegan dark chocolate\nPuffed rice or cornflakes\nDried fruit (optional)",
+  "notes": "1. Half fill a saucepan with water and heat it gently over the stove or fire. Set a heatproof bowl on top, making sure it does not touch the water.\n2. Break the chocolate into the bowl and stir slowly until it has melted. An adult handles the bowl, as the steam is hot.\n3. Take the bowl off the heat and stir in the puffed rice until every piece is coated.\n4. Spread the mixture thinly over the lined tray and scatter over any dried fruit.\n5. Leave to set somewhere cool for about an hour, then break into pieces.\n6. Allergy check: chocolate can contain milk, soya and nuts, and dried fruit may contain sulphites. Cornflakes and many puffed rice cereals contain barley malt, so they are not gluten free. Use dairy-free chocolate for a vegan batch."
+ },
+ "Campfire spaghetti with sauce": {
+  "notes": "1. Fill a large pot with water and bring it to the boil over the fire or stove. An adult carries the pot and children stand back.\n2. Add the spaghetti and cook for 8 to 10 minutes, stirring now and then, until soft.\n3. Drain carefully in the colander (adult job) and return the spaghetti to the warm pot.\n4. Stir through a knob of vegan butter and a drizzle of golden or maple syrup until glossy.\n5. Dust with cinnamon if wished and serve in bowls.\n6. Allergy check: spaghetti contains gluten, and vegan butter may contain soya.",
+  "tidy": {
+   "equipment": {
+    "whenContains": "EQUIPMENT:",
+    "to": "Campfire or stove\nLarge pot\nColander\nWooden spoon"
+   },
+   "consumables": {
+    "whenMissing": "Spaghetti",
+    "to": "Spaghetti\nVegan butter\nGolden syrup or maple syrup\nCinnamon (optional)"
+   }
+  }
+ },
+ "Campfire spaghetti": {
+  "notes": "1. Fill a large pot with water and bring it to the boil over the fire or stove. An adult carries the pot and children stand back.\n2. Add the spaghetti and cook for 8 to 10 minutes, stirring now and then, until soft.\n3. Drain carefully in the colander (adult job) and return the spaghetti to the warm pot.\n4. Stir through a knob of vegan butter and a drizzle of golden or maple syrup until glossy.\n5. Dust with cinnamon if wished and serve in bowls.\n6. Allergy check: spaghetti contains gluten, and vegan butter may contain soya."
+ },
+ "Golden Syrup FlapJacks": {
+  "equipment": "Oven or Dutch oven\nLarge saucepan\nWooden spoon\n20 x 20 cm baking tin\nGreaseproof paper\nKnife (adult)"
+ },
+ "Ramen": {
+  "equipment": "Campfire or stove\nLarge pot\nLadle\nBowls\nChopsticks or forks\nKnife and chopping board (adult)",
+  "addConsumables": [
+   "Vegetable stock",
+   "Soy sauce"
+  ],
+  "notes": "1. Slice the vegetables thinly (adult job) so they cook quickly.\n2. Heat the vegetable stock in a large pot until steaming, then stir in a splash of soy sauce. An adult stays at the pot.\n3. Add the firmer vegetables first and simmer for 3 to 4 minutes.\n4. Add the rice noodles and the softer vegetables and simmer for a further 3 to 5 minutes, or as the packet says, until soft.\n5. An adult ladles the hot broth into bowls. Let it cool a little before eating.\n6. Allergy check: soy sauce contains soya and usually wheat, and vegetable stock can contain celery."
+ },
+ "Sugar Fried Bananas": {
+  "equipment": "Campfire or stove\nFrying pan or cast iron pan\nWooden spoon or spatula\nKnife and chopping board (adult)",
+  "addConsumables": [
+   "Vegan butter or a little oil, for the pan"
+  ],
+  "notes": "1. Peel the bananas and slice them in half lengthways, or into thick rounds.\n2. Heat a little vegan butter or oil in the pan over a medium heat (adult only from here until step 5).\n3. Sprinkle sugar into the pan, then lay in the bananas.\n4. Fry for 2 to 3 minutes each side until golden and sticky, turning gently with the spatula.\n5. Let them cool for a minute before eating, as the sugar stays very hot."
+ },
+ "Cheese and Cherries Dip": {
+  "equipment": "Bowl\nSpoon\nSmall knife and chopping board (adult)\nPlates or napkins",
+  "notes": "1. Wash the cherries and remove the stones (adult job).\n2. Chop the cherries into small pieces.\n3. Spoon a vegan soft cheese into a bowl (or dairy soft cheese if that suits your group) and fold in the chopped cherries.\n4. Serve with crackers for dipping.\n5. Allergy check: dairy soft cheese contains milk, and vegan soft cheese often contains nuts or soya. Check the crackers for gluten and sesame."
+ },
+ "One Pot Cowboy Rice": {
+  "equipment": "Campfire or stove\nLarge deep frying pan with a lid\nWooden spoon\nChopping board and knife (adult)\nMeasuring jug"
+ },
+ "Chips": {
+  "equipment": "Camp stove (not an open fire)\nLarge deep pan\nSlotted spoon\nKnife and chopping board (adult)\nKitchen paper\nBowl",
+  "notes": "1. Wash the potatoes and cut them into chips of an even size (adult job).\n2. Rinse the chips in cold water and pat completely dry with a clean cloth or kitchen paper.\n3. Heat the oil in the pan until a chip dropped in sizzles straight away. Never fill the pan more than a third with oil. Hot oil is for adults only: an adult stays at the pan the whole time and children are kept well back.\n4. Fry the chips in small batches for 6 to 8 minutes until golden and cooked through.\n5. Lift out with the slotted spoon, drain on kitchen paper and sprinkle with salt. Let them cool before eating.\n6. Allergy check: check the label on the frying oil and avoid groundnut (peanut) oil."
+ },
+ "Breakfast Hot Dogs": {
+  "equipment": "Campfire or stove\nFrying pan\nSaucepan\nWooden spoon\nTongs\nKnife (adult)",
+  "notes": "1. Cook the sausages in the pan, turning often, until browned and cooked through (use vegan sausages for a vegan batch).\n2. Warm the beans gently in a saucepan.\n3. Split the mini rolls lengthways and tuck a sausage into each.\n4. Spoon over the warm beans and finish with a little grated cheese (vegan cheese if needed).\n5. Serve straight away while warm.\n6. Allergy check: rolls contain gluten and may contain sesame, and sausages and cheese may contain dairy, soya, gluten, celery, mustard or sulphites. An adult handles the hot pans."
+ },
+ "Carrot Jam": {
+  "equipment": "Campfire or stove\nLarge heavy-bottomed pot with a lid\nGrater\nPeeler\nWooden spoon\nClean glass jars with lids"
+ },
+ "Sesame Ginger Chickepeas": {
+  "equipment": "Campfire or stove\nLarge frying pan or wok\nSmall bowl\nWhisk or fork\nWooden spoon\nChopping board and knife (adult)",
+  "tidy": {
+   "notes": {
+    "whenContains": "1/2 cup water,3 tablespoons soy sauce",
+    "to": "1. In a small bowl, whisk together the water, soy sauce, sesame oil, cornflour, rice vinegar, maple syrup and ginger. Set aside.\n2. An adult heats a large frying pan or wok over a medium-high heat and adds an extra dash of sesame oil. Add the chickpeas and garlic and fry for 2 to 3 minutes, until the garlic smells fragrant and the chickpeas are warm.\n3. Turn the heat down to medium. Pour the sauce over the chickpeas and stir well to coat them.\n4. Bring to a simmer and cook for 2 to 3 minutes, until the sauce thickens.\n5. Serve over cooked rice or quinoa with stir-fried vegetables, and garnish with sesame seeds and chopped spring onions.\n6. Allergy check: contains soya, sesame and gluten (soy sauce, unless a gluten-free tamari is used)."
+   }
+  }
+ },
+ "Deconstructed Apple Flapjacks": {
+  "equipment": "Campfire or stove\nFrying pan\nWooden spoon\nKnife and chopping board (adult)\nBowls",
+  "notes": "1. Core and chop the apples into small chunks (adult job).\n2. Melt a knob of butter in the pan (vegan butter for a vegan batch), add the apples with a spoonful of sugar and a pinch of cinnamon, and cook gently for 5 to 6 minutes until soft.\n3. In a second pan, an adult toasts the oats with a little butter, sugar and cinnamon, stirring all the time, until golden and crisp.\n4. Spoon the warm apples into bowls and scatter the toasted oats over the top.\n5. Allergy check: oats contain gluten (unless labelled gluten free) and butter contains milk."
+ },
+ "Sliced Apple Pops": {
+  "equipment": "Saucepan of hot water\nHeatproof bowl\nWooden spoon\nKnife and chopping board (adult)\nBaking tray lined with parchment",
+  "notes": "1. Wash the apples, core them and slice into thick rounds (adult job).\n2. Snip the sharp tips off the kebab sticks (adult job), then push one into the edge of each apple slice.\n3. Melt the chocolate in a heatproof bowl over a pan of hot water, stirring until smooth.\n4. Chop the peanuts finely and tip onto a plate.\n5. Dip each slice in the chocolate, roll in the peanuts and rest on the lined tray.\n6. Leave to set for 20 to 30 minutes. Everyone sits down to eat, and nobody runs with a stick.\n7. Allergy check: contains peanuts, and chocolate may contain nuts, milk and soya. Leave the peanuts out for anyone with a nut allergy, and use dairy-free chocolate for a vegan batch."
+ },
+ "Popcorn": {
+  "equipment": "Campfire or stove\nLarge heavy pan with a tight lid\nBowl\nOven gloves or a thick cloth",
+  "consumables": "Popcorn kernels\nOil (vegetable or coconut)\nSalt or sugar, to taste",
+  "notes": "1. An adult stands over the pan throughout. Heat a thin film of oil over a medium heat and drop in three kernels with the lid on.\n2. When those pop, tip in enough kernels to cover the base of the pan in a single layer and put the lid back on.\n3. Shake the pan gently over the heat until the popping slows to a few seconds between pops.\n4. Take it off the heat straight away and tip the popcorn into a bowl. The pan and steam are hot, so an adult does this.\n5. Season with salt or sugar and share. Whole popcorn is a choking hazard for the youngest children, so leave it out for under 5s."
+ }
+};
+
+function applyActivityFills(table, cat) {
+  let n = 0;
+  const blank = v => !(v || '').replace(/\\n/g, '\n').trim();
+  (state.menuItems || []).forEach(item => {
+    if (!item || item.cat !== cat || !table[item.name]) return;
+    const f = table[item.name];
+    const done = [];
+    if (f.equipment && blank(item.equipment) && blank(item.resources)) { item.equipment = f.equipment; done.push('equipment'); }
+    if (f.consumables && blank(item.consumables)) { item.consumables = f.consumables; done.push('consumables'); }
+    if (f.notes && blank(item.notes)) { item.notes = f.notes; done.push('notes'); }
+    (f.addConsumables || []).forEach(line => {
+      const cur = (item.consumables || '');
+      if (cur.toLowerCase().indexOf(line.toLowerCase()) < 0) { item.consumables = cur ? cur.replace(/\n+$/,'') + '\n' + line : line; if (done.indexOf('consumables') < 0) done.push('consumables'); }
+    });
+    const t = f.tidy || {};
+    Object.keys(t).forEach(field => {
+      const cur = item[field] || '';
+      const rule = t[field];
+      const hit = (rule.whenContains && cur.indexOf(rule.whenContains) >= 0) || (rule.whenMissing && cur.indexOf(rule.whenMissing) < 0 && cur.trim());
+      if (hit) {
+        if (field === 'equipment' && item.resources === cur) item.resources = rule.to;
+        item[field] = rule.to; if (done.indexOf(field) < 0) done.push(field);
+      }
+    });
+    if (done.length) { item.autoFilled = { date: '2026-10-18', fields: done }; n++; }
+  });
+  return n;
+}
+
+// ── v3 clean-up (schema 3): removals, honey to golden syrup, misfiled foraged text ──
+const ACTIVITY_REMOVALS_V3 = [
+ {
+  "name": "Coltsfoot tea",
+  "cat": "recipes"
+ },
+ {
+  "name": "Hyssop tea",
+  "cat": "recipes"
+ },
+ {
+  "name": "St John's Wort infused oil",
+  "cat": "recipes"
+ },
+ {
+  "name": "Sage tea",
+  "cat": "recipes"
+ },
+ {
+  "name": "Fennel seed tea",
+  "cat": "recipes"
+ },
+ {
+  "name": "Mugwort dream tea",
+  "cat": "recipes"
+ },
+ {
+  "name": "Valerian root infusion",
+  "cat": "recipes"
+ },
+ {
+  "name": "Campfire spaghetti with sauce",
+  "cat": "recipes"
+ },
+ {
+  "name": "⚠ Borrowed activity no longer exists",
+  "cat": "wide"
+ }
+];
+const ACTIVITY_FIXES_V3 = [
+ {
+  "name": "Pine Needle Tea",
+  "cat": "recipes",
+  "set": {
+   "foraged": {
+    "from": "Fresh pine needles (confirmed Scots pine",
+    "to": "Fresh pine needles (confirmed Scots pine)"
+   }
+  }
+ },
+ {
+  "name": "Paintbrushes",
+  "cat": "crafts",
+  "set": {
+   "foraged": {
+    "from": "foraged brush materials (rosemary sprigs",
+    "to": "Rosemary sprigs\nSticks\nFeathers\nSeed heads\nHerbs"
+   },
+   "consumables": {
+    "from": "sticks\nbiodegradable rubber bands\nfeathers\nseed heads\nherbs)",
+    "to": "Biodegradable rubber bands"
+   }
+  }
+ },
+ {
+  "name": "Picture frame",
+  "cat": "crafts",
+  "set": {
+   "foraged": {
+    "from": "foraged natural materials (leaves",
+    "to": "Leaves\nFour sticks\nSeeds\nFeathers"
+   },
+   "consumables": {
+    "from": "four sticks\nstring or coloured yarn\nseeds\nfeathers)",
+    "to": "String or coloured yarn"
+   }
+  }
+ },
+ {
+  "name": "Elderflower & Lemon Scones",
+  "cat": "recipes",
+  "set": {
+   "foraged": {
+    "from": "3 tbsp elderflower cordial",
+    "to": ""
+   },
+   "consumables": {
+    "from": "Pastry cutter\n350g self-raising flour\n85g cold vegan butter\nZest of 1 lemon\n175ml oat milk\nPinch of salt\nVegan cream and jam to serve",
+    "to": "350g self-raising flour\n85g cold vegan butter\nZest of 1 lemon\n175ml oat milk\nPinch of salt\n3 tbsp elderflower cordial\nVegan cream and jam to serve"
+   },
+   "equipment": {
+    "from": "Campfire or pizza oven\nDutch oven\nMixing bowl",
+    "to": "Campfire or pizza oven\nDutch oven\nMixing bowl\nPastry cutter"
+   }
+  }
+ },
+ {
+  "name": "Summer Solstice feast",
+  "cat": "recipes",
+  "set": {
+   "foraged": {
+    "from": "elderflower cordial",
+    "to": ""
+   },
+   "consumables": {
+    "from": "summer vegetables\nherb salads\nfruit\nbread",
+    "to": "summer vegetables\nherb salads\nfruit\nbread\nelderflower cordial"
+   }
+  }
+ },
+ {
+  "name": "Garlic tonic tea",
+  "cat": "recipes",
+  "set": {
+   "foraged": {
+    "from": "elderflower cordial or lemon (optional)",
+    "to": ""
+   },
+   "consumables": {
+    "from": "fresh garlic cloves\nboiling water",
+    "to": "fresh garlic cloves\nboiling water\nelderflower cordial or lemon (optional)"
+   }
+  }
+ },
+ {
+  "name": "Elderberry Cordial (warm)",
+  "cat": "recipes",
+  "set": {
+   "foraged": {
+    "from": "Elderberry cordial (homemade or shop)",
+    "to": ""
+   },
+   "consumables": {
+    "from": "Cinnamon stick (optional)",
+    "to": "Cinnamon stick (optional)\nElderberry cordial (homemade or shop-bought)"
+   }
+  }
+ },
+ {
+  "name": "Wheatabix Cake",
+  "cat": "recipes",
+  "set": {
+   "foraged": {
+    "from": "200g vegan chocolate hazelnut spread (e.g. Plant!t, Meridian, or Nutella's vegan version)",
+    "to": ""
+   },
+   "consumables": {
+    "from": "18 vegan-friendly biscuit wheats (check Weetabix is fine, it's vegan; if not, use a similar wholewheat biscuit cereal)\n6 tbsp ground flaxseed mixed with 18 tbsp water (flax \"eggs\", let sit 5-10 mins to gel)\n375ml vegan double cream alternative (oat or coconut based, e.g. Elmlea Plant or Oatly)\n250ml plant milk (oat works well for richness)\n395g vegan condensed milk (e.g. Nature's Charm coconut condensed milk)\n1 tsp vanilla extract\nVegan custard, to serve",
+    "to": "18 vegan-friendly biscuit wheats (check Weetabix is fine, it's vegan; if not, use a similar wholewheat biscuit cereal)\n6 tbsp ground flaxseed mixed with 18 tbsp water (flax \"eggs\", let sit 5-10 mins to gel)\n375ml vegan double cream alternative (oat or coconut based, e.g. Elmlea Plant or Oatly)\n250ml plant milk (oat works well for richness)\n395g vegan condensed milk (e.g. Nature's Charm coconut condensed milk)\n1 tsp vanilla extract\n200g vegan chocolate hazelnut spread (e.g. Plant!t or Meridian; check the label)\nVegan custard, to serve"
+   }
+  }
+ },
+ {
+  "name": "Seed cakes for birds and snacks for us",
+  "cat": "recipes",
+  "set": {
+   "foraged": {
+    "from": "Wild bird seed mix",
+    "to": ""
+   },
+   "consumables": {
+    "from": "CONSUMABLES (bird cakes): Coconut oil or lard (solidified)\nOats, raisins, peanuts",
+    "to": "CONSUMABLES (bird cakes): Coconut oil or lard (solidified)\nOats, raisins, peanuts\nWild bird seed mix"
+   }
+  }
+ },
+ {
+  "name": "Mushrooms",
+  "cat": "natureconnect",
+  "set": {
+   "foraged": {
+    "from": "Field guide to UK fungi (e.g. Roger Phillips)",
+    "to": ""
+   },
+   "equipment": {
+    "from": "Foraging baskets (wicker, not plastic)\nSmall brush\nKnife for cutting at base -",
+    "to": "Foraging baskets (wicker, not plastic)\nSmall brush\nKnife for cutting at base\nField guide to UK fungi (e.g. Roger Phillips)"
+   }
+  }
+ },
+ {
+  "name": "Dandelion and Nettle Tea",
+  "cat": "recipes",
+  "set": {
+   "foraged": {
+    "from": "Thick gloves (for nettle handling)\nYoung nettle tips\nYoung dandelion leaves",
+    "to": "Young nettle tips\nYoung dandelion leaves"
+   },
+   "equipment": {
+    "from": "Kelly kettle or campfire\nMugs or cups\nStrainer",
+    "to": "Kelly kettle or campfire\nMugs or cups\nStrainer\nThick gloves (for nettle handling)"
+   }
+  }
+ }
+];
+
+function honeyToGoldenSyrup(text, isName) {
+  if (!text) return text;
+  const sub = isName ? 'Golden Syrup' : 'golden syrup';
+  const cap = m => (isName ? sub : (m.charAt(0) === 'H' ? 'Golden syrup' : sub));
+  return text
+    .replace(/honey \((?:or )(?:golden syrup|maple syrup|a plant-based alternative)[^)]*\)/gi, cap)
+    .replace(/\bhoney\b/gi, cap);
+}
+
+function renameActivityEverywhere(oldName, newName) {
+  if (!oldName || !newName || oldName === newName) return;
+  (state.sheets || []).forEach(sheet => {
+    Object.values(sheet.sessions || {}).forEach(day => {
+      Object.keys(day).forEach(k => {
+        if (Array.isArray(day[k])) day[k].forEach(a => { if (a && typeof a === 'object' && a.text === oldName) a.text = newName; });
+      });
+    });
+  });
+}
+
+function applyActivityEditsV3() {
+  const out = { removed: 0, removedFromSessions: 0, honey: 0, renamed: 0, fixed: 0 };
+  // 1. removals (the item and any session entries that point at it)
+  ACTIVITY_REMOVALS_V3.forEach(r => {
+    const before = state.menuItems.length;
+    state.menuItems = state.menuItems.filter(i => !(i && i.name === r.name && i.cat === r.cat));
+    if (state.menuItems.length < before) { out.removed += before - state.menuItems.length; out.removedFromSessions += cascadeRemoveFromSessions(r.name); }
+  });
+  // 2. misfiled or cut-off text: only where the field still holds exactly what was found in the audit
+  state.menuItems.forEach(item => {
+    if (!item) return;
+    ACTIVITY_FIXES_V3.forEach(f => {
+      if (item.name !== f.name || item.cat !== f.cat) return;
+      Object.keys(f.set).forEach(field => {
+        const rule = f.set[field];
+        const cur = (item[field] || '').replace(/\\n/g, '\n');
+        if (cur !== rule.from) return;
+        if (field === 'equipment' && (item.resources || '').replace(/\\n/g, '\n') === rule.from) item.resources = rule.to;
+        item[field] = rule.to; out.fixed++;
+      });
+    });
+  });
+  // 3. honey -> golden syrup everywhere in the activity text (names are renamed in session plans too)
+  state.menuItems.forEach(item => {
+    if (!item) return;
+    ['equipment', 'resources', 'consumables', 'notes', 'foraged'].forEach(k => {
+      if (!item[k]) return;
+      const t = honeyToGoldenSyrup(item[k], false);
+      if (t !== item[k]) { item[k] = t; out.honey++; }
+    });
+    const nn = honeyToGoldenSyrup(item.name, true);
+    if (nn !== item.name) { renameActivityEverywhere(item.name, nn); item.name = nn; out.renamed++; }
+  });
+  return out;
+}
+
 function loadState() {
   // The built-in list has a few empty slots (stray commas in the literal). forEach skips
   // them but find() doesn't, which crashed loading. Drop them once, up front.
@@ -6261,9 +6626,11 @@ function loadState() {
   // defaults over deliberate changes: deleted rows reappeared, renamed rows
   // reverted, deleted sheets were recreated. To add a migration in future:
   // bump SCHEMA_TARGET and gate the new code on `schemaFrom < N`.
-  const SCHEMA_TARGET = 1;
+  const SCHEMA_TARGET = 3;
   const schemaFrom = state.meta.schemaVersion || 0;
   const runV1 = schemaFrom < 1;
+  const runV2 = schemaFrom < 2;
+  const runV3 = schemaFrom < 3;
   let metaChanged = false;
   const migrationLog = [];
 
@@ -6757,7 +7124,21 @@ function loadState() {
     });
   }
 
-  if (runV1) {
+  // v2: complete recipe cards from the audit (empty fields only)
+  if (runV2) {
+    const filled = applyActivityFills(ACTIVITY_FILLS_V2, 'recipes');
+    migrationLog.push('v2: completed ' + filled + ' recipes');
+    if (filled) purged = true;
+  }
+
+  // v3: remove unsuitable/broken entries, honey to golden syrup, repair misfiled foraged text
+  if (runV3) {
+    const r = applyActivityEditsV3();
+    migrationLog.push('v3: removed ' + r.removed + ' (' + r.removedFromSessions + ' session entries), ' + r.honey + ' honey edits, ' + r.renamed + ' renames, ' + r.fixed + ' field repairs');
+    purged = true; anySheetMigrated = true;
+  }
+
+  if (schemaFrom < SCHEMA_TARGET) {
     state.meta.schemaVersion = SCHEMA_TARGET;
     metaChanged = true;
   }
@@ -8344,7 +8725,7 @@ function buildRecipePrintHtml(item) {
   const splitLines = (s) => (s || '').replace(/\\n/g, '\n').split('\n').map(l => l.replace(/^[•\-\s]+/, '').trim()).filter(Boolean);
   const ingredients = splitLines(item.consumables);
   const equipment = splitLines(item.equipment || item.resources);
-  const methodLines = splitLines(item.notes);
+  const methodLines = splitLines(item.notes).map(l => l.replace(/^\d+[.)]\s*/, ''));
 
   const ingredientsHtml = ingredients.length
     ? '<ul class="rc-list">' + ingredients.map(i => '<li>' + escHtml(i) + '</li>').join('') + '</ul>'
@@ -8394,6 +8775,19 @@ function buildRecipePrintHtml(item) {
 </html>`;
 }
 
+// What the matcher needs, taken from the editor's current (possibly unsaved) field values
+function dpDraftForRba(item) {
+  const v = id => document.getElementById(id)?.value || '';
+  return {
+    name: v('dpNameInput') || (item && item.name) || '',
+    cat: v('dpCatInput') || (item && item.cat) || '',
+    equipment: v('dpEquipmentInput'),
+    consumables: v('dpConsumablesInput'),
+    foraged: v('dpForagedInput'),
+    rbaOverrides: (item && item.rbaOverrides) || {add:[], remove:[]},
+  };
+}
+
 // Renders the linked-RBA list inside the activity detail panel — combines live equipment-text
 // matching with the item's manual overrides, using the current (possibly-unsaved) editor field
 // values so the list reacts as the person types or picks resources.
@@ -8402,10 +8796,7 @@ function renderDpRbaLinkedList() {
   if (!wrap) return;
   const idx = detailPanelState.itemIndex;
   const item = idx >= 0 ? state.menuItems[idx] : null;
-  const draftItem = {
-    equipment: document.getElementById('dpEquipmentInput')?.value || '',
-    rbaOverrides: (item && item.rbaOverrides) || {add:[], remove:[]},
-  };
+  const draftItem = dpDraftForRba(item);
   const linked = matchRbasForActivity(draftItem);
   if (!linked.length) {
     wrap.innerHTML = '<div style="font-size:0.78rem;color:var(--bark-light);font-style:italic;">No risk assessments linked yet.</div>';
@@ -8441,7 +8832,7 @@ function openDpRbaAddPicker() {
   const idx = detailPanelState.itemIndex;
   if (idx < 0) return;
   const item = state.menuItems[idx];
-  const draftItem = { equipment: document.getElementById('dpEquipmentInput')?.value || '', rbaOverrides: item.rbaOverrides || {add:[], remove:[]} };
+  const draftItem = dpDraftForRba(item);
   const already = new Set(matchRbasForActivity(draftItem).map(r => r.id));
   const options = rbaState.rbas.filter(r => !already.has(r.id)).sort((a,b) => (a.title||'').localeCompare(b.title||''));
   const list = document.getElementById('rbaLinkPickerList');
@@ -15674,17 +16065,24 @@ function rbaStatusLabel(st) {
   return 'No review date set';
 }
 
-// Matches an activity's equipment text against RBA linkedResourceNames (case-insensitive,
-// substring match per line), then applies the activity's manual add/remove overrides.
+// Matches an activity against each RBA's linkedResourceNames, then applies the activity's manual
+// add/remove overrides. A linked name matches when it appears as a whole word (or phrase, plural
+// allowed) in any line of the activity's equipment, ingredients or foraged list, or in its name.
+// "cat:wide" matches every activity in that category, "has:foraged" every activity with a foraged list. (The short equipment line is never allowed to
+// match inside a longer RBA name, which used to tag "sticks" with Ticks and plain "Water" with Water Play.)
+function rbaEscRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function matchRbasForActivity(item) {
-  const equipText = (item.equipment || item.resources || '').replace(/\\n/g,'\n').toLowerCase();
-  const equipLines = equipText.split('\n').map(l => l.replace(/^[•\-\s]+/,'').trim()).filter(Boolean);
-  const autoMatched = rbaState.rbas.filter(rba => {
-    const names = rba.linkedResourceNames || [];
-    return names.some(n => {
-      const nl = (n||'').toLowerCase().trim();
+  const clean = v => (v || '').replace(/\\n/g,'\n').toLowerCase().split('\n').map(l => l.replace(/^[•\-\s]+/,'').trim()).filter(Boolean);
+  const hay = clean(item.equipment || item.resources).concat(clean(item.consumables), clean(item.foraged), clean(item.name));
+  const cat = (item.cat || '').toLowerCase();
+  const autoMatched = (rbaState.rbas || []).filter(rba => {
+    return (rba.linkedResourceNames || []).some(n => {
+      const nl = (n || '').toLowerCase().trim();
       if (!nl) return false;
-      return equipLines.some(el => el.includes(nl) || nl.includes(el));
+      if (nl.indexOf('cat:') === 0) return !!cat && cat === nl.slice(4).trim();
+      if (nl === 'has:foraged') return clean(item.foraged).length > 0;
+      const re = new RegExp('(^|[^a-z0-9])' + rbaEscRe(nl) + '(s|es)?([^a-z0-9]|$)');
+      return hay.some(el => re.test(el));
     });
   }).map(r => r.id);
   const overrides = item.rbaOverrides || {add:[], remove:[]};
@@ -15779,7 +16177,7 @@ function renderRbaEditorModal(rba) {
       '<div><label class="detail-section-label">Category</label><select class="detail-field" id="rbaEdCategory">'+
         RBA_CATEGORIES.map(c => '<option value="'+c.id+'"'+(rba.category===c.id?' selected':'')+'>'+c.emoji+' '+escHtml(c.label)+'</option>').join('')+
       '</select></div>'+
-      '<div><label class="detail-section-label">Linked resource names <span style="font-size:0.7rem;color:var(--bark-light);font-weight:400;">(one per line — matched against activity equipment, e.g. "billhook")</span></label><textarea class="detail-textarea" id="rbaEdLinked" rows="2" placeholder="billhook">'+escHtml((rba.linkedResourceNames||[]).join('\n'))+'</textarea></div>'+
+      '<div><label class="detail-section-label">Linked resource names <span style="font-size:0.7rem;color:var(--bark-light);font-weight:400;">(one per line, matched whole-word against each activity name, equipment, ingredients and foraged list, e.g. "billhook". Write cat:wide to match every activity in a category, or has:foraged for any activity with foraged items)</span></label><textarea class="detail-textarea" id="rbaEdLinked" rows="2" placeholder="billhook">'+escHtml((rba.linkedResourceNames||[]).join('\n'))+'</textarea></div>'+
       '<div><label class="detail-section-label">Hazards</label><textarea class="detail-textarea" id="rbaEdHazards" rows="3">'+escHtml(rba.hazards||'')+'</textarea></div>'+
       '<div><label class="detail-section-label">Who is at risk</label><textarea class="detail-textarea" id="rbaEdWho" rows="2">'+escHtml(rba.whoAtRisk||'')+'</textarea></div>'+
       '<div><label class="detail-section-label">Controls / mitigations</label><textarea class="detail-textarea" id="rbaEdControls" rows="3">'+escHtml(rba.controls||'')+'</textarea></div>'+
