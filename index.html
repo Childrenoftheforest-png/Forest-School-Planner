@@ -4629,7 +4629,9 @@ function updateSyncBanner() {
   const reload = '<button onclick="location.reload()" style="margin-left:.6rem;padding:.2rem .7rem;border-radius:6px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;">Reload</button>';
   if (cloudSync.splitBroken) {
     kind = 'bad';
-    msg = '⛔ Part of the stored planning data is missing, so nothing is being saved to protect what is left. Open 🛟 Backups and restore the latest backup (or tell Claude).';
+    msg = cloudSync.resetStore
+      ? '⛔ The planning data in the cloud looks reset or out of step (the app expected the split layout but found something else), so nothing is being saved. Open 🛟 Backups and restore the latest backup that has the right number of sheets.'
+      : '⛔ Part of the stored planning data is missing, so nothing is being saved to protect what is left. Open 🛟 Backups and restore the latest backup (or tell Claude).';
     actions = '';
   } else if (conflicts.length) {
     kind = 'bad';
@@ -4642,6 +4644,10 @@ function updateSyncBanner() {
   } else if (offlineMain || failing.length) {
     kind = 'warn';
     msg = '⚠️ ' + (offlineMain ? 'Offline: showing the copy saved on this device. ' : '') + (failing.length ? 'Not saved to the cloud yet (' + failing.join(', ') + '). Retrying automatically. Keep this page open.' : 'Changes will sync when you\'re back online, provided nothing else has changed.');
+  } else if (cloudSync.noCloudCopy) {
+    kind = 'warn';
+    msg = 'ℹ️ No cloud copy of the planning data was found, so this is the copy saved on this device. If sheets are missing, check another device before changing anything here.';
+    actions = reload;
   } else if (stale.length) {
     kind = 'warn';
     msg = 'ℹ️ A newer version of the ' + stale.join(' and ') + ' was saved from another device.';
@@ -4778,8 +4784,29 @@ function saveToCloud(data) {
 // not be read (cloudSync.loaded.main tells the two apart, and blocks saving when the read failed).
 async function loadFromCloud() {
   const r = await cloudRead('main');
+  // Has this store ever been upgraded or backed up? If so, a missing or single-document main is a reset, not a fresh start.
+  const hadHistory = async () => {
+    for (const n of ['main_legacy', 'backup_index']) {
+      try { if ((await cloudRef(n).get()).exists) return true; } catch (e) { return true; }
+    }
+    return false;
+  };
+  const blockReset = () => {
+    cloudSync.splitBroken = true; cloudSync.resetStore = true;
+    console.warn('[CotF] Cloud planning document is missing or was reset; saving blocked until a backup is restored.');
+    updateSyncBanner();
+  };
+  if (r.ok && !r.exists && await hadHistory()) {
+    cloudSync.loaded.main = false; cloudSync.failedLoad.main = true; cloudSync.canResume.main = false;
+    blockReset();
+    return null;
+  }
   if (!(r.ok && r.exists)) return null;
-  if (r.data.layout !== 2) { cloudSync.layout = 1; cloudStoreLayout(1); return r.data; }
+  if (r.data.layout !== 2) {
+    cloudSync.layout = 1; cloudStoreLayout(1);
+    try { if ((await cloudRef('main_legacy').get()).exists) blockReset(); } catch (e) {}   // upgraded before, so a single-document main means it was overwritten
+    return r.data;
+  }
   cloudSync.layout = 2; cloudStoreLayout(2);
   const idx = r.data;
   const docs = { main: idx };
@@ -4926,6 +4953,7 @@ async function restoreBackup(id) {
     cloudSync.frozen = true;                                              // nothing else may save during the swap
     Object.keys(cloudSync.timers).forEach(n => clearTimeout(cloudSync.timers[n]));
     Object.keys(cloudSync.dirty).forEach(n => { cloudSync.dirty[n] = false; });
+    if ((e.docs || []).some(cloudIsPart)) { cloudSync.layout = 2; cloudStoreLayout(2); }   // a split backup is always restored into the split layout
     if (data.main) await writeLogicalMain(data.main);
     for (const n of Object.keys(data).filter(n => n !== 'main')) await cloudWriteNow(n, data[n]);
     location.reload();
@@ -21548,9 +21576,11 @@ function renderPlannerCurrentMonth() {
   const sheet = getActiveSheet();
   if (!sheet || sheet.type === 'holiday') return;
   const mon = plannerActiveMonth;
-  if (!mon) return;
-
   const container = document.getElementById('plannerContent');
+  if (!mon) {
+    if (container) container.innerHTML = '<p style="padding:2rem;font-family:Lora,serif;color:var(--bark-light);font-style:italic;">This sheet has no sessions yet. Choose another sheet from the top bar, or use \u2715 Archived to find an older one.</p>';
+    return;
+  }
   container.innerHTML = '';
 
   if (!sheet.rowDefs) sheet.rowDefs = [];
@@ -21695,6 +21725,8 @@ function renderPlannerCurrentMonth() {
     }
   } else {
     console.log('[CotF] No cloud data — falling back to localStorage');
+    cloudSync.noCloudCopy = true;
+    updateSyncBanner();
   }
 
   // Run the normal loadState logic (handles defaults, merges base data etc.)
@@ -21702,6 +21734,15 @@ function renderPlannerCurrentMonth() {
   mergeResourcesIntoMenuItems();
   migrateMorningCircleRowCat();
   syncRegisterBirthdays();
+  // open on a live sheet, not an archived or empty one, when there is one to open
+  try {
+    const act = (state.sheets || []).find(sh => sh && sh.id === state.activeSheetId);
+    const hasSessions = sh => sh && sh.sessions && Object.keys(sh.sessions).length > 0;
+    if (!act || act.archived || !hasSessions(act)) {
+      const alt = (state.sheets || []).find(sh => sh && !sh.archived && sh.type !== 'holiday' && hasSessions(sh));
+      if (alt) state.activeSheetId = alt.id;
+    }
+  } catch (e) { console.warn('Could not choose a live sheet', e); }
   renderSheetTabs();
   renderHolidayDropdown();
   syncRegisterBirthdays();
