@@ -9489,7 +9489,7 @@ function loadState() {
   // defaults over deliberate changes: deleted rows reappeared, renamed rows
   // reverted, deleted sheets were recreated. To add a migration in future:
   // bump SCHEMA_TARGET and gate the new code on `schemaFrom < N`.
-  const SCHEMA_TARGET = 13;
+  const SCHEMA_TARGET = 15;
   const schemaFrom = state.meta.schemaVersion || 0;
   const runV1 = schemaFrom < 1;
   const runV2 = schemaFrom < 2;
@@ -9504,6 +9504,8 @@ function loadState() {
   const runV11 = schemaFrom < 11;
   const runV12 = schemaFrom < 12;
   const runV13 = schemaFrom < 13;
+  const runV14 = schemaFrom < 14;
+  const runV15 = schemaFrom < 15;
   let metaChanged = false;
   const migrationLog = [];
 
@@ -10079,6 +10081,34 @@ function loadState() {
     const r13 = applyEditsV13();
     migrationLog.push('v13: removed ' + r13.removed + ', filled ' + r13.filled);
     purged = true; anySheetMigrated = true;
+  }
+
+  // v14: "None" typed into Consumables or Equipment was showing up as a shopping-list item
+  if (runV14) {
+    let cleared = 0;
+    (state.menuItems || []).forEach(m => {
+      if (!m) return;
+      ['consumables', 'equipment'].forEach(f => {
+        const t = String(m[f] || '').replace(/\\n/g, '\n').trim();
+        if (t && /^(none|n\/a|nil|no)\b[^\n]{0,40}$/i.test(t) && t.indexOf('\n') < 0) { m[f] = ''; cleared++; }
+      });
+    });
+    migrationLog.push('v14: cleared ' + cleared + ' "None" entries');
+    if (cleared) purged = true;
+  }
+
+  // v15: recipes added from captions: metric, vegan, numbered steps, tidy consumables
+  if (runV15) {
+    const FIX15 = {"Cornflake Tarts": {"equipment": "Oven\n23 cm loose-bottomed tart tin\nRolling pin\nBaking parchment\nBaking beans or uncooked rice\nSmall saucepan\nWooden spoon\nSerrated knife (adult)", "consumables": "320g ready-rolled shortcrust pastry (check it is vegan)\nPlain flour, to dust\n50g vegan butter\n125g golden syrup\n25g light brown soft sugar\n100g cornflakes\n125g strawberry or raspberry jam\nPinch of salt\nVegan custard, to serve", "notes": "1. Heat the oven to 180C (160C fan). Unroll the pastry and roll it out briefly on a lightly floured surface until it will fit a 23 cm loose-bottomed tart tin.\n2. Use the rolling pin to lift the pastry over the tin, press it into the corners and sides, and trim the excess, leaving a small amount over the rim.\n3. Line the pastry with baking parchment and fill with baking beans or uncooked rice. Bake for 15 minutes. Remove the parchment and beans and bake for another 5 to 10 minutes until just golden. An adult trims the edges with a serrated knife.\n4. Heat the vegan butter, golden syrup, sugar and a pinch of salt in a small pan, stirring often, until melted and smooth. Fold in the cornflakes until they are coated.\n5. Spoon the jam into the cooked pastry case and level it. Tip the cornflake mixture over the jam and press down gently until the jam is covered.\n6. Bake for another 5 minutes until the cornflakes are golden and toasted. Leave to cool until just warm, then slice and serve with vegan custard."}, "Baked Apple Skulls": {"equipment": "Oven\nBaking dish with a lid or foil\nSmall paring knife (adult use only)\nSmall saucepan\nSpoon for basting", "consumables": "8 Granny Smith apples\n55g vegan butter\n60ml spiced apple cider, plus more as needed\n50g brown sugar\n1 and 1/2 tsp cinnamon\nSalt, for the soaking water", "notes": "1. Heat the oven to 190C (170C fan). Peel the apples, leaving them whole.\n2. To stop them browning, soak the apples for 5 to 10 minutes in water with a little salt (about 1/2 tsp per 250ml). Rinse and pat dry.\n3. An adult uses a small paring knife to carve a face into each apple: eyes, a nose and a mouth. The faces don't need to be perfect, because the uneven ones look better once they're baked and wrinkly.\n4. Arrange the apples in a baking dish.\n5. Warm the vegan butter, cider, brown sugar and cinnamon together in a small saucepan until the butter has melted and everything is combined.\n6. Pour the warm mixture over the apples, spooning some over the tops and into the carved faces.\n7. Cover the dish and bake for 30 minutes, basting after 15 minutes.\n8. Remove the cover and bake for another 15 to 30 minutes, depending on how soft you like them, basting about every 15 minutes. If the pan looks dry, add a splash more cider.\n9. The apples are ready when they are tender, caramelised and the faces have shrivelled. Let them cool before eating."}, "Marmite Roast Potatoes": {"equipment": "Oven\nLarge saucepan\nColander\nRoasting tin\nSmall bowl\nKnife and chopping board (adult)", "consumables": "Potatoes\nMarmite\nOil\nSalt and pepper", "notes": "1. Heat the oven to 190C (170C fan). Peel the potatoes and cut them into large, even chunks. Put them in a large pan, cover with water and bring to the boil. Simmer for 12 minutes.\n2. Meanwhile, mix the Marmite and oil in a small bowl, then tip into a roasting tin large enough to hold the potatoes in a single layer. Put the tin in the oven to heat for up to 10 minutes.\n3. Drain the potatoes well and leave them to steam dry in the colander for 3 minutes. Shake them to rough up the edges, in batches if easier.\n4. An adult carefully takes the hot tin out of the oven. Add the potatoes and some seasoning and turn to coat.\n5. Roast for about 1 hour until golden, turning occasionally. Serve on a warm plate."}, "Golden Syrup Roasted Raspberries": {"consumables": "Raspberries\nGolden syrup\nPlant yoghurt or oatcakes, to serve"}, "Sticky Elderflower Golden Syrup Cake": {"consumables": "Vegan butter\nSugar\nGround flaxseed and water, for flax eggs\nSelf-raising flour\nGolden syrup\nElderflower cordial", "notes": "1. Cream together the vegan butter and sugar, then beat in the flax eggs (1 tbsp ground flaxseed mixed with 3 tbsp water per egg, left to gel for 5 minutes), the flour, a spoonful or two of golden syrup and a good glug of elderflower cordial.\n2. Grease a cast-iron Dutch oven and pour or spoon the mixture inside.\n3. Set the Dutch oven on a bed of hot embers and shovel more hot coals onto the lid, so the heat surrounds it like an oven. Bake for 30 to 35 minutes, lifting the lid carefully once near the end to check.\n4. A skewer pushed into the centre should come out clean when it's done. An adult lifts it off with thick gloves. Let it cool slightly before serving, then drizzle with more golden syrup."}, "Flower-Infused Golden Syrup": {"consumables": "Edible flowers (elderflower, rose, lavender or clover)\nGolden syrup"}, "Pine Needle & Golden Syrup Tea": {"consumables": "Fresh pine needles (a leader checks the tree is a true pine, spruce or fir and never yew)\nWater\nGolden syrup", "notes": "1. A leader positively identifies the tree before anything is picked. Only use true pine, spruce or fir, and never yew.\n2. Boil water in the Kelly kettle or in a pot set over the campfire.\n3. Add a small handful of chopped pine needles to a teapot, heatproof jug, or straight into mugs.\n4. Pour the hot water over and leave to steep for 8 to 10 minutes.\n5. Stir in a spoonful of golden syrup while it's still hot so it dissolves fully.\n6. Strain into mugs (children can hold the strainer) and serve warm."}};
+    let n15 = 0;
+    (state.menuItems || []).forEach(m => {
+      const f = m && FIX15[m.name];
+      if (!f || m.userEdited15) return;
+      Object.keys(f).forEach(k => { m[k] = f[k]; });
+      m.userEdited = true; n15++;
+    });
+    migrationLog.push('v15: tidied ' + n15 + ' recipe cards');
+    if (n15) purged = true;
   }
 
   if (schemaFrom < SCHEMA_TARGET) {
@@ -18714,6 +18744,21 @@ async function mSaveShopState() {
   }), 300);
 }
 
+// Turns a Consumables field into shopping lines. Pasted captions leave headings ("Ingredients"),
+// "None" and dangling fragments ("to coat", "to serve") on lines of their own: drop the first two, join the third to the line above.
+function shopLinesFrom(text) {
+  if (!text) return [];
+  const raw = String(text).replace(/\\n/g, '\n').split(/[\n•·]+/).map(s => s.replace(/^[\s\-*]+/, '').trim()).filter(s => s.length > 1);
+  const out = [];
+  raw.forEach(l => {
+    if (/^(none|n\/a|nil)\b/i.test(l) && l.length < 45) return;
+    if (/^(ingredients?|nutrition|utensils?|method|equipment|consumables?|you will need|serves?\b.*|makes\b.*|prep(aration)? time.*|cook(ing)? time.*)\s*:?$/i.test(l)) return;
+    if (/^(to (serve|coat|taste|dust|decorate|garnish|grease|fry|finish)|for (dusting|greasing|frying|serving|coating|the (tin|pan|top)))\b/i.test(l) && out.length) { out[out.length - 1] += ', ' + l; return; }
+    out.push(l);
+  });
+  return out;
+}
+
 async function mBuildShoppingList() {
   await mLoadShopState();
   const { mon, sun } = mGetWeekRange();
@@ -18749,9 +18794,7 @@ async function mBuildShoppingList() {
           if (r.orphan) return; // dangling borrow — nothing real to shop for
           const menuItem = state.menuItems.find(m => m && m.name === r.text);
           if (!menuItem) return;
-          const consumables = menuItem.consumables
-            ? menuItem.consumables.replace(/\\n/g,'\n').split(/[\n•·]+/).map(s=>s.replace(/^[\s\-*]+/,'').trim()).filter(s=>s.length>1)
-            : [];
+          const consumables = shopLinesFrom(menuItem.consumables);
           consumables.forEach(c => {
             const itemKey = c.toLowerCase().trim();
             if (mShopDeleted[itemKey]) return;
