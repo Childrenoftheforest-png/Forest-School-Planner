@@ -9489,7 +9489,7 @@ function loadState() {
   // defaults over deliberate changes: deleted rows reappeared, renamed rows
   // reverted, deleted sheets were recreated. To add a migration in future:
   // bump SCHEMA_TARGET and gate the new code on `schemaFrom < N`.
-  const SCHEMA_TARGET = 15;
+  const SCHEMA_TARGET = 16;
   const schemaFrom = state.meta.schemaVersion || 0;
   const runV1 = schemaFrom < 1;
   const runV2 = schemaFrom < 2;
@@ -9506,6 +9506,7 @@ function loadState() {
   const runV13 = schemaFrom < 13;
   const runV14 = schemaFrom < 14;
   const runV15 = schemaFrom < 15;
+  const runV16 = schemaFrom < 16;
   let metaChanged = false;
   const migrationLog = [];
 
@@ -10109,6 +10110,13 @@ function loadState() {
     });
     migrationLog.push('v15: tidied ' + n15 + ' recipe cards');
     if (n15) purged = true;
+  }
+
+  // v16: Consumables is only for things bought from a shop for the session; the rest moves to Equipment or Foraged
+  if (runV16) {
+    const r16 = auditConsumablesV16();
+    migrationLog.push('v16: moved ' + r16.moved + ' lines out of Consumables on ' + r16.cards + ' cards');
+    if (r16.cards) purged = true;
   }
 
   if (schemaFrom < SCHEMA_TARGET) {
@@ -18744,6 +18752,77 @@ async function mSaveShopState() {
   }), 300);
 }
 
+// ─── What belongs in Consumables ───
+// Consumables = things bought from a shop for the session and used up. Everything else lives elsewhere:
+//   E = Equipment (tools, containers, water, firewood and kindling, things the leader brings or makes)
+//   F = Foraged (natural and found materials)   X = not an item at all ("None")
+// An entry with a second value is the corrected wording. Keys are the line in lower case.
+const CONS_ACT = {"none":["X"],"none (collection containers as above)":["X"],"1/2 cup water":["E","120ml water"],"2 and 1/2 cups water":["E","600ml water"],"char cloth":["E"],"clay (as mortar)":["F"],"clay or mortar":["F"],"muffin tin or egg boxes":["E"],"net or rope":["E"],"rope and cordage":["E"],"rope or paracord":["E"],"spare rope":["E"],"tarpaulin (approximately 2m square)":["E"],"two tin cans or small wooden boxes":["E"],"3 tbsp finely ground toasted hazel catkins":["F"],"a handful of fresh, young blackberry (bramble) leaves and soft stem tips":["F"],"a large handful of young cleavers (goosegrass) tops, about 100 g":["F"],"a small handful of dandelion petals (yellow only) or young dandelion leaves, washed and finely chopped":["F"],"alder twigs and cones":["F"],"autumn leaves":["F"],"bamboo poles":["E"],"bark strips":["F"],"birch twig bundle":["F"],"branched wood pieces (8-15cm)":["F"],"bricks or stones":["E"],"clay, sand and straw":["F"],"clay-rich soil, sand and straw for cob":["F"],"conkers":["F"],"dried wheat straw or long dried grasses":["F"],"driftwood or a straight branch":["F"],"dry birch bark from dead or fallen wood (never stripped from a living tree)":["F"],"dry leaves":["F"],"dry moss, grass, small feathers and twigs":["F"],"elder branch":["F"],"elder branch (10-12cm length)":["F"],"elder branch (length as desired)":["F"],"elder branches":["F"],"fallen autumn leaves, dry and in good condition":["F"],"fallen leaves in many colours":["F"],"feathers":["F"],"feathers)":["F"],"fine wood ash":["F"],"fir or pine sprigs":["F"],"fir sprigs":["F"],"flat stones, bricks or tiles":["E"],"flower heads":["F"],"flowers and greenery":["F"],"flowers and leaves":["F"],"flowers and vines":["F"],"foraged flowers and small leaves (picked sparingly, ones the group agrees to pick)":["F"],"four planks or sturdy poles":["E"],"fresh flowers and foliage":["F"],"fresh flowers and leaves":["F"],"fresh leaves and flowers":["F"],"fresh leaves and grasses":["F"],"fresh or dried flowers":["F"],"fresh willow withies":["F"],"fresh willow withies or hazel sticks":["F"],"grasses":["F"],"green fresh wood (30cm length)":["F"],"green fresh wood lengths (20-40cm each)":["F"],"green fresh wood poles (2 lengths)":["F"],"green fresh wood poles (2 long rails)":["F"],"green fresh wood poles (two lengths of 2-3m)":["F"],"green fresh wood poles and lengths":["F"],"green fresh wood rounds":["F"],"green fresh wood rungs (as many as needed)":["F"],"green fresh wood stakes (at least 4)":["F"],"green fresh wood stick (20-25cm)":["F"],"green hazel sticks":["F"],"green or dry stick for the handle (a good fit for the hole)":["F"],"green wood sticks":["F"],"hazel or willow sticks":["F"],"holly sprigs":["F"],"holly, ivy, pine, mistletoe":["F"],"ivy":["F"],"ivy sprigs":["F"],"ivy, pine and fir sprigs":["F"],"large bundle of silver birch twigs":["F"],"large flat leaves":["F"],"large sticks about 1 m long":["F"],"leaves":["F"],"leaves, bracken, grass or other camouflage":["F"],"long flexible grasses":["F"],"long green stems such as hazel or willow":["F"],"marigold petals":["F"],"maypole (pole + ribbons, one per child)":["E"],"moss and greenery":["F"],"moss pieces":["F"],"natural items collected on the walk (leaves":["F"],"natural items for the course":["F"],"natural materials for decoration":["F"],"natural materials gathered from the ground":["F"],"nettle stems":["F"],"oak leaves":["F"],"one or more sticks":["F"],"optional: leaves, feathers or found items for decoration":["F"],"optional: leaves, sticks and shells for decoration":["F"],"optional: wood wedge":["E"],"pebbles":["F"],"pebbles or wet sand to anchor":["F"],"pine cones":["F"],"pine or fir sprigs":["F"],"pressed flowers and leaves":["F"],"pressed leaves or flowers":["F"],"pressed leaves or fresh large leaves":["F"],"pressed or dried flowers / leaves":["F"],"reclaimed or sawn wood pieces":["E"],"rosehips (ages 5 and over only)":["F"],"rosehips (ages 5 and over, decoration only)":["F"],"round of wood (10cm long by 8cm diameter)":["F"],"rushes or straight sticks":["F"],"sand":["F"],"sand or fine soil":["F"],"seasonal decorative items (flowers":["F"],"seasonal foliage and flowers":["F"],"shells":["F"],"small stick (8-15cm)":["F"],"smooth flat stones":["F"],"smooth river pebbles":["F"],"soaked bark strips (four per sheath":["F"],"soil":["F"],"spring flowers":["F"],"spring flowers (snowdrops, daffodils)":["F"],"stick":["F"],"stick or twig (hanger)":["F"],"sticks (ten cut lengths)":["F"],"sticks for the walkway":["F"],"sticks of different thicknesses":["F"],"sticks, feathers, leaves and other found objects":["F"],"sticks, moss and leaves for decoration":["F"],"sticks, one per child":["F"],"stones":["F"],"stones of different sizes":["F"],"stones of varied sizes":["F"],"stones or sand or freshly cut turf":["F"],"straight branch ~40cm":["F"],"straight hardwood branch (30cm length)":["F"],"straight rowan branch ~40cm":["F"],"straight stick for handle (1.2m)":["F"],"straight sticks":["F"],"sturdy evergreen branches":["F"],"three small pieces of wood per bola (about 10 to 15 cm long, green or dry)":["F"],"timber for the track":["E"],"twigs":["F"],"twigs for arms and legs":["F"],"twigs or grass stems for antennae":["F"],"two green fresh wood sticks (60-80cm length)":["F"],"two green wood sticks (10-15cm for handles)":["F"],"two sticks":["F"],"two straight sticks":["F"],"untreated twigs, such as willow":["F"],"volcanic rocks (~25)":["F"],"walnut shell halves":["F"],"willow withies":["F"],"wood chip or bark mulch":["E"],"wood offcuts":["F"],"wood pieces such as thick slices or branches":["F"],"wood slices":["F"],"wooden eggs or smooth stones (instead of real eggs)":["E"],"y-shaped hardwood branch (2cm diameter)":["F"],"a heavy flat stone, log or board (as the weight)":["E"],"dry tinder":["E"],"dry tinder bundle":["E"],"dry tinder bundle and kindling":["E"],"firewood":["E"],"firewood and kindling":["E"],"firewood and kindling (leader use)":["E"],"firewood for heating":["E"],"fresh wood log":["F"],"green fresh wood rounds and logs":["F"],"green wood round (log)":["F"],"hardwood log (40cm long by 20cm diameter)":["F"],"kindling":["E"],"kindling and firewood":["E"],"logs and branches":["F"],"seasoned logs":["F"],"sticks or short logs":["F"],"stones and logs for edge habitats":["F"],"timber, logs and branches":["F"],"tinder (dry grass, bark fibre or similar)":["E"],"tinder (dry grass, bark fibre)":["E"],"boiling water":["E"],"cold water":["E"],"warm water":["E"],"water":["E"],"100 ml water":["E"],"150ml warm water":["E"],"180ml warm water":["E"],"185 ml water":["E"],"2 to 3 tbsp cold water":["E"],"200ml water":["E"],"3 tbsp water":["E"],"300ml warm water":["E"],"475 ml warm water":["E"],"500 ml cold water":["E"],"fresh spring water":["E"],"spring or tap water":["E"],"3-4 tbsp cold water (to bind pastry)":["E"],"muddy water":["F"],"apple corer and knife":["E"],"apple corer":["E"],"jam thermometer":["E"],"lemon squeezer":["E"],"led tea lights":["E"],"clothing to dye":["E"],"each child/family brings a vegan contribution (coordinate in advance — could be salads, bread, dips, fruit, baked goods)":["E"],"dye plants":["F"],"a barrel to roll down the track":["E"],"crystals":["E"],"decorated eggs":["E"],"egg boxes":["E"],"fixings chosen by the leader":["E"],"long ribbons in alternating colours (one per dancer)":["E"],"marbles":["E"],"metal crumpet rings":["E"],"old blankets or canvas":["E"],"photos or mementos (optional)":["E"],"posts":["E"],"posts or sturdy trees":["E"],"printed clues":["E"],"printed information sheets (optional)":["E"],"small meaningful objects":["E"],"small planks":["E"],"the go find it cards":["E"],"optional: small 'evidence' props":["E"],"webbing straps":["E"],"wooden holds":["E"],"wooden or papier-mâché eggs":["E"],"optional: clay to hold the pieces":["E"],"a hole, cut or hollow in a tree that is safe to use (not a nest or den)":["F"],"a large block of hardwood for the head":["F"],"additional greenery":["F"],"catkins":["F"],"evergreen climbing plants":["F"],"fresh blossom":["F"],"gravel":["F"],"long stems":["F"],"native water plants":["F"],"natural fibres":["F"],"other fresh greenery":["F"],"silver-leaved plants":["F"],"small natural decorations":["F"],"three straight hardwood rods (35-40cm)":["F"],"white and pale flowering plants":["F"],"wildflowers":["F"],"woodchip":["F"],"bird finger puppets (or balls/bean bags)":["E"],"brown paper bags (optional, for catching seeds)":["E"],"bug boxes or yogurt pots":["E"],"candle holders or jam jars":["E"],"flat stone or bowl for water reflection":["E"],"glass jam jars":["E"],"jam jars or paper bags":["E"],"moulds or jam jars":["E"],"optional: soil and small pots":["E"],"paper bags":["E"],"pumpkin carving tools (adult supervision)":["E"],"pumpkin carving tools or small knives (adult supervision)":["E"],"tin cans (baked bean type)":["E"],"a large bag of young nettle tops (about 100 g)":["F"],"dried seed heads":["F"],"dried seeds or small pebbles":["F"],"dry moss, grass, small feathers and twigs or string":["F"],"foliage and berries":["F"],"fresh lemon balm leaves":["F"],"freshly picked flowers and foliage (daisies, buttercups, clover, cow parsley, grass)":["F"],"holly, ivy, dried orange":["F"],"leaves, feathers and seed heads for printing":["F"],"leaves, grasses, seed heads":["F"],"leaves, petals, seeds and other found objects":["F"],"leaves, sticks, petals, seeds, stones and other found items":["F"],"long sticks for bread":["F"],"moss and seeds":["F"],"natural materials (sticks, seeds, stones for bones)":["F"],"petals, leaves, moss and tiny seeds":["F"],"seasonal foliage (holly, ivy, mistletoe, rosemary, eucalyptus)":["F"],"softwood branches for the handle and cup":["F"],"sticks to cross the frame":["F"],"berries, flowers for natural dye":["F"],"candles in jam jars":["S","Candles"],"candles in jars":["S","Candles"],"1 cup (180g) of uncooked long grain rice, rinsed":["S","180g uncooked long grain rice, rinsed"],"2 cups (480ml) of vegetable stock":["S","480ml vegetable stock"],"2 cups plain flour":["S","250g plain flour"],"150 g / 2/3 cup vegan butter, or margerine":["S","150g vegan butter or margarine"],"275 g / 3 cups rolled oats, gluten-free, if needed":["S","275g rolled oats (gluten-free if needed)"],"50 g / 1/4 cup light brown sugar":["S","50g light brown sugar"],"900g granulated sugar (4 and 1/2 cups)":["S","900g granulated sugar"],"1.35kg carrots (3lbs)":["S","1.35kg carrots"],"400g (14oz) pack of vegan sausages":["S","400g pack of vegan sausages"],"400g (14oz) of baked beans in tomato sauce":["S","400g baked beans in tomato sauce"],"2 cans 15 oz each chickpeas, drained and rinsed":["S","2 x 400g tins chickpeas, drained and rinsed"],"1 tablespoon cornstarch":["S","1 tablespoon cornflour"],"green onions chopped (for garnish)":["S","Spring onions, chopped (for garnish)"],"tumeric":["S","Turmeric"],"cotton cotton yarn":["S","Cotton yarn"],"digestive biscuits (check label":["S","Digestive biscuits (check the label)"],"100g marzipan (check label":["S","100g marzipan (check the label)"],"1 tablespoons paprika (not smoked)":["S","1 tablespoon paprika (not smoked)"],"props: apple, small cup":["E","Apple, small cup (props)"],"props: gold and orange ribbons":["E","Gold and orange ribbons (props)"],"props: orange and gold ribbons":["E","Orange and gold ribbons (props)"],"props: orange/red ribbons":["E","Orange/red ribbons (props)"]};
+const CONS_WATER_RE = /^(\d[\d\s./-]*(to \d+ )?(ml|l|litres?|tbsp|tsp)\s+)?(cold |warm |boiling |hot |fresh |clean )?water( \(.*\))?$/i;
+function consCleanLine(l) {
+  return String(l || '').replace(/^[\s\-*▢•·]+/, '').replace(/^\d+\.\s+/, '').replace(/^(consumables|equipment)\s*(\([^)]*\))?:\s*/i, '').replace(/\s+-$/, '').replace(/\s{2,}/g, ' ').trim();
+}
+// -> { a: 'S'|'E'|'F'|'X', text } for one consumables line
+function consAction(line) {
+  const c = consCleanLine(line);
+  const e = CONS_ACT[c.toLowerCase()];
+  if (e) return { a: e[0], text: e[1] || c };
+  if (CONS_WATER_RE.test(c)) return { a: 'E', text: c };
+  return { a: 'S', text: c };
+}
+const CONS_CARD_FIXES = {
+  'Seed cakes for birds and snacks for us': { consumables: 'Coconut oil (solidified)\nOats, raisins, peanuts\nWild bird seed mix', equipment: 'Silicone moulds or yoghurt pots\nString' },
+  'Holly Berries (decorative only)': { consumables: '', equipment: 'Small baskets or bags\nScissors or secateurs\nGloves (berries are toxic)' },
+  'Wreath': { consumables: '', addForaged: 'Seasonal decorative items (flowers, berries, seeds)' },
+  'Story stick': { consumables: 'String or natural cordage', addForaged: 'A stick\nNatural items collected on the walk (leaves, seeds, feathers)' },
+  'Bark knife sheath': { consumables: '', addForaged: 'Soaked bark strips (four per sheath, 1.2cm wide by 60cm long each)' }
+};
+function consAddLines(existing, add) {
+  const cur = String(existing || '').replace(/\\n/g, '\n').split('\n').map(x => x.trim()).filter(Boolean);
+  add.forEach(t => {
+    if (!t) return;
+    const low = t.toLowerCase();
+    if (/^water\b/.test(low) && cur.some(x => /^water\b/i.test(x))) return;
+    if (cur.some(x => x.toLowerCase() === low)) return;
+    cur.push(t.charAt(0).toUpperCase() + t.slice(1));
+  });
+  return cur.join('\n');
+}
+function auditConsumablesV16() {
+  let moved = 0, cards = 0;
+  (state.menuItems || []).forEach(m => {
+    if (!m) return;
+    const fx = CONS_CARD_FIXES[m.name];
+    let changed = false;
+    if (fx) {
+      if ('consumables' in fx) m.consumables = fx.consumables;
+      if ('equipment' in fx) m.equipment = fx.equipment;
+      if (fx.addForaged) m.foraged = consAddLines(m.foraged, fx.addForaged.split('\n'));
+      changed = true;
+    }
+    const raw = String(m.consumables || '').replace(/\\n/g, '\n');
+    if (!raw.trim()) { if (changed) cards++; return; }
+    const keep = [], toEq = [], toFor = [];
+    raw.split(/[\n•·]+/).forEach(piece => {
+      if (consCleanLine(piece).length < 2) return;
+      const r = consAction(piece);
+      if (r.a === 'S') keep.push(r.text);
+      else if (r.a === 'E') toEq.push(r.text);
+      else if (r.a === 'F') toFor.push(r.text);
+      if (r.a !== 'S') moved++;
+    });
+    const nc = keep.join('\n');
+    if (nc !== raw) {
+      m.consumables = nc;
+      if (toEq.length) m.equipment = consAddLines(m.equipment || '', toEq);
+      if (toFor.length) m.foraged = consAddLines(m.foraged, toFor);
+      changed = true;
+    }
+    if (changed) cards++;
+  });
+  return { moved, cards };
+}
+
 // Turns a Consumables field into shopping lines. Pasted captions leave headings ("Ingredients"),
 // "None" and dangling fragments ("to coat", "to serve") on lines of their own: drop the first two, join the third to the line above.
 function shopLinesFrom(text) {
@@ -18754,7 +18833,8 @@ function shopLinesFrom(text) {
     if (/^(none|n\/a|nil)\b/i.test(l) && l.length < 45) return;
     if (/^(ingredients?|nutrition|utensils?|method|equipment|consumables?|you will need|serves?\b.*|makes\b.*|prep(aration)? time.*|cook(ing)? time.*)\s*:?$/i.test(l)) return;
     if (/^(to (serve|coat|taste|dust|decorate|garnish|grease|fry|finish)|for (dusting|greasing|frying|serving|coating|the (tin|pan|top)))\b/i.test(l) && out.length) { out[out.length - 1] += ', ' + l; return; }
-    out.push(l);
+    const r = consAction(l);
+    if (r.a === 'S') out.push(r.text);
   });
   return out;
 }
