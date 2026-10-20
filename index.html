@@ -9489,7 +9489,7 @@ function loadState() {
   // defaults over deliberate changes: deleted rows reappeared, renamed rows
   // reverted, deleted sheets were recreated. To add a migration in future:
   // bump SCHEMA_TARGET and gate the new code on `schemaFrom < N`.
-  const SCHEMA_TARGET = 16;
+  const SCHEMA_TARGET = 17;
   const schemaFrom = state.meta.schemaVersion || 0;
   const runV1 = schemaFrom < 1;
   const runV2 = schemaFrom < 2;
@@ -9507,6 +9507,7 @@ function loadState() {
   const runV14 = schemaFrom < 14;
   const runV15 = schemaFrom < 15;
   const runV16 = schemaFrom < 16;
+  const runV17 = schemaFrom < 17;
   let metaChanged = false;
   const migrationLog = [];
 
@@ -10117,6 +10118,13 @@ function loadState() {
     const r16 = auditConsumablesV16();
     migrationLog.push('v16: moved ' + r16.moved + ' lines out of Consumables on ' + r16.cards + ' cards');
     if (r16.cards) purged = true;
+  }
+
+  // v17: no air-dry clay (plastic strands pollute) and no hot glue guns: natural clay and PVA only
+  if (runV17) {
+    const r17 = applyMaterialsPolicyV17();
+    migrationLog.push('v17: updated ' + r17 + ' cards (clay, PVA glue)');
+    if (r17) purged = true;
   }
 
   if (schemaFrom < SCHEMA_TARGET) {
@@ -18821,6 +18829,103 @@ function auditConsumablesV16() {
     if (changed) cards++;
   });
   return { moved, cards };
+}
+
+// ─── Materials policy: natural clay only (no air-dry clay), PVA glue only (no hot glue guns) ───
+const POLICY_NOTE_FIXES = {
+  'Acorn Gnomes': [[' Hot glue is applied by an adult only, and children never hold pieces while it is hot.', '']],
+  'Cinnamon Stick Reindeer': [
+    ['An adult sets out the materials and uses the hot glue gun. Children under 8 use craft glue.', 'An adult sets out the materials. Everyone uses PVA glue.'],
+    ['An adult glues the two sticks together, or children use craft glue and hold them while it sets.', 'Children glue the two sticks together with PVA glue and hold them for a count of thirty while it grips.']],
+  'Pinecone Elves': [[' Hot glue is applied by an adult only, and children never hold pieces while it is hot. Use PVA for children.', ' Use PVA glue and hold it for a count of thirty.']],
+  'Building & decorating wooden fairy doors': [['An adult fixes the parts together with a hot glue gun.', 'Children glue the parts together with PVA glue, holding each join for a count of thirty, and leave the door to dry flat.']],
+  'Mini fairy house village': [['An adult uses the hot glue gun to fix any pieces that need extra strength.', 'Use PVA glue to fix any pieces that need extra strength, holding each join for a count of thirty, and leave to dry.']],
+  'Twig Snowflakes': [
+    ['Under-5s watch only at the glue stage.', 'An adult helps under-5s at the glue stage.'],
+    ['on a heat-safe board', 'on a board'],
+    ['A leader applies the hot glue to each crossing, and children do not hold the pieces while glue is hot.', 'Children put PVA glue on each crossing and hold the twigs together for a count of thirty.'],
+    ['Leave the star to set flat until completely cool before anyone touches it.', 'Leave the star to dry flat until completely set before anyone moves it.']],
+  'Pinecone Owls': [
+    ['A trained adult applies hot glue to attach the pieces, and children do not hold them while the glue is hot. Under-5s watch only.', 'Children attach the pieces with PVA glue, holding each for a count of thirty. An adult helps under-5s.'],
+    ['let them cool and set completely.', 'let them dry completely.'],
+    ['Alternatively use PVA glue so the children can glue themselves.', 'Leave the owls to dry fully before they are handled.']],
+  'Moss Art Creations': [['An adult uses the hot glue gun for any heavier pieces.', 'Use extra PVA glue for any heavier pieces and hold them in place for a count of thirty.']],
+  'Twig Bunnies': [
+    ['An adult glues each piece with hot glue and sets it down to cool, while children choose where the pieces go. Children use PVA glue for any pieces they stick themselves.', 'Children glue each piece with PVA glue and hold it for a count of thirty.'],
+    ['Leave to cool and set before the bunny is handled.', 'Leave to dry fully before the bunny is handled.']],
+  'Pine Cone Bees': [
+    ['An adult attaches googly eyes with hot glue.', 'Attach googly eyes with PVA glue.'],
+    ['An adult glues the wings onto the back of each bee.', 'Glue the wings onto the back of each bee with PVA glue and hold them for a count of thirty.'],
+    ['Leave to cool and set before the bees are played with.', 'Leave to dry fully before the bees are played with.']],
+  'Pinecone Gnomes': [['An adult glues the hat to the top of the cone with hot glue.', 'Glue the hat to the top of the cone with PVA glue and hold it for a count of thirty.']],
+  'Mini fairy house village (clay)': [],
+  'Woodland creature clay sculptures': [[' and take anything glued or made of air-dry clay home', ' and take anything glued home']],
+  'Walnut Shell Boats': [['Use air-dry or modelling clay and check it is vegan.', 'Use natural clay for the ballast.']],
+  'Making and firing clay beads': [
+    ['Use air-dry clay with children. Oven firing is done only by a leader, with children watching from a distance.', 'Use natural clay with children. Kiln firing is done only by a trained adult, with children kept well away.'],
+    ['or have the leader fire them if oven-fire clay is used.', 'or have a trained adult kiln-fire them.']],
+  'Clay Beads firing': [['Give each child air-dry clay or kiln-fire clay.', 'Give each child natural clay or kiln-fire clay.']],
+  'Making clay lanterns': [['as air-dry clay is not made to be heated', 'as unfired clay is not made to be heated']],
+  'Clay pinch pots': [['Air-dry clay can be painted once dry; natural clay left to dry is fragile and is not waterproof.', 'Clay left to dry is fragile and is not waterproof, but it can be painted once dry.']]
+};
+const POLICY_LINE_FIXES = [
+  [/^natural (clay )?or air[- ]dry clay$/i, 'Natural clay'],
+  [/^air[- ]dry clay or (natural|potters?'?s?) clay$/i, 'Natural clay'],
+  [/^air[- ]dry or (oven|kiln)[- ]fire clay$/i, 'Natural or kiln-fire clay'],
+  [/^modelling clay( \(ballast\))?$/i, 'Clay$1'],
+  [/^air[- ]dr(y|ying) clay( .*)?$/i, 'Clay$2']
+];
+const AIRDRY_RE = /air[- ]dr(y|ying)(\s+or\s+(modelling|oven[- ]fire|kiln[- ]fire))?\s+clay/gi;
+function policyText(t) {
+  return String(t || '')
+    .replace(AIRDRY_RE, m => (m.charAt(0) === 'A' ? 'Clay' : 'clay'))
+    .replace(/hot[- ]?glue( gun)?/gi, 'PVA glue')
+    .replace(/craft glue/gi, 'PVA glue');
+}
+function applyMaterialsPolicyV17() {
+  let cards = 0;
+  const glueLine = l => /glue gun/i.test(l) || /^(craft|hot|epoxy|super|all[- ]purpose)\b.*glue/i.test(l) || /^(epoxy|super) ?(resin )?glue/i.test(l) || /^pva( glue)?$/i.test(l);
+  (state.menuItems || []).forEach(m => {
+    if (!m) return;
+    const before = JSON.stringify([m.notes, m.equipment, m.consumables, m.resources, m.foraged]);
+    // 1. wording of individual steps
+    (POLICY_NOTE_FIXES[m.name] || []).forEach(([a, b]) => { if (m.notes && m.notes.indexOf(a) >= 0) m.notes = m.notes.split(a).join(b); });
+    let needPva = false;
+    ['equipment', 'consumables', 'resources', 'foraged'].forEach(f => {
+      if (!m[f]) return;
+      const lines = String(m[f]).replace(/\\n/g, '\n').split('\n');
+      const out = [];
+      lines.forEach(line => {
+        let l = line;
+        const bare = l.replace(/^[\s\-*•·]+/, '').trim();
+        if (f !== 'consumables' && glueLine(bare) && /glue/i.test(bare)) { needPva = true; return; }
+        if (f === 'consumables' && /(glue gun|hot glue|epoxy)/i.test(bare)) { needPva = true; return; }
+        let fixed = null;
+        for (const [re, to] of POLICY_LINE_FIXES) { if (re.test(bare)) { fixed = bare.replace(re, to); break; } }
+        if (fixed !== null) l = fixed;
+        out.push(policyText(l));
+      });
+      const seen = new Set();
+      m[f] = out.filter(x => { const k = x.trim().toLowerCase(); if (!k) return true; if (f === 'resources') return true; if (seen.has(k)) return false; seen.add(k); return true; }).join('\n');
+    });
+    // clay is bought for the session, so it belongs in Consumables (the shopping list), not Equipment
+    if (m.equipment) {
+      const keepEq = [], clayLines = [];
+      String(m.equipment).replace(/\\n/g, '\n').split('\n').forEach(l => {
+        if (/^(natural )?(or kiln-fire )?clay\b(?!\s+(tools?|pots?|stamps?))/i.test(l.trim())) clayLines.push(l.trim()); else keepEq.push(l);
+      });
+      if (clayLines.length) { m.equipment = keepEq.join('\n'); m.consumables = consAddLines(m.consumables || '', clayLines); }
+    }
+    // 2. wording anywhere else in the notes
+    if (m.notes) m.notes = policyText(m.notes);
+    // 3. glue is a consumable, bought for the session
+    const usesGlue = needPva || /\bPVA glue\b/i.test(m.notes || '');
+    if (needPva || (usesGlue && !/pva/i.test(m.consumables || '') && /\bglue/i.test(m.notes || '') && /\bPVA glue\b/i.test(m.notes || ''))) {
+      m.consumables = consAddLines(m.consumables || '', ['PVA glue']);
+    }
+    if (JSON.stringify([m.notes, m.equipment, m.consumables, m.resources, m.foraged]) !== before) { cards++; m.userEdited = true; }
+  });
+  return cards;
 }
 
 // Turns a Consumables field into shopping lines. Pasted captions leave headings ("Ingredients"),
