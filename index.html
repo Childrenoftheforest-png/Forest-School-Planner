@@ -11405,7 +11405,7 @@ function renderCatFilters() {
   allBtn.onclick = () => { state.catFilter='all'; renderCatFilters(); renderMenu(); };
   list.appendChild(allBtn);
   for (const cat of CATEGORIES) {
-    const count = state.menuItems.filter(i=>i.cat===cat.id).length;
+    const count = state.menuItems.filter(i=>i && i.cat===cat.id && !i.hidden).length;
     const btn = document.createElement('button');
     btn.className = 'cat-filter-btn' + (state.catFilter===cat.id?' active':'');
     btn.innerHTML = `${escHtml(cat.emoji || '')} ${escHtml(cat.label)} <span class="cat-count">${count}</span>`;
