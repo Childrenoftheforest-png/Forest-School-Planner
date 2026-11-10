@@ -9606,6 +9606,9 @@ function loadState() {
     });
   }
 
+  // Unsaved drafts from the activity panel must never survive a reload
+  state.menuItems = state.menuItems.filter(i => !(i && i._draft));
+
   // Fix items saved with category labels instead of IDs (e.g. "Wide Games" → "wide")
   const validIds = new Set(CATEGORIES.map(c => c.id));
   const baseNameCatQuick = {};
@@ -11405,7 +11408,7 @@ function renderCatFilters() {
   allBtn.onclick = () => { state.catFilter='all'; renderCatFilters(); renderMenu(); };
   list.appendChild(allBtn);
   for (const cat of CATEGORIES) {
-    const count = state.menuItems.filter(i=>i && i.cat===cat.id && !i.hidden).length;
+    const count = state.menuItems.filter(i=>i && i.cat===cat.id && !i.hidden && !i._draft).length;
     const btn = document.createElement('button');
     btn.className = 'cat-filter-btn' + (state.catFilter===cat.id?' active':'');
     btn.innerHTML = `${escHtml(cat.emoji || '')} ${escHtml(cat.label)} <span class="cat-count">${count}</span>`;
@@ -11472,14 +11475,27 @@ let detailPanelState = { itemIndex: -1, isBaseItem: false };
 
 function findOrCreateMenuItem(name) {
   // Try exact name match first
-  let idx = state.menuItems.findIndex(i => i.name === name);
+  let idx = state.menuItems.findIndex(i => i && i.name === name);
   if (idx === -1) {
-    // Create a stub entry so base items become editable
-    const stub = { name, cat: 'wide', month: 'Jan', link: '', notes: '', resources: '' };
-    state.menuItems.push(stub);
+    // A built-in that isn't in this menu yet: copy it so it keeps its real
+    // category and month. Otherwise (text typed straight into a plan cell) make a
+    // DRAFT only: it is discarded when the panel closes unless saved, and never
+    // silently filed as Wide Games / January (the old stub behaviour).
+    const base = (typeof MENU_ITEMS_BASE !== 'undefined') ? MENU_ITEMS_BASE.find(b => b && b.name === name) : null;
+    const item = base
+      ? { ...base }
+      : { name, cat: 'misc', month: 'all', link: '', notes: '', resources: '', equipment: '', consumables: '', foraged: '', _draft: true };
+    state.menuItems.push(item);
     idx = state.menuItems.length - 1;
   }
   return idx;
+}
+
+// Drop an unsaved draft created by findOrCreateMenuItem
+function discardDraftMenuItem(item) {
+  if (!item || !item._draft) return;
+  const i = state.menuItems.indexOf(item);
+  if (i >= 0) state.menuItems.splice(i, 1);
 }
 
 function openDetailPanel(name, catId) {
@@ -11563,6 +11579,8 @@ function openDetailPanel(name, catId) {
 function closeDetailPanel() {
   document.getElementById('detailBackdrop').classList.remove('open');
   document.getElementById('detailPanel').classList.remove('open');
+  const idx = detailPanelState.itemIndex;
+  if (idx >= 0) discardDraftMenuItem(state.menuItems[idx]);
   detailPanelState.itemIndex = -1;
 }
 
@@ -11595,6 +11613,7 @@ function saveDetailPanel() {
     ageRange: document.getElementById('dpAgeRange').value,
     additionalRiskNotes: document.getElementById('dpAdditionalRiskNotes').value.trim(),
   };
+  delete state.menuItems[idx]._draft;
 
   // Update header display
   const item = state.menuItems[idx];
@@ -16194,6 +16213,8 @@ function mOpenActivityPanel(name) {
 function mClosePanel() {
   document.getElementById('mPanelBackdrop').classList.remove('open');
   document.getElementById('mPanel').classList.remove('open');
+  const draft = state.menuItems.find(i => i && i._draft && i.name === mPanelCurrentName);
+  if (draft) discardDraftMenuItem(draft);
 }
 
 // ── Day Resources Panel ──
@@ -17068,7 +17089,7 @@ const VALID_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct
 
 // ─── EXPORT ───────────────────────────────────────────────────
 function exportMenuCsv() {
-  const allItems = state.menuItems.filter(i => i && i.name && !i.hidden);
+  const allItems = state.menuItems.filter(i => i && i.name && !i.hidden && !i._draft);
   const rows = [CSV_HEADERS];
 
   allItems.forEach(item => {
@@ -17227,6 +17248,7 @@ function parseCsvAndPreview(text) {
   csvParsedRows = [];
   let csvConflicts = [];
   let skippedDupe = 0, skippedBad = 0, warnings = [];
+  const rejected = []; // rows refused outright: never guessed into a default
 
   dataRows.forEach((row, ri) => {
     const name = row[nameIdx] || '';
@@ -17245,8 +17267,10 @@ function parseCsvAndPreview(text) {
     // Validate category — accept both human-readable labels and internal IDs
     let finalCat = resolveCsvCategory(cat);
     if (!finalCat) {
-      finalCat = 'static';
-      warnings.push(`Row ${ri+2}: unknown category "${cat}" — set to "Games"`);
+      // Previously fell back to Static Games, which is how recipes and crafts
+      // ended up filed as games. Refuse the row instead.
+      rejected.push(`Row ${ri+2} "${name}": unknown category "${row[catIdx] || ''}"`);
+      return;
     }
 
     // Validate month — 'all'/'year round' stored as single item with month:'all'
@@ -17267,8 +17291,14 @@ function parseCsvAndPreview(text) {
         return match || null;
       }).filter(Boolean);
       if (months.length === 0) {
-        months = ['Jan'];
-        warnings.push(`Row ${ri+2}: unrecognised month "${month}" — set to Jan`);
+        // Previously fell back to Jan. Refuse the row instead.
+        rejected.push(`Row ${ri+2} "${name}": unrecognised month "${month}"`);
+        return;
+      }
+      if (months.length > 1) {
+        // One record per activity at its peak month: never split into copies
+        rejected.push(`Row ${ri+2} "${name}": has ${months.length} months ("${month}"); give one peak month or "all"`);
+        return;
       }
     }
 
@@ -17348,6 +17378,11 @@ function parseCsvAndPreview(text) {
   }
   if (skippedDupe > 0) msg += `<br><span style="color:var(--bark-light);">✓ ${skippedDupe} unchanged — already match your menu</span>`;
   if (skippedBad > 0)  msg += `<br><span class="csv-preview-warn">⚠ ${skippedBad} row${skippedBad===1?' was':'s were'} skipped — missing name</span>`;
+  if (rejected.length) {
+    msg += `<br><span class="csv-preview-err">✗ ${rejected.length} row${rejected.length===1?' was':'s were'} not imported. Fix ${rejected.length===1?'it':'them'} in the CSV and import again:</span>`;
+    rejected.slice(0,8).forEach(r => { msg += `<br><span class="csv-preview-err">&nbsp;&nbsp;• ${escHtml(r)}</span>`; });
+    if (rejected.length > 8) msg += `<br><span class="csv-preview-err">&nbsp;&nbsp;… and ${rejected.length - 8} more</span>`;
+  }
   warnings.slice(0,5).forEach(w => { msg += `<br><span class="csv-preview-warn">⚠ ${escHtml(w)}</span>`; });
   if (warnings.length > 5) msg += `<br><span class="csv-preview-warn">… and ${warnings.length - 5} more warnings</span>`;
   if (newCount === 0 && conflictCount === 0) msg += (msg?'<br>':'') + '<span class="csv-preview-err">Nothing to add or update.</span>';
@@ -18315,9 +18350,16 @@ function applyAlignChoices() {
       // Do nothing — keep existing
     } else if (choice === 'csv') {
       // Update the existing item in place, or add it if it wasn't found
-      const existing = state.menuItems.find(i => i && i.name === conflict.name);
+      const existing = state.menuItems.find(i => i && i.name === conflict.name && !i.hidden)
+                    || state.menuItems.find(i => i && i.name === conflict.name);
       if (existing) {
-        Object.assign(existing, conflict.csvItem);
+        // Copy only fields the CSV row actually fills in: a blank CSV cell must
+        // never wipe notes, kit or method already in the menu.
+        Object.entries(conflict.csvItem).forEach(([k, v]) => {
+          if (v === undefined || v === null || (typeof v === 'string' && v.trim() === '')) return;
+          existing[k] = v;
+        });
+        if (conflict.csvItem.equipment && conflict.csvItem.equipment.trim()) existing.resources = conflict.csvItem.equipment;
       } else {
         state.menuItems.push({...conflict.csvItem});
       }
@@ -18471,6 +18513,7 @@ function mSaveEdits() {
   if (!newName) { alert('Name cannot be empty.'); return; }
 
   const item = state.menuItems[idx];
+  delete item._draft;
   item.name      = newName;
   item.month     = newMonth;
   item.cat       = newCat;
